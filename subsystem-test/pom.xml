@@ -39,7 +39,6 @@
 
     <modules>
         <module>framework</module>
-        <module>test-controller-7.1.2</module>
         <module>test-controller-7.2.0</module>
         <module>test-controller-optional</module>
         <module>tests</module>
@@ -57,5 +56,20 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    
+    <profiles>
+      <profile>
+         <id>7.1.2 deprecated config</id>
+         <activation>
+            <property>
+               <name>jboss.test.transformers.subsystem.old</name>
+            </property>
+         </activation>
+	      <modules>
+	        <module>test-controller-7.1.2</module>
+	      </modules>
+      </profile>
+    </profiles>
+    
 
 </project>
