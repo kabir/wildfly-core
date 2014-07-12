@@ -33,12 +33,9 @@ import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.transform.ResourceTransformationContext;
 import org.jboss.as.controller.transform.ResourceTransformer;
 import org.jboss.as.controller.transform.TransformationContext;
-import org.jboss.as.controller.transform.TransformersSubRegistration;
 import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
 import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.TransformationDescription;
-import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
 import org.jboss.as.domain.management.CoreManagementResourceDefinition;
 import org.jboss.as.domain.management.access.AccessAuthorizationResourceDefinition;
 import org.jboss.dmr.ModelNode;
@@ -55,10 +52,10 @@ class ManagementTransformers {
      *
      * @param domain the domain level registration
      */
-    static void registerTransformersPreRBAC(TransformersSubRegistration domain) {
+    static void registerTransformersPreRBAC(ResourceTransformationDescriptionBuilder parent) {
+        ResourceTransformationDescriptionBuilder builder = parent.addChildResource(CoreManagementResourceDefinition.PATH_ELEMENT);
         // Discard the domain level core-service=management resource and its children unless RBAC is enabled
         // Configuring rbac details is OK (i.e. discarable), so long as the provider is not enabled
-        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(CoreManagementResourceDefinition.PATH_ELEMENT);
         builder.setCustomResourceTransformer(new ResourceTransformer() {
             @Override
             public void transformResource(ResourceTransformationContext context, PathAddress address, Resource resource) throws OperationFailedException {
@@ -93,8 +90,6 @@ class ManagementTransformers {
         accessBuilder.discardChildResource(PathElement.pathElement(ModelDescriptionConstants.ROLE_MAPPING));
         accessBuilder.discardChildResource(PathElement.pathElement(ModelDescriptionConstants.SERVER_GROUP_SCOPED_ROLE));
         accessBuilder.discardChildResource(PathElement.pathElement(ModelDescriptionConstants.HOST_SCOPED_ROLE));
-
-        TransformationDescription.Tools.register(builder.build(), domain);
     }
 
     private ManagementTransformers() {

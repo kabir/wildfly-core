@@ -24,12 +24,9 @@ package org.jboss.as.domain.controller.transformers;
 
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.transform.TransformationContext;
-import org.jboss.as.controller.transform.TransformersSubRegistration;
 import org.jboss.as.controller.transform.description.AttributeConverter;
 import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.TransformationDescription;
-import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
 import org.jboss.as.domain.controller.resources.ServerGroupResourceDefinition;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
@@ -41,8 +38,8 @@ import org.jboss.dmr.ModelType;
  */
 class ServerGroupTransformers {
 
-    static void registerTransformers120(TransformersSubRegistration parent) {
-        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(ServerGroupResourceDefinition.PATH)
+    static void registerTransformers120(ResourceTransformationDescriptionBuilder parent) {
+        ResourceTransformationDescriptionBuilder builder = parent.addChildResource(ServerGroupResourceDefinition.PATH)
                 .getAttributeBuilder()
                 .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, ServerGroupResourceDefinition.MANAGEMENT_SUBSYSTEM_ENDPOINT, ServerGroupResourceDefinition.SOCKET_BINDING_PORT_OFFSET)
                 .setValueConverter(new AttributeConverter.DefaultAttributeConverter() {
@@ -56,17 +53,13 @@ class ServerGroupTransformers {
                     }
                 }, ServerGroupResourceDefinition.MANAGEMENT_SUBSYSTEM_ENDPOINT)
                 .end();
-        TransformersSubRegistration serverGroup = TransformationDescription.Tools.register(builder.build(), parent);
-
-        DeploymentTransformers.registerTransformers120(serverGroup);
-
-        SystemPropertyTransformers.registerTransformers120(serverGroup);
-        JvmTransformers.registerTransformers120(serverGroup);
+        JvmTransformers.registerTransformers120(builder);
+        SystemPropertyTransformers.registerTransformers120(builder);
+        DeploymentTransformers.registerTransformers120(builder);
     }
 
-    static void registerTransformers14_21(TransformersSubRegistration parent) {
-        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(ServerGroupResourceDefinition.PATH);
-        TransformersSubRegistration serverGroup = TransformationDescription.Tools.register(builder.build(), parent);
-        JvmTransformers.registerTransformers14_21(serverGroup);
+    public static void registerTransformers14_21(ResourceTransformationDescriptionBuilder parentBuilder) {
+        ResourceTransformationDescriptionBuilder builder = parentBuilder.addChildResource(ServerGroupResourceDefinition.PATH);
+        JvmTransformers.registerTransformers14_21(builder);
     }
 }

@@ -26,7 +26,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEP
 
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.transform.AddNameFromAddressResourceTransformer;
-import org.jboss.as.controller.transform.TransformersSubRegistration;
+import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 
 /**
  * Transformer registration for the deployment resources.
@@ -35,8 +35,9 @@ import org.jboss.as.controller.transform.TransformersSubRegistration;
  */
 class DeploymentTransformers {
 
-    static void registerTransformers120(TransformersSubRegistration parent) {
-        parent.registerSubResource(PathElement.pathElement(DEPLOYMENT), AddNameFromAddressResourceTransformer.INSTANCE);
+    static void registerTransformers120(ResourceTransformationDescriptionBuilder parent) {
+        parent.addChildResource(PathElement.pathElement(DEPLOYMENT))
+                .setCustomResourceTransformer(AddNameFromAddressResourceTransformer.INSTANCE);
     }
 
 }

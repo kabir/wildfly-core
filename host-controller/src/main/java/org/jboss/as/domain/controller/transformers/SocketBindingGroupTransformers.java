@@ -23,8 +23,7 @@
 package org.jboss.as.domain.controller.transformers;
 
 import org.jboss.as.controller.resource.SocketBindingGroupResourceDefinition;
-import org.jboss.as.controller.transform.ResourceTransformer;
-import org.jboss.as.controller.transform.TransformersSubRegistration;
+import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 
 /**
  * The older versions of the model do not allow expressions for some socket-binding resource attributes.
@@ -34,8 +33,8 @@ import org.jboss.as.controller.transform.TransformersSubRegistration;
  */
 class SocketBindingGroupTransformers {
 
-    static void registerTransformers120(TransformersSubRegistration parent) {
-        TransformersSubRegistration reg = parent.registerSubResource(SocketBindingGroupResourceDefinition.PATH, ResourceTransformer.DEFAULT);
-        SocketBindingTransformers.registerTransformers(reg);
+    static void registerTransformers120(ResourceTransformationDescriptionBuilder parent) {
+        ResourceTransformationDescriptionBuilder builder = parent.addChildResource(SocketBindingGroupResourceDefinition.PATH);
+        SocketBindingTransformers.registerTransformers(builder);
     }
 }

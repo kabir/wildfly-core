@@ -34,12 +34,9 @@ import org.jboss.as.controller.transform.OperationResultTransformer;
 import org.jboss.as.controller.transform.OperationTransformer;
 import org.jboss.as.controller.transform.RejectExpressionValuesTransformer;
 import org.jboss.as.controller.transform.TransformationContext;
-import org.jboss.as.controller.transform.TransformersSubRegistration;
 import org.jboss.as.controller.transform.description.AttributeConverter;
 import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.TransformationDescription;
-import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
 import org.jboss.as.server.controller.resources.SystemPropertyResourceDefinition;
 import org.jboss.dmr.ModelNode;
 
@@ -56,9 +53,9 @@ class SystemPropertyTransformers {
             new RejectExpressionValuesTransformer(SystemPropertyResourceDefinition.VALUE, SystemPropertyResourceDefinition.BOOT_TIME);
 
 
-    static void registerTransformers120(TransformersSubRegistration parent) {
+    static void registerTransformers120(ResourceTransformationDescriptionBuilder parent) {
 
-        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(SystemPropertyResourceDefinition.PATH)
+        parent.addChildResource(SystemPropertyResourceDefinition.PATH)
             .getAttributeBuilder()
                 .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, SystemPropertyResourceDefinition.VALUE, SystemPropertyResourceDefinition.BOOT_TIME)
                 .setValueConverter(new AttributeConverter.DefaultAttributeConverter(){
@@ -85,8 +82,6 @@ class SystemPropertyTransformers {
                     return OperationTransformer.DEFAULT.transformOperation(context, address, operation);
                 }
             });
-
-        TransformationDescription.Tools.register(builder.build(), parent);
     }
 
 

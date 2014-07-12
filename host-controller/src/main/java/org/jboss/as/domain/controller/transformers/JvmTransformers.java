@@ -35,12 +35,9 @@ import static org.jboss.as.host.controller.model.jvm.JvmAttributes.OPTIONS;
 import static org.jboss.as.host.controller.model.jvm.JvmAttributes.PERMGEN_SIZE;
 import static org.jboss.as.host.controller.model.jvm.JvmAttributes.STACK_SIZE;
 
-import org.jboss.as.controller.transform.TransformersSubRegistration;
 import org.jboss.as.controller.transform.description.DiscardAttributeChecker;
 import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.TransformationDescription;
-import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
 import org.jboss.as.host.controller.model.jvm.JvmResourceDefinition;
 
 /**
@@ -51,8 +48,8 @@ import org.jboss.as.host.controller.model.jvm.JvmResourceDefinition;
  */
 class JvmTransformers {
 
-    static void registerTransformers120(TransformersSubRegistration parent) {
-        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(JvmResourceDefinition.GLOBAL.getPathElement())
+    static void registerTransformers120(ResourceTransformationDescriptionBuilder parent) {
+        parent.addChildResource(JvmResourceDefinition.GLOBAL.getPathElement())
                 .getAttributeBuilder()
                 .setDiscard(DiscardAttributeChecker.UNDEFINED, LAUNCH_COMMAND)
                 .addRejectCheck(RejectAttributeChecker.DEFINED, LAUNCH_COMMAND)
@@ -60,16 +57,14 @@ class JvmTransformers {
                         PERMGEN_SIZE, MAX_PERMGEN_SIZE,
                         STACK_SIZE, OPTIONS, ENVIRONMENT_VARIABLES, ENV_CLASSPATH_IGNORED, AGENT_LIB, JAVA_AGENT)
                 .end();
-        TransformationDescription.Tools.register(builder.build(), parent);
     }
 
-    static void registerTransformers14_21(TransformersSubRegistration parent) {
-        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(JvmResourceDefinition.GLOBAL.getPathElement())
+    static void registerTransformers14_21(ResourceTransformationDescriptionBuilder parent) {
+        parent.addChildResource(JvmResourceDefinition.GLOBAL.getPathElement())
                 .getAttributeBuilder()
                     .setDiscard(DiscardAttributeChecker.UNDEFINED, LAUNCH_COMMAND)
                     .addRejectCheck(RejectAttributeChecker.DEFINED, LAUNCH_COMMAND)
                 .end();
-        TransformationDescription.Tools.register(builder.build(), parent);
     }
 
 

@@ -26,12 +26,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD
 
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.services.path.PathResourceDefinition;
-import org.jboss.as.controller.transform.TransformersSubRegistration;
 import org.jboss.as.controller.transform.description.AttributeConverter;
 import org.jboss.as.controller.transform.description.RejectAttributeChecker;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
-import org.jboss.as.controller.transform.description.TransformationDescription;
-import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
 
 /**
  * Transformer registration for the domain-level path resources.
@@ -40,9 +37,8 @@ import org.jboss.as.controller.transform.description.TransformationDescriptionBu
  */
 class PathsTransformers {
 
-    static void registerTransformers120(TransformersSubRegistration parent) {
-
-        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(PathResourceDefinition.PATH_ADDRESS)
+    static void registerTransformers120(ResourceTransformationDescriptionBuilder parent) {
+        parent.addChildResource(PathResourceDefinition.PATH_ADDRESS)
              .getAttributeBuilder()
                 .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, PathResourceDefinition.PATH)
                 .setValueConverter(AttributeConverter.NAME_FROM_ADDRESS, ModelDescriptionConstants.NAME)
@@ -50,7 +46,5 @@ class PathsTransformers {
             .addOperationTransformationOverride(ADD)
                 .addRejectCheck(RejectAttributeChecker.SIMPLE_EXPRESSIONS, PathResourceDefinition.PATH)
                 .end();
-
-        TransformationDescription.Tools.register(builder.build(), parent);
     }
 }
