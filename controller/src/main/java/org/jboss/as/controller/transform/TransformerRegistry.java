@@ -110,15 +110,6 @@ public final class TransformerRegistry {
         return new TransformersSubRegistrationImpl(range, subsystem, subsystemAddress);
     }
 
-    public TransformersSubRegistration registerDomainTransformers(final ModelVersionRange range, final ResourceTransformer subsystemTransformer, final OperationTransformer operationTransformer, boolean placeholder) {
-        final PathAddress subsystemAddress = PathAddress.EMPTY_ADDRESS;
-        for(final ModelVersion version : range.getVersions()) {
-            domain.createChildRegistry(subsystemAddress, version, subsystemTransformer, operationTransformer, placeholder);
-        }
-        return new TransformersSubRegistrationImpl(range, domain, subsystemAddress);
-
-    }
-
     /**
      * Get the sub registry for the domain.
      *

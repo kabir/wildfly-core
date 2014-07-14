@@ -90,7 +90,7 @@ public class AccessAuthorizationTransformationTestCase extends AbstractCoreModel
         if (ModelVersion.compare(ModelVersion.create(1, 4, 0), modelVersion) > 0) {
             return;
         }
-        System.out.println(modelVersion);
+
         KernelServicesBuilder builder = createKernelServicesBuilder(TestModelType.DOMAIN)
                 .setXmlResource("domain-transform-rbac-provider.xml");
 
