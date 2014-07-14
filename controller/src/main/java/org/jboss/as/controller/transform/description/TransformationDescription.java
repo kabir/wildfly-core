@@ -33,7 +33,6 @@ import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.transform.OperationTransformer;
 import org.jboss.as.controller.transform.PathAddressTransformer;
 import org.jboss.as.controller.transform.ResourceTransformer;
-import org.jboss.as.controller.transform.TransformerRegistry;
 import org.jboss.as.controller.transform.TransformersSubRegistration;
 
 /**
@@ -156,7 +155,7 @@ public interface TransformationDescription {
          * @param description the subsystem transformation description
          * @param registration the subsystem registrations
          * @param range the model version range the transformation applies to
-         * @return the created sub registration
+         * @return the create sub registration
          */
         public static TransformersSubRegistration register(TransformationDescription description, SubsystemRegistration registration, ModelVersionRange range) {
             final TransformersSubRegistration subRegistration = registration.registerModelTransformers(range, description.getResourceTransformer(),
@@ -172,23 +171,5 @@ public interface TransformationDescription {
             return subRegistration;
         }
 
-        /**
-         * Register a domain level transformation description
-         *
-         * @param description The top-level domain description
-         * @param registry the transformer registry
-         * @param versions the model versions the transformetion applies to
-         * @return the created sub registration
-         */
-        public static TransformersSubRegistration registerForDomain(TransformationDescription description, TransformerRegistry registry, ModelVersion...versions) {
-            final ModelVersionRange range = ModelVersionRange.Versions.range(versions);
-            final TransformersSubRegistration subRegistration = registry.getDomainRegistration(range);
-
-            for (final TransformationDescription child : description.getChildren()) {
-                register(child, subRegistration);
-            }
-
-            return subRegistration;
-        }
     }
 }
