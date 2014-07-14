@@ -182,7 +182,8 @@ public interface TransformationDescription {
          */
         public static TransformersSubRegistration registerForDomain(TransformationDescription description, TransformerRegistry registry, ModelVersion...versions) {
             final ModelVersionRange range = ModelVersionRange.Versions.range(versions);
-            final TransformersSubRegistration subRegistration = registry.getDomainRegistration(range);
+            final TransformersSubRegistration subRegistration = registry.registerDomainTransformers(range, description.getResourceTransformer(),
+                    description.getOperationTransformer(), description.isPlaceHolder());
 
             for (final TransformationDescription child : description.getChildren()) {
                 register(child, subRegistration);
