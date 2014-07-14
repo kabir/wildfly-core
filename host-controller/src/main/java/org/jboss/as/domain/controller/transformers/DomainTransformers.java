@@ -40,11 +40,9 @@ import org.jboss.as.controller.transform.ResourceTransformer;
 import org.jboss.as.controller.transform.TransformationTarget;
 import org.jboss.as.controller.transform.TransformerRegistry;
 import org.jboss.as.controller.transform.TransformersSubRegistration;
-import org.jboss.as.controller.transform.description.ChainedTransformationDescriptionBuilder;
 import org.jboss.as.controller.transform.description.ResourceTransformationDescriptionBuilder;
 import org.jboss.as.controller.transform.description.TransformationDescription;
 import org.jboss.as.controller.transform.description.TransformationDescriptionBuilder;
-import org.jboss.as.version.Version;
 
 /**
  * Global transformation rules for the domain, host and server-config model.
@@ -80,27 +78,18 @@ public class DomainTransformers {
      */
     public static void initializeDomainRegistry(final TransformerRegistry registry) {
 
-        final ModelVersion currentVersion = ModelVersion.create(Version.MANAGEMENT_MAJOR_VERSION, Version.MANAGEMENT_MINOR_VERSION, Version.MANAGEMENT_MICRO_VERSION);
-        final ChainedTransformationDescriptionBuilder chainedBuilder = TransformationDescriptionBuilder.Factory.createChainedInstance(null, currentVersion);
+        initializeDomainRegistryEAP60(registry, VERSION_1_2);
+        initializeDomainRegistryEAP60(registry, VERSION_1_3);
+        initializeDomainRegistry14(registry, VERSION_1_4);
+        initializeDomainRegistry15_21(registry, VERSION_1_5);
+        initializeDomainRegistry15_21(registry, VERSION_1_6);
+        initializeDomainRegistry15_21(registry, VERSION_2_0);
+        initializeDomainRegistry15_21(registry, VERSION_2_1);
+    }
 
-        //The chains for transforming will be as follows
-        //For WildFly: 3.0.0 -> 2.1.0 -> 2.0.0
-        //For JBoss EAP and AS 7 releases: 3.0.0 -> 1.6.0 -> 1.5.0 -> 1.4.0 -> 1.3.0 -> 1.2.0
+    private static void initializeDomainRegistryEAP60(TransformerRegistry registry, ModelVersion modelVersion) {
+        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(null);
 
-        //////////////////////////////////////////////////////////////////////////////////////
-        // Build up the chains
-
-        //JBoss EAP and AS releases
-        //No change 1.3->1.2
-        ResourceTransformationDescriptionBuilder builder = chainedBuilder.createBuilder(currentVersion, VERSION_1_6);
-        ServerGroupTransformers.registerTransformers14_21(builder);
-
-        chainedBuilder.createBuilder(VERSION_1_6, VERSION_1_5);
-
-        builder = chainedBuilder.createBuilder(VERSION_1_5, VERSION_1_4);
-        ManagementTransformers.registerTransformersPreRBAC(builder);
-
-        builder = chainedBuilder.createBuilder(VERSION_1_4, VERSION_1_3);
         ManagementTransformers.registerTransformersPreRBAC(builder);
         SystemPropertyTransformers.registerTransformers120(builder);
         PathsTransformers.registerTransformers120(builder);
@@ -111,40 +100,25 @@ public class DomainTransformers {
         builder.addChildResource(PathElement.pathElement(INTERFACE))
             .setCustomResourceTransformer(AddNameFromAddressResourceTransformer.INSTANCE);
 
+        TransformersSubRegistration domain = TransformationDescription.Tools.registerForDomain(builder.build(), registry, modelVersion);
 
-        chainedBuilder.createBuilder(VERSION_1_3, VERSION_1_2);
-
-        //For WildFly
-        builder = chainedBuilder.createBuilder(currentVersion, VERSION_2_1);
-        ServerGroupTransformers.registerTransformers14_21(builder);
-
-        chainedBuilder.createBuilder(VERSION_2_1, VERSION_2_0);
-
-        //////////////////////////////////////////////////////////////////////////////////////
-        // Register the chains
-
-        //JBoss EAP and AS releases
-        registerExtraTransformers_1_2_and_1_3(registry, registerTransformers(registry, chainedBuilder, VERSION_1_2, VERSION_1_3, VERSION_1_4, VERSION_1_5, VERSION_1_6));
-        registerExtraTransformers_1_2_and_1_3(registry, registerTransformers(registry, chainedBuilder, VERSION_1_3, VERSION_1_4, VERSION_1_5, VERSION_1_6));
-        registerTransformers(registry, chainedBuilder, VERSION_1_4, VERSION_1_5, VERSION_1_6);
-        registerTransformers(registry, chainedBuilder, VERSION_1_5, VERSION_1_6);
-        registerTransformers(registry, chainedBuilder, VERSION_1_6);
-
-        //For WildFly
-        registerTransformers(registry, chainedBuilder, VERSION_2_0, VERSION_2_1);
-        registerTransformers(registry, chainedBuilder, VERSION_2_1);
-    }
-
-
-    private static TransformersSubRegistration registerTransformers(TransformerRegistry registry, ChainedTransformationDescriptionBuilder builder, ModelVersion toVersion, ModelVersion...intermediates) {
-        return TransformationDescription.Tools.registerForDomain(builder.build(toVersion, intermediates), registry, intermediates);
-    }
-
-    private static void registerExtraTransformers_1_2_and_1_3(TransformerRegistry registry, TransformersSubRegistration domain) {
-        if (true) return;
-        //TODO convert this to chained once mixed-domain testing is working
+        // Discard all operations to the newly introduced jsf extension
         domain.registerSubResource(JSF_EXTENSION, IGNORED_EXTENSIONS);
+
         JSFSubsystemTransformers.registerTransformers120(registry, domain);
+    }
+
+    private static void initializeDomainRegistry14(TransformerRegistry registry, ModelVersion version) {
+        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(null);
+        ManagementTransformers.registerTransformersPreRBAC(builder);
+        ServerGroupTransformers.registerTransformers14_21(builder);
+        TransformationDescription.Tools.registerForDomain(builder.build(), registry, version);
+    }
+
+    private static void initializeDomainRegistry15_21(TransformerRegistry registry, ModelVersion version) {
+        ResourceTransformationDescriptionBuilder builder = TransformationDescriptionBuilder.Factory.createInstance(null);
+        ServerGroupTransformers.registerTransformers14_21(builder);
+        TransformationDescription.Tools.registerForDomain(builder.build(), registry, version);
     }
 
     private static final ResourceTransformer IGNORED_EXTENSIONS = new IgnoreExtensionResourceTransformer();
