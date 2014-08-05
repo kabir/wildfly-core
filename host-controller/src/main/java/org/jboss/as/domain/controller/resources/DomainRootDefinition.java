@@ -78,8 +78,8 @@ import org.jboss.as.controller.services.path.PathResourceDefinition;
 import org.jboss.as.controller.transform.SubsystemDescriptionDump;
 import org.jboss.as.domain.controller.DomainController;
 import org.jboss.as.domain.controller.HostRegistrations;
-import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.as.domain.controller.LocalHostControllerInfo;
+import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.as.domain.controller.operations.ApplyExtensionsHandler;
 import org.jboss.as.domain.controller.operations.ApplyMissingDomainModelResourcesHandler;
 import org.jboss.as.domain.controller.operations.ApplyRemoteMasterDomainModelHandler;
@@ -88,7 +88,6 @@ import org.jboss.as.domain.controller.operations.DomainSocketBindingGroupRemoveH
 import org.jboss.as.domain.controller.operations.GenericModelDescribeOperationHandler;
 import org.jboss.as.domain.controller.operations.LocalHostNameOperationHandler;
 import org.jboss.as.domain.controller.operations.ProcessTypeHandler;
-import org.jboss.as.domain.controller.operations.ReadMasterDomainOperationsHandler;
 import org.jboss.as.domain.controller.operations.ResolveExpressionOnDomainHandler;
 import org.jboss.as.domain.controller.operations.SocketBindingGroupAddHandler;
 import org.jboss.as.domain.controller.operations.deployment.DeploymentFullReplaceHandler;
@@ -258,6 +257,8 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
         resourceRegistration.registerOperationHandler(SchemaLocationAddHandler.DEFINITION, SchemaLocationAddHandler.INSTANCE);
         resourceRegistration.registerOperationHandler(SchemaLocationRemoveHandler.DEFINITION, SchemaLocationRemoveHandler.INSTANCE);
 
+        resourceRegistration.registerOperationHandler(GenericModelDescribeOperationHandler.DEFINITION, GenericModelDescribeOperationHandler.INSTANCE, true);
+
         if (isMaster) {
             DeploymentUploadURLHandler.registerMaster(resourceRegistration, contentRepo);
             DeploymentUploadStreamAttachmentHandler.registerMaster(resourceRegistration, contentRepo);
@@ -272,9 +273,6 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
 
             final SubsystemDescriptionDump dumper = new SubsystemDescriptionDump(extensionRegistry);
             resourceRegistration.registerOperationHandler(SubsystemDescriptionDump.DEFINITION, dumper);
-
-            resourceRegistration.registerOperationHandler(GenericModelDescribeOperationHandler.DEFINITION, GenericModelDescribeOperationHandler.INSTANCE, true);
-            resourceRegistration.registerOperationHandler(ReadMasterDomainOperationsHandler.DEFINITION, ReadMasterDomainOperationsHandler.INSTANCE);
 
         } else {
             DeploymentUploadURLHandler.registerSlave(resourceRegistration);

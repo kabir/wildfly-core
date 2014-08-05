@@ -35,6 +35,8 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.jboss.as.host.controller.logging.HostControllerLogger.ROOT_LOGGER;
 
+import javax.net.ssl.SSLHandshakeException;
+import javax.security.sasl.SaslException;
 import java.io.DataInput;
 import java.io.File;
 import java.io.IOException;
@@ -48,9 +50,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
-
-import javax.net.ssl.SSLHandshakeException;
-import javax.security.sasl.SaslException;
 
 import org.jboss.as.controller.CurrentOperationIdHolder;
 import org.jboss.as.controller.HashUtil;
@@ -82,6 +81,8 @@ import org.jboss.as.domain.controller.operations.ApplyExtensionsHandler;
 import org.jboss.as.domain.controller.operations.ApplyMissingDomainModelResourcesHandler;
 import org.jboss.as.domain.controller.operations.ApplyRemoteMasterDomainModelHandler;
 import org.jboss.as.domain.controller.operations.PullDownDataForServerConfigOnSlaveHandler;
+import org.jboss.as.domain.controller.operations.ReadMasterDomainOperationsHandler;
+import org.jboss.as.domain.controller.operations.SyncMasterDomainDomainHandler;
 import org.jboss.as.domain.controller.operations.coordination.DomainControllerLockIdUtils;
 import org.jboss.as.domain.management.SecurityRealm;
 import org.jboss.as.host.controller.discovery.DiscoveryOption;
@@ -183,6 +184,8 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
     private ManagementChannelHandler handler;
     private volatile ResponseAttachmentInputStreamSupport responseAttachmentSupport;
     private volatile RemoteDomainConnection connection;
+
+    private volatile boolean registered = false;
 
     private RemoteDomainConnectionService(final ModelController controller, final ExtensionRegistry extensionRegistry,
                                           final LocalHostControllerInfo localHostControllerInfo, final ProductConfig productConfig,
@@ -429,7 +432,7 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
 
                 @Override
                 public void registrationComplete(ManagementChannelHandler handler) {
-                    //
+                    registered = true;
                 }
             }, runningMode);
             // Setup the management channel handler
@@ -478,30 +481,68 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
      * @return {@code true} if the model was applied successfully, {@code false} otherwise
      */
     private boolean applyRemoteDomainModel(final List<ModelNode> bootOperations) {
-        final ModelNode result;
-        try {
-            // Create the apply-domain-model operation
+
+        //
+        if (!registered) {
+
             final ModelNode operation = APPLY_DOMAIN_MODEL.clone();
             operation.get(DOMAIN_MODEL).set(bootOperations);
-            // Execute the operation
-            result = controller.execute(operation, OperationMessageHandler.logging, ModelController.OperationTransactionControl.COMMIT, OperationAttachments.EMPTY);
-        } catch (Exception e) {
-            HostControllerLogger.DOMAIN_LOGGER.failedToApplyDomainConfig(e);
-            return false;
+
+            ModelNode result = controller.execute(operation, OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, OperationAttachments.EMPTY);
+
+            String outcome = result.get(OUTCOME).asString();
+            boolean success = SUCCESS.equals(outcome);
+            if (!success) {
+                ModelNode failureDesc = result.hasDefined(FAILURE_DESCRIPTION) ? result.get(FAILURE_DESCRIPTION) : new ModelNode();
+                HostControllerLogger.DOMAIN_LOGGER.failedToApplyDomainConfig(outcome, failureDesc);
+                return false;
+            } else {
+                return true;
+            }
+        } else {
+            try {
+                // Create the apply-domain-model operation
+                // Execute the operation
+                // result = controller.execute(operation, OperationMessageHandler.logging, ModelController.OperationTransactionControl.COMMIT, OperationAttachments.EMPTY);
+                ModelNode operation = APPLY_DOMAIN_MODEL.clone();
+                ModelNode result = operationExecutor.execute(OperationBuilder.create(operation).build(), OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, ReadMasterDomainOperationsHandler.INSTANCE);
+
+                String outcome = result.get(OUTCOME).asString();
+                boolean success = SUCCESS.equals(outcome);
+                if (!success) {
+                    ModelNode failureDesc = result.hasDefined(FAILURE_DESCRIPTION) ? result.get(FAILURE_DESCRIPTION) : new ModelNode();
+                    HostControllerLogger.DOMAIN_LOGGER.failedToApplyDomainConfig(outcome, failureDesc);
+                    return false;
+                }
+
+                final SyncMasterDomainDomainHandler handler = new SyncMasterDomainDomainHandler(result.get(RESULT).asList(), ignoredDomainResourceRegistry);
+
+                operation = APPLY_DOMAIN_MODEL.clone();
+                operation.get(DOMAIN_MODEL).set(bootOperations);
+
+                result = operationExecutor.execute(OperationBuilder.create(operation).build(), OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, handler);
+
+                outcome = result.get(OUTCOME).asString();
+                success = SUCCESS.equals(outcome);
+                if (!success) {
+                    ModelNode failureDesc = result.hasDefined(FAILURE_DESCRIPTION) ? result.get(FAILURE_DESCRIPTION) : new ModelNode();
+                    HostControllerLogger.DOMAIN_LOGGER.failedToApplyDomainConfig(outcome, failureDesc);
+                    return false;
+                } else {
+                    return true;
+                }
+
+            } catch (Exception e) {
+                HostControllerLogger.DOMAIN_LOGGER.failedToApplyDomainConfig(e);
+                return false;
+            }
         }
-        // If it did not success, don't register it at the DC
-        String outcome = result.get(OUTCOME).asString();
-        boolean success = SUCCESS.equals(outcome);
-        if (!success) {
-            ModelNode failureDesc = result.hasDefined(FAILURE_DESCRIPTION) ? result.get(FAILURE_DESCRIPTION) : new ModelNode();
-            HostControllerLogger.DOMAIN_LOGGER.failedToApplyDomainConfig(outcome, failureDesc);
-        }
-        return success;
     }
 
     /** {@inheritDoc} */
     @Override
     public synchronized void stop(final StopContext context) {
+        registered  = false;
         Runnable r = new Runnable() {
             @Override
             public void run() {
