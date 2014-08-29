@@ -177,7 +177,7 @@ public abstract class ServerRestartRequiredServerConfigWriteAttributeHandler ext
                         }
                         context.stepCompleted();
                     }
-                }, Stage.MODEL);
+                }, Stage.VERIFY);
                 context.stepCompleted();
             }
         }, Stage.MODEL);

@@ -147,7 +147,7 @@ public class ServerAddHandler extends AbstractAddStepHandler {
                         }
                         context.stepCompleted();
                     }
-                }, Stage.MODEL);
+                }, Stage.VERIFY);
                 context.stepCompleted();
             }
         }, Stage.MODEL);
