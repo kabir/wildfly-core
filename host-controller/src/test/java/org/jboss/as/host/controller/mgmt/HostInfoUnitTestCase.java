@@ -294,9 +294,5 @@ public class HostInfoUnitTestCase {
             return null;
         }
 
-        @Override
-        public boolean isSkipRuntimeIgnoreCheck() {
-            return false;
-        }
     }
 }
