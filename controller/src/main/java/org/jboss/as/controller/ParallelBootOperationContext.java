@@ -125,6 +125,11 @@ class ParallelBootOperationContext extends AbstractOperationContext {
     // Methods unimplemented by superclass
 
     @Override
+    ModelControllerImpl.ManagementModelImpl getManagementModel() {
+        throw new IllegalStateException(); // Wrong usage, we cannot guarantee thread safety
+    }
+
+    @Override
     public InputStream getAttachmentStream(int index) {
         return primaryContext.getAttachmentStream(index);
     }
@@ -235,6 +240,11 @@ class ParallelBootOperationContext extends AbstractOperationContext {
     @Override
     public Resource readResourceFromRoot(PathAddress address, boolean recursive) {
         return primaryContext.readResourceFromRoot(address, recursive);
+    }
+
+    @Override
+    protected Resource readResourceFromRoot(ManagementModel model, PathAddress address, boolean recursive) {
+        return primaryContext.readResourceFromRoot(model, address, recursive);
     }
 
     @Override

@@ -44,6 +44,7 @@ import static org.jboss.as.controller.logging.ControllerLogger.MGMT_OP_LOGGER;
 
 import java.io.IOException;
 import java.io.InputStream;
+import javax.security.auth.Subject;
 import java.net.InetAddress;
 import java.security.Principal;
 import java.util.ArrayDeque;
@@ -64,8 +65,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
-
-import javax.security.auth.Subject;
 
 import org.jboss.as.controller.access.Caller;
 import org.jboss.as.controller.access.Environment;
@@ -178,6 +177,23 @@ abstract class AbstractOperationContext implements OperationContext {
         initiatingThread = Thread.currentThread();
         this.callEnvironment = new Environment(processState, processType);
     }
+
+    /**
+     * Internal access to the management model implementation.
+     *
+     * @return the management model
+     */
+    abstract ModelControllerImpl.ManagementModelImpl getManagementModel();
+
+    /**
+     * Internal helper to read a resource from a given management model.
+     *
+     * @param model        the management model to read from
+     * @param address      the absolute path address
+     * @param recursive    whether to read the model recursive or not
+     * @return the resource
+     */
+    abstract Resource readResourceFromRoot(final ManagementModel model, final PathAddress address, final boolean recursive);
 
     @Override
     public boolean isBooting() {

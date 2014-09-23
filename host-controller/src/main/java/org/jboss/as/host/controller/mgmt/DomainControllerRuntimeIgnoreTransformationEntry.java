@@ -75,7 +75,7 @@ public class DomainControllerRuntimeIgnoreTransformationEntry implements Runtime
      * @return {@code true} if the slave is set up to ignore unaffected config
      */
     boolean isIgnoreUnaffactedConfig() {
-        return hostInfo.isIgnoreUnaffectedConfig();
+        return false;
     }
 
     /**
@@ -90,13 +90,12 @@ public class DomainControllerRuntimeIgnoreTransformationEntry implements Runtime
         if (address.size() != 1) {
             return false;
         }
-        if (hostInfo.isIgnoreUnaffectedConfig()) {
+        if (false) {
             if (knownRootAddresses != null && address.size() >= 0 && knownRootAddresses.contains(address.getElement(0))) {
                 return false;
             }
-            return util.ignoreResource(domainResource, hostInfo.getServerConfigInfos(), address);
         }
-        return false;
+        return util.ignoreResource(domainResource, hostInfo.getServerConfigInfos(), address);
     }
 
     /**
@@ -105,9 +104,7 @@ public class DomainControllerRuntimeIgnoreTransformationEntry implements Runtime
      * @param serverInfo the server config info
      */
     void updateSlaveServerConfig(ServerConfigInfo serverInfo) {
-        if (hostInfo.isIgnoreUnaffectedConfig()) {
-            hostInfo.updateSlaveServerConfigInfo(serverInfo);
-        }
+        hostInfo.updateSlaveServerConfigInfo(serverInfo);
     }
 
     /**

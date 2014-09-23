@@ -96,7 +96,6 @@ import org.jboss.as.domain.controller.transformers.DomainTransformers;
 import org.jboss.as.domain.management.CoreManagementResourceDefinition;
 import org.jboss.as.host.controller.HostControllerEnvironment;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
-import org.jboss.as.host.controller.mgmt.DomainControllerRuntimeIgnoreTransformationRegistry;
 import org.jboss.as.management.client.content.ManagedDMRContentTypeResourceDefinition;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.repository.HostFileRepository;
@@ -185,7 +184,6 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
     private final ExtensionRegistry extensionRegistry;
     private final IgnoredDomainResourceRegistry ignoredDomainResourceRegistry;
     private final PathManagerService pathManager;
-    private final DomainControllerRuntimeIgnoreTransformationRegistry runtimeIgnoreTransformationRegistry;
     private final DelegatingConfigurableAuthorizer authorizer;
     private final HostRegistrations hostRegistrations;
     private final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider;
@@ -198,7 +196,6 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
             final LocalHostControllerInfo hostControllerInfo,
             final ExtensionRegistry extensionRegistry, final IgnoredDomainResourceRegistry ignoredDomainResourceRegistry,
             final PathManagerService pathManager,
-            final DomainControllerRuntimeIgnoreTransformationRegistry runtimeIgnoreTransformationRegistry,
             final DelegatingConfigurableAuthorizer authorizer,
             final HostRegistrations hostRegistrations,
             final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider) {
@@ -213,7 +210,6 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
         this.extensionRegistry = extensionRegistry;
         this.ignoredDomainResourceRegistry = ignoredDomainResourceRegistry;
         this.pathManager = pathManager;
-        this.runtimeIgnoreTransformationRegistry = runtimeIgnoreTransformationRegistry;
         this.authorizer = authorizer;
         this.hostRegistrations = hostRegistrations;
         this.rootResourceRegistrationProvider = rootResourceRegistrationProvider;
@@ -280,11 +276,6 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
             final ApplyExtensionsHandler aexh = new ApplyExtensionsHandler(extensionRegistry, hostControllerInfo, ignoredDomainResourceRegistry);
             resourceRegistration.registerOperationHandler(ApplyExtensionsHandler.DEFINITION, aexh);
 
-//            ApplyRemoteMasterDomainModelHandler armdmh = new ApplyRemoteMasterDomainModelHandler(domainController, environment, fileRepository,
-//                    contentRepo, hostControllerInfo, ignoredDomainResourceRegistry, authorizer.getWritableAuthorizerConfiguration());
-//            resourceRegistration.registerOperationHandler(ApplyRemoteMasterDomainModelHandler.DEFINITION, armdmh);
-//            ApplyMissingDomainModelResourcesHandler amdmrh = new ApplyMissingDomainModelResourcesHandler(domainController, environment, hostControllerInfo, ignoredDomainResourceRegistry);
-//            resourceRegistration.registerOperationHandler(ApplyMissingDomainModelResourcesHandler.DEFINITION, amdmrh);
         }
         resourceRegistration.registerOperationHandler(DeploymentAttributes.FULL_REPLACE_DEPLOYMENT_DEFINITION, isMaster ? new DeploymentFullReplaceHandler(contentRepo) : new DeploymentFullReplaceHandler(fileRepository));
 
@@ -318,12 +309,12 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
                 : DomainDeploymentResourceDefinition.createForDomainSlave(environment.isBackupDomainFiles(), fileRepository, contentRepo);
         resourceRegistration.registerSubModel(domainDeploymentDefinition);
         resourceRegistration.registerSubModel(new DeploymentOverlayDefinition(true, contentRepo, fileRepository));
-        if(isMaster || environment.isBackupDomainFiles()) {
-            resourceRegistration.registerSubModel(new ServerGroupResourceDefinition(isMaster, hostControllerInfo, fileRepository, runtimeIgnoreTransformationRegistry));
-        } else { //We need a contentRepository as adding a /deployment=* won't reference it.
-            resourceRegistration.registerSubModel(new ServerGroupResourceDefinition(isMaster, hostControllerInfo, fileRepository, contentRepo, runtimeIgnoreTransformationRegistry));
-        }
 
+        if(isMaster || environment.isBackupDomainFiles()) {
+            resourceRegistration.registerSubModel(new ServerGroupResourceDefinition(isMaster, hostControllerInfo, fileRepository));
+        } else { //We need a contentRepository as adding a /deployment=* won't reference it.
+            resourceRegistration.registerSubModel(new ServerGroupResourceDefinition(isMaster, hostControllerInfo, fileRepository, contentRepo));
+        }
 
         //TODO socket-binding-group currently lives in controller and the child RDs live in domain so they currently need passing in from here
         resourceRegistration.registerSubModel(new SocketBindingGroupResourceDefinition(

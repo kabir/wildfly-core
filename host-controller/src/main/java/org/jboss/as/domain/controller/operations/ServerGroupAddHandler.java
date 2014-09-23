@@ -22,10 +22,9 @@
 
 package org.jboss.as.domain.controller.operations;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.domain.controller.resources.ServerGroupResourceDefinition.PROFILE;
 import static org.jboss.as.domain.controller.resources.ServerGroupResourceDefinition.SOCKET_BINDING_GROUP;
-
-import java.util.NoSuchElementException;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.OperationContext;
@@ -67,34 +66,32 @@ public class ServerGroupAddHandler implements OperationStepHandler {
         // can safely be resolved in stage model, this profile attribute can be changed and this will still work.
         boolean reloadRequired = false;
         final String profile = PROFILE.resolveModelAttribute(context, model).asString();
-        try {
-            context.readResourceFromRoot(PathAddress.pathAddress(PathElement.pathElement(PROFILE.getName(), profile)));
-        } catch (Exception e) {
+        boolean missing = false;
+        if (!context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, false).hasChild(PathElement.pathElement(ServerGroupResourceDefinition.PROFILE.getName(), profile))) {
             if (master) {
                 throw DomainControllerLogger.ROOT_LOGGER.noProfileCalled(profile);
             } else {
-                //We are a slave HC and we don't have the socket-binding-group required, so put the slave into reload-required
-                reloadRequired = true;
-                context.reloadRequired();
+                missing = true;
             }
         }
 
         final String socketBindingGroup;
         if (operation.hasDefined(SOCKET_BINDING_GROUP.getName())) {
             socketBindingGroup =  SOCKET_BINDING_GROUP.resolveModelAttribute(context, model).asString();
-            try {
-                context.readResourceFromRoot(PathAddress.pathAddress(PathElement.pathElement(SOCKET_BINDING_GROUP.getName(), socketBindingGroup)));
-            } catch (NoSuchElementException e) {
+            if (!context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, false).hasChild(PathElement.pathElement(ServerGroupResourceDefinition.SOCKET_BINDING_GROUP.getName(), socketBindingGroup))) {
                 if (master) {
                     throw new OperationFailedException(DomainControllerLogger.ROOT_LOGGER.unknown(SOCKET_BINDING_GROUP.getName(), socketBindingGroup));
                 } else {
-                    //We are a slave HC and we don't have the socket-binding-group required, so put the slave into reload-required
-                    reloadRequired = true;
-                    context.reloadRequired();
+                    missing = true;
                 }
             }
         } else {
             socketBindingGroup = null;
+        }
+
+        if (!context.isBooting() && missing) {
+            final String name = PathAddress.pathAddress(operation.require(OP_ADDR)).getLastElement().getValue();
+            ServerGroupMissingConfigUtils.pullDownMissingDataFromDc(context, "test", name, socketBindingGroup);
         }
 
         final boolean revertReloadRequiredOnRollback = reloadRequired;

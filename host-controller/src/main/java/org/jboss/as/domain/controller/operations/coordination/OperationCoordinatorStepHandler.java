@@ -43,9 +43,8 @@ import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.ProxyController;
-import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.as.domain.controller.LocalHostControllerInfo;
-import org.jboss.as.host.controller.mgmt.DomainControllerRuntimeIgnoreTransformationRegistry;
+import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.dmr.ModelNode;
 
@@ -61,21 +60,18 @@ public class OperationCoordinatorStepHandler {
     private final Map<String, ProxyController> hostProxies;
     private final Map<String, ProxyController> serverProxies;
     private final OperationSlaveStepHandler localSlaveHandler;
-    private final DomainControllerRuntimeIgnoreTransformationRegistry runtimeIgnoreTransformationRegistry;
     private volatile ExecutorService executorService;
 
     OperationCoordinatorStepHandler(final LocalHostControllerInfo localHostControllerInfo,
                                     ContentRepository contentRepository,
                                     final Map<String, ProxyController> hostProxies,
                                     final Map<String, ProxyController> serverProxies,
-                                    final OperationSlaveStepHandler localSlaveHandler,
-                                    final DomainControllerRuntimeIgnoreTransformationRegistry runtimeIgnoreTransformationRegistry) {
+                                    final OperationSlaveStepHandler localSlaveHandler) {
         this.localHostControllerInfo = localHostControllerInfo;
         this.contentRepository = contentRepository;
         this.hostProxies = hostProxies;
         this.serverProxies = serverProxies;
         this.localSlaveHandler = localSlaveHandler;
-        this.runtimeIgnoreTransformationRegistry = runtimeIgnoreTransformationRegistry;
     }
 
     void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
@@ -83,8 +79,7 @@ public class OperationCoordinatorStepHandler {
         // Determine routing
         OperationRouting routing = OperationRouting.determineRouting(context, operation, localHostControllerInfo);
 
-        if (!localHostControllerInfo.isMasterDomainController()
-                && !routing.isLocalOnly(localHostControllerInfo.getLocalHostName())) {
+        if (!localHostControllerInfo.isMasterDomainController() && !routing.isLocalOnly(localHostControllerInfo.getLocalHostName())) {
             // We cannot handle this ourselves
             routeToMasterDomainController(context, operation);
         }
@@ -195,7 +190,7 @@ public class OperationCoordinatorStepHandler {
                     }
                 }
 
-                context.addStep(slaveOp.clone(), new DomainSlaveHandler(remoteProxies, overallContext, runtimeIgnoreTransformationRegistry), OperationContext.Stage.DOMAIN);
+                context.addStep(slaveOp.clone(), new DomainSlaveHandler(remoteProxies, overallContext), OperationContext.Stage.DOMAIN);
             }
         }
 
