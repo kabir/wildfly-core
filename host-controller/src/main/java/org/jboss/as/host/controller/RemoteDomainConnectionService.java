@@ -31,6 +31,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPE
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.jboss.as.host.controller.logging.HostControllerLogger.ROOT_LOGGER;
 
@@ -57,7 +58,6 @@ import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProxyController;
 import org.jboss.as.controller.ProxyOperationAddressTranslator;
 import org.jboss.as.controller.RunningMode;
@@ -79,8 +79,9 @@ import org.jboss.as.domain.controller.LocalHostControllerInfo;
 import org.jboss.as.domain.controller.SlaveRegistrationException;
 import org.jboss.as.domain.controller.operations.ApplyExtensionsHandler;
 import org.jboss.as.domain.controller.operations.ApplyRemoteMasterDomainModelHandler;
-import org.jboss.as.domain.controller.operations.ReadMasterDomainOperationsHandler;
+import org.jboss.as.domain.controller.operations.PullDownDataForServerConfigOnSlaveHandler;
 import org.jboss.as.domain.controller.operations.SyncDomainModelOperationHandler;
+import org.jboss.as.domain.controller.operations.SyncServerGroupOperationHandler;
 import org.jboss.as.domain.controller.operations.coordination.DomainControllerLockIdUtils;
 import org.jboss.as.domain.management.SecurityRealm;
 import org.jboss.as.host.controller.discovery.DiscoveryOption;
@@ -137,7 +138,6 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
     private static final ModelNode APPLY_EXTENSIONS = new ModelNode();
     private static final ModelNode APPLY_DOMAIN_MODEL = new ModelNode();
     private static final Operation GRAB_DOMAIN_RESOURCE;
-    private static final ModelNode READ_DOMAIN_MODEL = new ModelNode();
 
     static {
         APPLY_EXTENSIONS.get(OP).set(ApplyExtensionsHandler.OPERATION_NAME);
@@ -363,13 +363,9 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
     @Override
     public void pullDownDataForUpdatedServerConfigAndApplyToModel(OperationContext context, String serverName, String serverGroupName, String socketBindingGroupName) throws OperationFailedException {
         ModelNode op = new ModelNode();
-        op.get(OP).set(ReadMasterDomainOperationsHandler.OPERATION_NAME);
+        op.get(OP).set(PullDownDataForServerConfigOnSlaveHandler.OPERATION_NAME);
         op.get(OP_ADDR).setEmptyList();
-
-        final Resource localHost = context.readResourceFromRoot(PathAddress.pathAddress(PathElement.pathElement(HOST, localHostInfo.getLocalHostName())));
-        final ModelNode hostInfo = HostInfo.createLocalHostHostInfo(localHostInfo, productConfig, ignoredDomainResourceRegistry, localHost);
-        op.get("host-info").set(hostInfo);
-        // op.get(SERVER).set(IgnoredNonAffectedServerGroupsUtil.createServerConfigInfo(serverName, serverGroupName, socketBindingGroupName).toModelNode());
+        op.get(SERVER).set(IgnoredNonAffectedServerGroupsUtil.createServerConfigInfo(serverName, serverGroupName, socketBindingGroupName).toModelNode());
 
         Integer domainControllerLock = context.getAttachment(DomainControllerLockIdUtils.DOMAIN_CONTROLLER_LOCK_ID_ATTACHMENT);
         if (domainControllerLock != null) {
@@ -387,10 +383,9 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
         testOp.get(OP_ADDR).setEmptyList();
         testOp.get(DOMAIN_MODEL).set(result.get(RESULT));
 
-        // final SyncServerConfigOperationHandler handler = new SyncServerConfigOperationHandler(info, ignoredDomainResourceRegistry, extensionRegistry);
-        // final IgnoredNonAffectedServerGroupsUtil.ServerConfigInfo info = IgnoredNonAffectedServerGroupsUtil.createServerConfigInfo(serverName, serverGroupName, socketBindingGroupName);
-        final SyncDomainModelOperationHandler step = new SyncDomainModelOperationHandler(HostInfo.fromModelNode(hostInfo), extensionRegistry, ignoredDomainResourceRegistry);
-        context.addStep(testOp, step, OperationContext.Stage.MODEL, true);
+        final IgnoredNonAffectedServerGroupsUtil.ServerConfigInfo info = IgnoredNonAffectedServerGroupsUtil.createServerConfigInfo(serverName, serverGroupName, socketBindingGroupName);
+        final SyncServerGroupOperationHandler handler = new SyncServerGroupOperationHandler(info, ignoredDomainResourceRegistry, extensionRegistry, operationExecutor);
+        context.addStep(testOp, handler, OperationContext.Stage.MODEL, true);
     }
 
     @Override
@@ -493,31 +488,15 @@ public class RemoteDomainConnectionService implements MasterDomainControllerClie
      */
     private boolean applyRemoteDomainModel(final List<ModelNode> bootOperations, final HostInfo hostInfo) {
         try {
-            // Create the apply-domain-model operation
-            // Execute the operation
-            // result = controller.execute(operation, OperationMessageHandler.logging, ModelController.OperationTransactionControl.COMMIT, OperationAttachments.EMPTY);
-            ModelNode operation = READ_DOMAIN_MODEL.clone();
 
-            final ReadMasterDomainOperationsHandler rmdoph = new ReadMasterDomainOperationsHandler(hostInfo.isIgnoreUnaffectedConfig(), hostInfo.getServerConfigInfos(), extensionRegistry);
-
-            ModelNode result = operationExecutor.execute(OperationBuilder.create(operation).build(), OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, rmdoph);
-
-            String outcome = result.get(OUTCOME).asString();
-            boolean success = SUCCESS.equals(outcome);
-            if (!success) {
-                ModelNode failureDesc = result.hasDefined(FAILURE_DESCRIPTION) ? result.get(FAILURE_DESCRIPTION) : new ModelNode();
-                HostControllerLogger.DOMAIN_LOGGER.failedToApplyDomainConfig(outcome, failureDesc);
-                return false;
-            }
-
-            final SyncDomainModelOperationHandler handler = new SyncDomainModelOperationHandler(hostInfo, extensionRegistry, ignoredDomainResourceRegistry);
-            operation = APPLY_DOMAIN_MODEL.clone();
+            final SyncDomainModelOperationHandler handler = new SyncDomainModelOperationHandler(hostInfo, extensionRegistry, ignoredDomainResourceRegistry, operationExecutor);
+            final ModelNode operation = APPLY_DOMAIN_MODEL.clone();
             operation.get(DOMAIN_MODEL).set(bootOperations);
 
-            result = operationExecutor.execute(OperationBuilder.create(operation).build(), OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, handler);
+            final ModelNode result = operationExecutor.execute(OperationBuilder.create(operation).build(), OperationMessageHandler.DISCARD, ModelController.OperationTransactionControl.COMMIT, handler);
 
-            outcome = result.get(OUTCOME).asString();
-            success = SUCCESS.equals(outcome);
+            final String outcome = result.get(OUTCOME).asString();
+            final boolean success = SUCCESS.equals(outcome);
             if (!success) {
                 ModelNode failureDesc = result.hasDefined(FAILURE_DESCRIPTION) ? result.get(FAILURE_DESCRIPTION) : new ModelNode();
                 HostControllerLogger.DOMAIN_LOGGER.failedToApplyDomainConfig(outcome, failureDesc);

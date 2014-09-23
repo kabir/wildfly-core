@@ -235,7 +235,7 @@ public class OperationTransformationTestCase {
     }
 
     protected TransformationTarget create(final TransformerRegistry registry, ModelVersion version, TransformationTarget.TransformationTargetType type) {
-        return TransformationTargetImpl.create(registry, version, Collections.<PathAddress, ModelVersion>emptyMap(), null, type, null);
+        return TransformationTargetImpl.create(registry, version, Collections.<PathAddress, ModelVersion>emptyMap(), null, type);
     }
 
     protected Resource transform(final TransformationTarget target, final Resource root) throws OperationFailedException {
@@ -314,10 +314,6 @@ public class OperationTransformationTestCase {
             return TransformersLogger.getLogger(getTarget());
         }
 
-        @Override
-        public boolean isSkipRuntimeIgnoreCheck() {
-            return false;
-        }
     };
 
     private static final ResourceDefinition ROOT = new SimpleResourceDefinition(PathElement.pathElement("test"), new NonResolvingResourceDescriptionResolver());
@@ -371,10 +367,6 @@ public class OperationTransformationTestCase {
             return null;
         }
 
-        @Override
-        public boolean isSkipRuntimeIgnoreCheck() {
-            return false;
-        }
     }
 
 }

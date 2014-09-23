@@ -33,11 +33,11 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.domain.controller.LocalHostControllerInfo;
@@ -169,6 +169,9 @@ class OperationRouting {
                         // Make sure we don't loose the information that we have to execute the operation on all hosts
                         fwdToAllHosts = fwdToAllHosts || stepRouting.getHosts().isEmpty();
                     }
+//                    if (!localHostControllerInfo.isMasterDomainController()) {
+//                        fwdToAllHosts = fwdToAllHosts || stepRouting.getHosts().isEmpty();
+//                    }
                     allHosts.addAll(stepRouting.getHosts());
                 }
                 if (fwdToAllHosts) {
@@ -266,4 +269,19 @@ class OperationRouting {
     public boolean isLocalCallNeeded(final String localHostName) {
         return localHostName.equals(singleHost) || hosts.size() == 0 || hosts.contains(localHostName);
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder builder = new StringBuilder();
+        builder.append("OperationRouting{");
+        builder.append("twoStep=").append(twoStep).append(", ");
+        if (singleHost != null) {
+            builder.append("host=").append(singleHost);
+        } else {
+            builder.append("hosts=").append(hosts);
+        }
+        builder.append("}");
+        return builder.toString();
+    }
+
 }
