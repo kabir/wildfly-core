@@ -30,7 +30,6 @@ import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.transform.RuntimeIgnoreTransformation;
 import org.jboss.as.host.controller.IgnoredNonAffectedServerGroupsUtil;
-import org.jboss.as.host.controller.IgnoredNonAffectedServerGroupsUtil.ServerConfigInfo;
 import org.jboss.util.collection.ConcurrentSet;
 
 /**
@@ -96,15 +95,6 @@ public class DomainControllerRuntimeIgnoreTransformationEntry implements Runtime
             }
         }
         return util.ignoreResource(domainResource, hostInfo.getServerConfigInfos(), address);
-    }
-
-    /**
-     * Add/update a server config info
-     *
-     * @param serverInfo the server config info
-     */
-    void updateSlaveServerConfig(ServerConfigInfo serverInfo) {
-        hostInfo.updateSlaveServerConfigInfo(serverInfo);
     }
 
     /**
