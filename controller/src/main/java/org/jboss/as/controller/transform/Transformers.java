@@ -90,8 +90,6 @@ public interface Transformers {
 
     Resource transformRootResource(OperationContext operationContext, Resource resource, ResourceIgnoredTransformationRegistry ignoredTransformationRegistry) throws OperationFailedException;
 
-    // IgnoredTransformationRegistry
-
     public static class Factory {
         private Factory() {
         }
