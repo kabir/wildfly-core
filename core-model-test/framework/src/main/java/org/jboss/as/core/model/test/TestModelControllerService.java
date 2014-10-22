@@ -62,7 +62,6 @@ import org.jboss.as.host.controller.HostModelUtil.HostModelRegistrar;
 import org.jboss.as.host.controller.HostPathManagerService;
 import org.jboss.as.host.controller.HostRunningModeControl;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
-import org.jboss.as.host.controller.mgmt.DomainControllerRuntimeIgnoreTransformationEntry;
 import org.jboss.as.host.controller.model.host.HostResourceDefinition;
 import org.jboss.as.host.controller.operations.LocalHostControllerInfoImpl;
 import org.jboss.as.model.test.ModelTestModelControllerService;
@@ -318,8 +317,7 @@ class TestModelControllerService extends ModelTestModelControllerService {
 
             @Override
             public void registerRemoteHost(String hostName, ManagementChannelHandler handler, Transformers transformers,
-                    Long remoteConnectionId, DomainControllerRuntimeIgnoreTransformationEntry runtimeIgnoreTransformation,
-                    boolean registerProxyController) throws SlaveRegistrationException {
+                    Long remoteConnectionId, boolean registerProxyController) throws SlaveRegistrationException {
             }
 
             @Override
@@ -593,8 +591,7 @@ class TestModelControllerService extends ModelTestModelControllerService {
 
         @Override
         public void registerRemoteHost(String hostName, ManagementChannelHandler handler, Transformers transformers,
-                Long remoteConnectionId, DomainControllerRuntimeIgnoreTransformationEntry runtimeIgnoreTransformation,
-                boolean registerProxyController) throws SlaveRegistrationException {
+                Long remoteConnectionId, boolean registerProxyController) throws SlaveRegistrationException {
         }
 
         @Override

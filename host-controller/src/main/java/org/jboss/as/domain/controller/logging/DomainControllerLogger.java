@@ -28,10 +28,10 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 import static org.jboss.logging.Logger.Level.WARN;
 
 import java.io.IOException;
+import javax.xml.stream.Location;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
-import javax.xml.stream.Location;
 
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationFailedException;
@@ -40,10 +40,10 @@ import org.jboss.as.controller.RunningMode;
 import org.jboss.as.domain.controller.ServerIdentity;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.BasicLogger;
-import org.jboss.logging.annotations.Cause;
-import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.Logger;
 import org.jboss.logging.Logger.Level;
+import org.jboss.logging.annotations.Cause;
+import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 import org.jboss.modules.ModuleLoadException;
@@ -731,4 +731,8 @@ public interface DomainControllerLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 73, value = "%s deployment has been re-deployed, its content will not be removed. You will need to restart it.")
     void undeployingDeploymentHasBeenRedeployed(String deploymentName);
+
+    @Message(id = 74, value = "Cannot synchronize the model due to missing extensions: %s")
+    OperationFailedException missingExtensions(Set<String> missingExtensions);
+
 }

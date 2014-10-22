@@ -337,7 +337,6 @@ public class HostControllerRegistrationHandler implements ManagementRequestHandl
         private volatile OperationContext operationContext;
         private ActiveOperation<Void, RegistrationContext> activeOperation;
         private final AtomicBoolean completed = new AtomicBoolean();
-        private volatile DomainControllerRuntimeIgnoreTransformationEntry runtimeIgnoreTransformation;
 
         private RegistrationContext(ExtensionRegistry extensionRegistry,
                                     boolean registerProxyController) {
@@ -349,7 +348,6 @@ public class HostControllerRegistrationHandler implements ManagementRequestHandl
             this.hostName = hostName;
             this.hostInfo = HostInfo.fromModelNode(hostInfo);
             this.responseChannel = responseChannel;
-            this.runtimeIgnoreTransformation = DomainControllerRuntimeIgnoreTransformationEntry.create(this.hostInfo, extensionRegistry);
         }
 
         @Override
@@ -485,7 +483,7 @@ public class HostControllerRegistrationHandler implements ManagementRequestHandl
             synchronized (this) {
                 Long pingPongId = hostInfo.getRemoteConnectionId();
                 // Register the slave
-                domainController.registerRemoteHost(hostName, handler, transformers, pingPongId, runtimeIgnoreTransformation, registerProxyController);
+                domainController.registerRemoteHost(hostName, handler, transformers, pingPongId, registerProxyController);
                 // Complete registration
                 if(! failed) {
                     transaction.commit();
