@@ -28,10 +28,12 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 import static org.jboss.logging.Logger.Level.WARN;
 
 import java.io.IOException;
-import javax.xml.stream.Location;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import javax.xml.stream.Location;
+import javax.xml.stream.XMLStreamException;
 
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.OperationFailedException;
@@ -737,4 +739,10 @@ public interface DomainControllerLogger extends BasicLogger {
 
     @Message(id = 75, value = "Model references of type '%s' are missing: %s")
     OperationFailedException missingReferences(String type, Set<String> missing);
+
+    @Message(id = 76, value = "Duplicate included profile '%s'")
+    XMLStreamException duplicateProfile(String name);
+
+    @Message(id = 77, value = "Profile '%s' is involved in a cycle")
+    OperationFailedException profileInvolvedInACycle(String profile);
 }

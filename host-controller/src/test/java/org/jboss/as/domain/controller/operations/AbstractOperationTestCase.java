@@ -56,7 +56,6 @@ import java.util.Set;
 
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ControlledProcessState;
-import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.NoopOperationStepHandler;
 import org.jboss.as.controller.NotificationDefinition;
 import org.jboss.as.controller.OperationContext;
@@ -191,7 +190,7 @@ public abstract class AbstractOperationTestCase {
     class MockOperationContext implements OperationContext {
         Resource root;
         private final boolean booting;
-        private final PathAddress operationAddress;
+        final PathAddress operationAddress;
         private Set<PathAddress> expectedSteps = new HashSet<PathAddress>();
         private final Map<AttachmentKey<?>, Object> valueAttachments = new HashMap<AttachmentKey<?>, Object>();
         private final ModelNode result = new ModelNode();

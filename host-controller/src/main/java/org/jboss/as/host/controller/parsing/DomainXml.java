@@ -31,7 +31,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEP
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEPLOYMENT_OVERLAY;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HASH;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INTERFACE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.JVM;
@@ -75,10 +74,11 @@ import java.util.concurrent.ExecutorService;
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLStreamException;
 
-import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.HashUtil;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.extension.ExtensionRegistry;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.parsing.Attribute;
 import org.jboss.as.controller.parsing.Element;
@@ -90,6 +90,7 @@ import org.jboss.as.controller.persistence.ModelMarshallingContext;
 import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
 import org.jboss.as.controller.resource.SocketBindingGroupResourceDefinition;
 import org.jboss.as.domain.controller.resources.DomainRootDefinition;
+import org.jboss.as.domain.controller.resources.ProfileResourceDefinition;
 import org.jboss.as.domain.controller.resources.ServerGroupResourceDefinition;
 import org.jboss.as.domain.management.access.AccessAuthorizationResourceDefinition;
 import org.jboss.as.domain.management.parsing.ManagementXml;
@@ -850,100 +851,208 @@ public class DomainXml extends CommonXml {
             }
 
             // Attributes
-            requireSingleAttribute(reader, Attribute.NAME.getLocalName());
-            final String name = reader.getAttributeValue(0);
-            if (!names.add(name)) {
-                throw ControllerLogger.ROOT_LOGGER.duplicateDeclaration("profile", name, reader.getLocation());
-            }
-
-            //final Set<String> includes = new HashSet<String>();  // See commented out section below.
-            //final ModelNode profileIncludes = new ModelNode();
-            // Content
-            // Sequence
-            final Map<String, List<ModelNode>> profileOps = new LinkedHashMap<String, List<ModelNode>>();
-            while (reader.nextTag() != END_ELEMENT) {
-                Namespace ns = Namespace.forUri(reader.getNamespaceURI());
-                switch (ns) {
-                    case UNKNOWN: {
-                        if (Element.forName(reader.getLocalName()) != Element.SUBSYSTEM) {
-                            throw unexpectedElement(reader);
-                        }
-                        String namespace = reader.getNamespaceURI();
-                        if (profileOps.containsKey(namespace)) {
-                            throw ControllerLogger.ROOT_LOGGER.duplicateDeclaration("subsystem", name, reader.getLocation());
-                        }
-                        // parse content
-                        final List<ModelNode> subsystems = new ArrayList<ModelNode>();
-                        reader.handleAny(subsystems);
-
-                        profileOps.put(namespace, subsystems);
-
-                        break;
-                    }
-                    case DOMAIN_1_0:
-                    case DOMAIN_1_1:
-                    case DOMAIN_1_2:
-                    case DOMAIN_1_3: {
-                        requireNamespace(reader, expectedNs);
-                        // include should come first
-                        if (profileOps.size() > 0) {
-                            throw unexpectedElement(reader);
-                        }
-                        if (Element.forName(reader.getLocalName()) != Element.INCLUDE) {
-                            throw unexpectedElement(reader);
-                        }
-                        //Remove support for profile includes until 7.2.0
-                        if (ns == Namespace.DOMAIN_1_0) {
-                            HOST_CONTROLLER_LOGGER.warnIgnoringProfileInclude(reader.getLocation());
-                        }
-                        throw unexpectedElement(reader);
-                        /* This will be reintroduced for 7.2.0, leave commented out
-                         final String includedName = readStringAttributeElement(reader, Attribute.PROFILE.getLocalName());
-                         if (! names.contains(includedName)) {
-                         throw MESSAGES.profileNotFound(reader.getLocation());
-                         }
-                         if (! includes.add(includedName)) {
-                         throw MESSAGES.duplicateProfile(reader.getLocation());
-                         }
-                         profileIncludes.add(includedName);
-                         break;
-                         */
-                    }
-                    default: {
-                        throw unexpectedElement(reader);
-                    }
+            switch(expectedNs) {
+                case DOMAIN_1_0:
+                case DOMAIN_1_1:
+                case DOMAIN_1_2:
+                case DOMAIN_1_3:
+                case DOMAIN_1_4:
+                case DOMAIN_1_5:
+                case DOMAIN_1_6:
+                case DOMAIN_2_0:
+                case DOMAIN_2_1:{
+                    parseProfile_2_1(reader, address, expectedNs, list, names);
+                    break;
                 }
-            }
-
-            // Let extensions modify the profile
-            Set<ProfileParsingCompletionHandler> completionHandlers = extensionRegistry.getProfileParsingCompletionHandlers();
-            for (ProfileParsingCompletionHandler completionHandler : completionHandlers) {
-                completionHandler.handleProfileParsingCompletion(profileOps, list);
-            }
-
-            final ModelNode profile = new ModelNode();
-            profile.get(OP).set(ADD);
-            profile.get(OP_ADDR).set(address).add(ModelDescriptionConstants.PROFILE, name);
-            /* This will be reintroduced for 7.2.0, leave commented out
-             profile.get(INCLUDES).set(profileIncludes);
-             */
-            list.add(profile);
-
-            // Process subsystems
-            for (List<ModelNode> subsystems : profileOps.values()) {
-                for (final ModelNode update : subsystems) {
-                    // Process relative subsystem path address
-                    final ModelNode subsystemAddress = address.clone().set(address).add(ModelDescriptionConstants.PROFILE, name);
-                    for (final Property path : update.get(OP_ADDR).asPropertyList()) {
-                        subsystemAddress.add(path.getName(), path.getValue().asString());
-                    }
-                    update.get(OP_ADDR).set(subsystemAddress);
-                    list.add(update);
+                default: {
+                    parseProfile_3_0(reader, address, expectedNs, list, names);
                 }
             }
         }
     }
 
+    private void parseProfile_2_1(final XMLExtendedStreamReader reader, final ModelNode address, final Namespace expectedNs, final List<ModelNode> list, final Set<String> names) throws XMLStreamException {
+        Element element = Element.forName(reader.getLocalName());
+        if (Element.PROFILE != element) {
+            throw unexpectedElement(reader);
+        }
+
+        // Attributes
+        requireSingleAttribute(reader, Attribute.NAME.getLocalName());
+        String name = reader.getAttributeValue(0);
+        if (!names.add(name)) {
+            throw ControllerLogger.ROOT_LOGGER.duplicateDeclaration("profile", name, reader.getLocation());
+        }
+        final ModelNode profile = Util.createAddOperation(PathAddress.pathAddress(address).append(PROFILE, name));
+        list.add(profile);
+
+
+
+        // Content
+        // Sequence
+        final Map<String, List<ModelNode>> profileOps = new LinkedHashMap<String, List<ModelNode>>();
+        while (reader.nextTag() != END_ELEMENT) {
+            Namespace ns = Namespace.forUri(reader.getNamespaceURI());
+            switch (ns) {
+                case UNKNOWN: {
+                    if (Element.forName(reader.getLocalName()) != Element.SUBSYSTEM) {
+                        throw unexpectedElement(reader);
+                    }
+                    String namespace = reader.getNamespaceURI();
+                    if (profileOps.containsKey(namespace)) {
+                        throw ControllerLogger.ROOT_LOGGER.duplicateDeclaration("subsystem", name, reader.getLocation());
+                    }
+                    // parse content
+                    final List<ModelNode> subsystems = new ArrayList<ModelNode>();
+                    reader.handleAny(subsystems);
+
+                    profileOps.put(namespace, subsystems);
+
+                    break;
+                }
+                case DOMAIN_1_0:
+                case DOMAIN_1_1:
+                case DOMAIN_1_2:
+                case DOMAIN_1_3: {
+                    requireNamespace(reader, expectedNs);
+                    // include should come first
+                    if (profileOps.size() > 0) {
+                        throw unexpectedElement(reader);
+                    }
+                    if (Element.forName(reader.getLocalName()) != Element.INCLUDE) {
+                        throw unexpectedElement(reader);
+                    }
+                    //Remove support for profile includes until 7.2.0
+                    if (ns == Namespace.DOMAIN_1_0) {
+                        HOST_CONTROLLER_LOGGER.warnIgnoringProfileInclude(reader.getLocation());
+                    }
+                    throw unexpectedElement(reader);
+                }
+                default: {
+                    throw unexpectedElement(reader);
+                }
+            }
+        }
+
+        // Let extensions modify the profile
+        Set<ProfileParsingCompletionHandler> completionHandlers = extensionRegistry.getProfileParsingCompletionHandlers();
+        for (ProfileParsingCompletionHandler completionHandler : completionHandlers) {
+            completionHandler.handleProfileParsingCompletion(profileOps, list);
+        }
+
+
+        // Process subsystems
+        for (List<ModelNode> subsystems : profileOps.values()) {
+            for (final ModelNode update : subsystems) {
+                // Process relative subsystem path address
+                final ModelNode subsystemAddress = address.clone().set(address).add(ModelDescriptionConstants.PROFILE, name);
+                for (final Property path : update.get(OP_ADDR).asPropertyList()) {
+                    subsystemAddress.add(path.getName(), path.getValue().asString());
+                }
+                update.get(OP_ADDR).set(subsystemAddress);
+                list.add(update);
+            }
+        }
+    }
+
+    private void parseProfile_3_0(final XMLExtendedStreamReader reader, final ModelNode address, final Namespace expectedNs, final List<ModelNode> list, final Set<String> names) throws XMLStreamException {
+        Element element = Element.forName(reader.getLocalName());
+        if (Element.PROFILE != element) {
+            throw unexpectedElement(reader);
+        }
+
+        // Attributes
+        String name = null;
+        final int count = reader.getAttributeCount();
+        ModelNode profile = Util.createAddOperation();
+        for (int i = 0; i < count; i++) {
+            final String value = reader.getAttributeValue(i);
+            if (!isNoNamespaceAttribute(reader, i)) {
+                throw unexpectedAttribute(reader, i);
+            } else {
+                final Attribute attribute = Attribute.forName(reader.getAttributeLocalName(i));
+                switch (attribute) {
+                    case NAME: {
+                        name = ProfileResourceDefinition.NAME.parse(value, reader).asString();
+                        profile.get(OP_ADDR).set(address.clone().add(PROFILE, name));
+                        break;
+                    }
+                    case INCLUDES: {
+                        for (String val : reader.getListAttributeValue(i)) {
+                            ProfileResourceDefinition.INCLUDES.parseAndAddParameterElement(val, profile, reader);
+                        }
+                        HashSet<String> includes = new HashSet<>();
+                        for (ModelNode include : profile.get(INCLUDES).asList()) {
+                            if (!includes.add(include.asString())) {
+                                throw HOST_CONTROLLER_LOGGER.duplicateProfile(include.asString());
+                            }
+                        }
+                        break;
+                    }
+                    default: {
+                        throw unexpectedAttribute(reader, i);
+                    }
+                }
+            }
+        }
+        if (!names.add(name)) {
+            throw ControllerLogger.ROOT_LOGGER.duplicateDeclaration(PROFILE, name, reader.getLocation());
+        } else if (name == null) {
+            throw ParseUtils.missingRequired(reader, Collections.singleton(NAME));
+        }
+        list.add(profile);
+
+
+
+        // Content
+        // Sequence
+        final Map<String, List<ModelNode>> profileOps = new LinkedHashMap<String, List<ModelNode>>();
+        while (reader.nextTag() != END_ELEMENT) {
+            Namespace ns = Namespace.forUri(reader.getNamespaceURI());
+            switch (ns) {
+                case UNKNOWN: {
+                    if (Element.forName(reader.getLocalName()) != Element.SUBSYSTEM) {
+                        throw unexpectedElement(reader);
+                    }
+                    String namespace = reader.getNamespaceURI();
+                    if (profileOps.containsKey(namespace)) {
+                        throw ControllerLogger.ROOT_LOGGER.duplicateDeclaration("subsystem", name, reader.getLocation());
+                    }
+                    // parse content
+                    final List<ModelNode> subsystems = new ArrayList<ModelNode>();
+                    reader.handleAny(subsystems);
+
+                    profileOps.put(namespace, subsystems);
+
+                    break;
+                }
+                //This only gets called for >= 3.0
+                default: {
+                    throw unexpectedElement(reader);
+                }
+            }
+        }
+
+        // Let extensions modify the profile
+        Set<ProfileParsingCompletionHandler> completionHandlers = extensionRegistry.getProfileParsingCompletionHandlers();
+        for (ProfileParsingCompletionHandler completionHandler : completionHandlers) {
+            completionHandler.handleProfileParsingCompletion(profileOps, list);
+        }
+
+
+        // Process subsystems
+        for (List<ModelNode> subsystems : profileOps.values()) {
+            for (final ModelNode update : subsystems) {
+                // Process relative subsystem path address
+                final ModelNode subsystemAddress = address.clone().set(address).add(ModelDescriptionConstants.PROFILE, name);
+                for (final Property path : update.get(OP_ADDR).asPropertyList()) {
+                    subsystemAddress.add(path.getName(), path.getValue().asString());
+                }
+                update.get(OP_ADDR).set(subsystemAddress);
+                list.add(update);
+            }
+        }
+    }
     private void parseManagementClientContent(XMLExtendedStreamReader reader, ModelNode address, Namespace expectedNs, List<ModelNode> list) throws XMLStreamException {
         requireNoAttributes(reader);
 
@@ -995,12 +1104,7 @@ public class DomainXml extends CommonXml {
         writer.writeStartElement(Element.PROFILE.getLocalName());
         writer.writeAttribute(Attribute.NAME.getLocalName(), profileName);
 
-        if (profileNode.hasDefined(INCLUDES)) {
-            for (final ModelNode include : profileNode.get(INCLUDES).asList()) {
-                writer.writeEmptyElement(INCLUDE);
-                writer.writeAttribute(PROFILE, include.asString());
-            }
-        }
+        ProfileResourceDefinition.INCLUDES.getAttributeMarshaller().marshallAsAttribute(ProfileResourceDefinition.INCLUDES, profileNode, false, writer);
         if (profileNode.hasDefined(SUBSYSTEM)) {
             final Set<String> subsystemNames = profileNode.get(SUBSYSTEM).keys();
             if (subsystemNames.size() > 0) {

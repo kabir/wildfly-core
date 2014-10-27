@@ -45,6 +45,8 @@ public class StandaloneSSLTestCase extends AbstractCoreModelTest {
 
         String marshalled = kernelServices.getPersistedSubsystemXml();
         ModelTestUtils.compareXml(ModelTestUtils.readResource(this.getClass(), "ssl-standalone.xml"), marshalled);
+
+        System.out.println(kernelServices.readWholeModel());
     }
 
 }

@@ -80,8 +80,8 @@ import org.jboss.as.controller.operations.common.ResolveExpressionHandler;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.resource.InterfaceDefinition;
-import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.as.domain.controller.ServerIdentity;
+import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.as.domain.controller.operations.ResolveExpressionOnDomainHandler;
 import org.jboss.as.domain.controller.operations.deployment.DeploymentFullReplaceHandler;
 import org.jboss.as.server.operations.ServerProcessStateHandler;
@@ -291,7 +291,8 @@ public class ServerOperationResolver {
             return Collections.emptyMap();
         }
         String profileName = address.getElement(0).getValue();
-        Set<String> relatedProfiles = getRelatedElements(PROFILE, profileName, domain);
+        PathElement subsystem = address.getElement(1);
+        Set<String> relatedProfiles = getRelatedElements(PROFILE, profileName, subsystem.getKey(), subsystem.getValue(), domain);
         Set<ServerIdentity> allServers = new HashSet<ServerIdentity>();
         for (String profile : relatedProfiles) {
             allServers.addAll(getServersForType(PROFILE, profile, domain, host, localHostName, serverProxies));
@@ -424,8 +425,14 @@ public class ServerOperationResolver {
 
     private Map<Set<ServerIdentity>, ModelNode> getServerSocketBindingGroupOperations(ModelNode operation,
                                                                                       PathAddress address, ModelNode domain, ModelNode host) {
-        String bindingGroupName = address.getElement(0).getValue();
-        Set<String> relatedBindingGroups = getRelatedElements(SOCKET_BINDING_GROUP, bindingGroupName, domain);
+        final String bindingGroupName = address.getElement(0).getValue();
+        final Set<String> relatedBindingGroups;
+        if (address.size() > 1) {
+            PathElement element = address.getElement(1);
+            relatedBindingGroups = getRelatedElements(SOCKET_BINDING_GROUP, bindingGroupName, element.getKey(), element.getValue(), domain);
+        } else {
+            relatedBindingGroups = Collections.emptySet();
+        }
         Set<ServerIdentity> result = new HashSet<ServerIdentity>();
         for (String bindingGroup : relatedBindingGroups) {
             result.addAll(getServersForType(SOCKET_BINDING_GROUP, bindingGroup, domain, host, localHostName, serverProxies));

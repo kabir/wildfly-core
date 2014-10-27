@@ -23,7 +23,6 @@ package org.jboss.as.domain.controller.operations;
 
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
 import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationContext.Stage;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.registry.Resource;
@@ -57,7 +56,7 @@ public class ServerGroupProfileWriteAttributeHandler extends ModelOnlyWriteAttri
             //Set an attachment to avoid propagation to the servers, we don't want them to go into restart-required if nothing changed
             ServerOperationResolver.addToDontPropagateToServersAttachment(context, operation);
         }
-        context.addStep(DomainModelReferenceValidator.INSTANCE, Stage.MODEL);
+        DomainModelReferenceValidator.addValidationStep(context, operation);
     }
 
 }

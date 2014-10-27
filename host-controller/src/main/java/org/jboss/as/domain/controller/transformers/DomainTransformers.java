@@ -97,6 +97,7 @@ public class DomainTransformers {
         registerChainedSocketBindingGroupTransformers(registry, currentVersion);
         registerChainedServerGroupTransformers(registry, currentVersion);
         registerChainedInterfaceTransformers(registry, currentVersion);
+        registerProfileTransformers(registry, currentVersion);
 
         registerJsfTransformers(registry, VERSION_1_2, VERSION_1_3);
     }
@@ -145,6 +146,12 @@ public class DomainTransformers {
     private static void registerChainedSocketBindingGroupTransformers(TransformerRegistry registry, ModelVersion currentVersion) {
         ChainedTransformationDescriptionBuilder builder = SocketBindingGroupTransformers.buildTransformerChain(currentVersion);
         registerChainedTransformer(registry, builder, VERSION_1_2, VERSION_1_3);
+    }
+
+    private static void registerProfileTransformers(TransformerRegistry registry, ModelVersion currentVersion) {
+        ChainedTransformationDescriptionBuilder builder = ProfileTransformers.buildTransformerChain(currentVersion);
+        registerChainedTransformer(registry, builder, VERSION_2_0, VERSION_2_1);
+        registerChainedTransformer(registry, builder, VERSION_1_2, VERSION_1_3, VERSION_1_4, VERSION_1_5, VERSION_1_6);
     }
 
     private static void registerChainedTransformer(TransformerRegistry registry, ChainedTransformationDescriptionBuilder builder , ModelVersion...versions) {

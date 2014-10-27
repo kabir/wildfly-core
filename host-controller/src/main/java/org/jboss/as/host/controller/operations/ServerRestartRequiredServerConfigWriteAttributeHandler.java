@@ -56,7 +56,7 @@ public class ServerRestartRequiredServerConfigWriteAttributeHandler extends Mode
             ServerOperationResolver.addToDontPropagateToServersAttachment(context, operation);
         }
         // Validate the model references
-        context.addStep(DomainModelReferenceValidator.INSTANCE, OperationContext.Stage.MODEL);
+        DomainModelReferenceValidator.addValidationStep(context, operation);
     }
 
 }

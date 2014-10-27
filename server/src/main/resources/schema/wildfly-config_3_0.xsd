@@ -2735,6 +2735,14 @@
                 <xs:documentation>Name of the profile</xs:documentation>
             </xs:annotation>
         </xs:attribute>
+        <xs:attribute name="includes" type="stringListType" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                  A profile may include another profile. If the same subsystem is defined in this profile and in 
+                  the one being included, this profile's version will take precedence
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
 
     <xs:complexType name="standalone-profileType">

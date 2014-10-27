@@ -59,7 +59,7 @@ public class ProfileTransformersTestCase extends AbstractCoreModelTest {
     @Test
     public void testProfilesTransformer() throws Exception {
         KernelServicesBuilder builder = createKernelServicesBuilder(TestModelType.DOMAIN)
-                .setXmlResource("domain.xml");
+                .setXmlResource("domain-transform.xml");
 
         builder.createLegacyKernelServicesBuilder(modelVersion, testControllerVersion);
 

@@ -25,20 +25,27 @@ package org.jboss.as.domain.controller.operations;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.GROUP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDES;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SOCKET_BINDING_GROUP;
+import static org.jboss.as.domain.controller.logging.DomainControllerLogger.ROOT_LOGGER;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationContext.AttachmentKey;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.registry.Resource;
+import org.jboss.as.controller.registry.Resource.ResourceEntry;
 import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.dmr.ModelNode;
 
@@ -51,30 +58,48 @@ import org.jboss.dmr.ModelNode;
  */
 public class DomainModelReferenceValidator implements OperationStepHandler {
 
-    public static OperationStepHandler INSTANCE = new DomainModelReferenceValidator();
+    static DomainModelReferenceValidator INSTANCE = new DomainModelReferenceValidator();
+    private static final AttachmentKey<DomainModelReferenceValidator> KEY = AttachmentKey.create(DomainModelReferenceValidator.class);
+
+    private DomainModelReferenceValidator() {
+    }
+
+    public static void addValidationStep(OperationContext context, ModelNode operation) {
+        if (!context.isBooting()) {
+            // This does not need to get executed on boot the domain controller service does that once booted
+            // by calling validateAtBoot(). Otherwise we get issues with the testsuite, which only partially sets up the model
+            if (context.attachIfAbsent(KEY, DomainModelReferenceValidator.INSTANCE) == null) {
+                context.addStep(DomainModelReferenceValidator.INSTANCE, OperationContext.Stage.MODEL);
+            }
+        }
+    }
+
+    public static void validateAtBoot(OperationContext context, ModelNode operation) {
+        assert context.isBooting() : "Should only be called at boot";
+        assert operation.require(OP).asString().equals("validate"); //Should only be called by the domain controller service
+        //Only validate once
+        if (context.attachIfAbsent(KEY, DomainModelReferenceValidator.INSTANCE) == null) {
+            context.addStep(DomainModelReferenceValidator.INSTANCE, OperationContext.Stage.MODEL);
+        }
+    }
 
     @Override
     public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
-
-        if (context.isBooting()) {
-            // This does not need to get executed for each operation on boot
-            // It also causes issues with the testsuite, which only partially sets up the model
-            context.stepCompleted();
-            return;
-        }
         // Validate
         validate(context);
         // Done
         context.stepCompleted();
     }
 
-    public static void validate(final OperationContext context) throws OperationFailedException {
-
-        final Set<String> profiles = new HashSet<>();
+    private void validate(final OperationContext context) throws OperationFailedException {
         final Set<String> serverGroups = new HashSet<>();
         final Set<String> socketBindings = new HashSet<>();
 
         final Resource domain = context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS);
+
+        Set<String> missingProfiles = new HashSet<>();
+        Map<String, Set<String>> profileIncludes = checkProfileIncludes(context, domain, missingProfiles);
+
         final String hostName = determineHostName(domain);
         if (hostName != null) {
             // The testsuite does not always setup the model properly
@@ -93,8 +118,9 @@ public class DomainModelReferenceValidator implements OperationStepHandler {
         for (final Resource.ResourceEntry serverGroup : domain.getChildren(SERVER_GROUP)) {
             final ModelNode model = serverGroup.getModel();
             final String profile = model.require(PROFILE).asString();
-            // Process the profile
-            processProfile(domain, profile, profiles);
+            if (!profileIncludes.containsKey(profile)) {
+                missingProfiles.add(profile);
+            }
             // Process the socket-binding-group
             processSocketBindingGroup(model, socketBindings);
 
@@ -105,13 +131,9 @@ public class DomainModelReferenceValidator implements OperationStepHandler {
         if (!serverGroups.isEmpty()) {
             throw DomainControllerLogger.CONTROLLER_LOGGER.missingReferences(SERVER_GROUP, serverGroups);
         }
-        // Process profiles
-        for (final Resource.ResourceEntry profile : domain.getChildren(PROFILE)) {
-            profiles.remove(profile.getName());
-        }
         // We are missing a profile
-        if (!profiles.isEmpty()) {
-            throw DomainControllerLogger.CONTROLLER_LOGGER.missingReferences(PROFILE, profiles);
+        if (!missingProfiles.isEmpty()) {
+            throw DomainControllerLogger.CONTROLLER_LOGGER.missingReferences(PROFILE, missingProfiles);
         }
         // Process socket-binding groups
         for (final Resource.ResourceEntry socketBindingGroup : domain.getChildren(SOCKET_BINDING_GROUP)) {
@@ -121,26 +143,10 @@ public class DomainModelReferenceValidator implements OperationStepHandler {
         if (!socketBindings.isEmpty()) {
             throw DomainControllerLogger.CONTROLLER_LOGGER.missingReferences(SOCKET_BINDING_GROUP, socketBindings);
         }
-
     }
 
-    static void processProfile(final Resource domain, String profile, Set<String> profiles) {
-        if (!profiles.contains(profile)) {
-            profiles.add(profile);
-            final PathElement pathElement = PathElement.pathElement(PROFILE, profile);
-            if (domain.hasChild(pathElement)) {
-                final Resource resource = domain.getChild(pathElement);
-                final ModelNode model = resource.getModel();
-                if (model.hasDefined(INCLUDES)) {
-                    for (final ModelNode include : model.get(INCLUDES).asList()) {
-                        processProfile(domain, include.asString(), profiles);
-                    }
-                }
-            }
-        }
-    }
 
-    static void processSocketBindingGroup(final ModelNode model, final Set<String> socketBindings) {
+    private void processSocketBindingGroup(final ModelNode model, final Set<String> socketBindings) {
         if (model.hasDefined(SOCKET_BINDING_GROUP)) {
             final String socketBinding = model.require(SOCKET_BINDING_GROUP).asString();
             if (!socketBindings.contains(socketBinding)) {
@@ -149,7 +155,7 @@ public class DomainModelReferenceValidator implements OperationStepHandler {
         }
     }
 
-    static String determineHostName(final Resource domain) {
+    private String determineHostName(final Resource domain) {
         // This could use a better way to determine the local host name
         for (final Resource.ResourceEntry entry : domain.getChildren(HOST)) {
             if (entry.isProxy() || entry.isRuntime()) {
@@ -160,4 +166,64 @@ public class DomainModelReferenceValidator implements OperationStepHandler {
         return null;
     }
 
+    private Map<String, Set<String>> checkProfileIncludes(OperationContext context, Resource domain, Set<String> missingProfiles) throws OperationFailedException {
+        Map<String, Set<String>> profileIncludes = new HashMap<>();
+        for (ResourceEntry entry : domain.getChildren(PROFILE)) {
+            ModelNode model = entry.getModel();
+            final Set<String> includes;
+            if (model.hasDefined(INCLUDES)) {
+                includes = new HashSet<>();
+                for (ModelNode include : model.get(INCLUDES).asList()) {
+                    includes.add(include.asString());
+                }
+            } else {
+                includes = Collections.emptySet();
+            }
+            profileIncludes.put(entry.getName(), includes);
+        }
+
+        new ProfileIncludeValidator(profileIncludes).validate(missingProfiles);
+        return profileIncludes;
+    }
+
+    private static class ProfileIncludeValidator {
+        private final Set<String> seen = new HashSet<>();
+        private final Set<String> onStack = new HashSet<>();
+        private final Map<String, String> linkTo = new HashMap<>();
+        private final Map<String, Set<String>> profileIncludes;
+
+        public ProfileIncludeValidator(Map<String, Set<String>> profileIncludes) {
+            this.profileIncludes = profileIncludes;
+        }
+
+        void validate(Set<String> missingProfiles) throws OperationFailedException {
+            for (String profileName : profileIncludes.keySet()) {
+                if (!seen.contains(profileName)) {
+                    dfs(profileName, missingProfiles);
+                }
+            }
+        }
+
+        void dfs(String profileName, Set<String> missingProfiles) throws OperationFailedException {
+            onStack.add(profileName);
+            try {
+                seen.add(profileName);
+                Set<String> includes = profileIncludes.get(profileName);
+                if (includes == null) {
+                    missingProfiles.add(profileName);
+                    return;
+                }
+                for (String include : includes) {
+                    if (!seen.contains(include)) {
+                        linkTo.put(include, profileName);
+                        dfs(include, missingProfiles);
+                    } else if (onStack.contains(include)) {
+                        throw ROOT_LOGGER.profileInvolvedInACycle(include);
+                    }
+                }
+            } finally {
+                onStack.remove(profileName);
+            }
+        }
+    }
 }

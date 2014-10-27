@@ -34,7 +34,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PRO
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RUNNING_SERVER;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
-import static org.jboss.as.domain.controller.HostConnectionInfo.Event;
 import static org.jboss.as.domain.controller.HostConnectionInfo.Events.create;
 import static org.jboss.as.host.controller.logging.HostControllerLogger.DOMAIN_LOGGER;
 import static org.jboss.as.host.controller.logging.HostControllerLogger.ROOT_LOGGER;
@@ -42,7 +41,6 @@ import static org.jboss.as.remoting.Protocol.HTTPS_REMOTING;
 import static org.jboss.as.remoting.Protocol.HTTP_REMOTING;
 import static org.jboss.as.remoting.Protocol.REMOTE;
 
-import javax.security.auth.callback.CallbackHandler;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,6 +61,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.BootContext;
@@ -108,6 +108,7 @@ import org.jboss.as.controller.services.path.PathManagerService;
 import org.jboss.as.controller.transform.Transformers;
 import org.jboss.as.domain.controller.DomainController;
 import org.jboss.as.domain.controller.HostConnectionInfo;
+import org.jboss.as.domain.controller.HostConnectionInfo.Event;
 import org.jboss.as.domain.controller.HostRegistrations;
 import org.jboss.as.domain.controller.LocalHostControllerInfo;
 import org.jboss.as.domain.controller.SlaveRegistrationException;
@@ -642,7 +643,7 @@ public class DomainModelControllerService extends AbstractControllerService impl
                 final ModelNode result = internalExecute(OperationBuilder.create(validate).build(), OperationMessageHandler.DISCARD, OperationTransactionControl.COMMIT, new OperationStepHandler() {
                     @Override
                     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-                        DomainModelReferenceValidator.validate(context);
+                        DomainModelReferenceValidator.validateAtBoot(context, operation);
                         context.stepCompleted();
                     }
                 }).getResponseNode();
