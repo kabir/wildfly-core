@@ -32,17 +32,10 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SER
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SOCKET_BINDING_GROUP;
 
 import org.jboss.as.controller.ControlledProcessState;
-import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
-import org.jboss.as.controller.ProcessType;
-import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
-import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
-import org.jboss.as.controller.transform.TransformationContext;
-import org.jboss.as.controller.transform.TransformationTarget;
-import org.jboss.as.controller.transform.TransformersLogger;
 import org.jboss.as.host.controller.RemoteDomainConnectionService;
 import org.jboss.as.host.controller.ignored.IgnoreDomainResourceTypeResource;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
@@ -168,15 +161,6 @@ public class HostInfoUnitTestCase {
         Assert.assertFalse(testee.isResourceTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("empty", "used"))));
         Assert.assertFalse(testee.isResourceTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("random", "ignored"))));
 
-        // No operation transformation is ignored
-        Assert.assertFalse(testee.isOperationTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("wildcard", "ignored"))));
-        Assert.assertFalse(testee.isOperationTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("list", "ignored"))));
-        Assert.assertFalse(testee.isOperationTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("list", "used"))));
-        Assert.assertFalse(testee.isOperationTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("nullWildcard", "ignored"))));
-        Assert.assertFalse(testee.isOperationTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("nullWildcard", "used"))));
-        Assert.assertFalse(testee.isOperationTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("empty", "ignored"))));
-        Assert.assertFalse(testee.isOperationTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("empty", "used"))));
-        Assert.assertFalse(testee.isOperationTransformationIgnored(PathAddress.pathAddress(PathElement.pathElement("random", "ignored"))));
     }
 
     private static class MockLocalHostControllerInfo extends LocalHostControllerInfoImpl {
@@ -196,44 +180,4 @@ public class HostInfoUnitTestCase {
         }
     }
 
-    private static class MockTransformationContext implements TransformationContext {
-        private final Resource rootResource;
-        public MockTransformationContext(final Resource rootResource) {
-            this.rootResource = rootResource;
-        }
-        @Override
-        public TransformationTarget getTarget() {
-            return null;
-        }
-        @Override
-        public ProcessType getProcessType() {
-            return null;
-        }
-        @Override
-        public RunningMode getRunningMode() {
-            return null;
-        }
-        @Override
-        public ImmutableManagementResourceRegistration getResourceRegistration(PathAddress address) {
-            return null;
-        }
-        @Override
-        public ImmutableManagementResourceRegistration getResourceRegistrationFromRoot(PathAddress address) {
-            return null;
-        }
-        @Override
-        public Resource readResource(PathAddress address) {
-            return null;
-        }
-        @Override
-        public Resource readResourceFromRoot(PathAddress address) {
-            return rootResource;
-        }
-
-        @Override
-        public TransformersLogger getLogger() {
-            return null;
-        }
-
-    }
 }
