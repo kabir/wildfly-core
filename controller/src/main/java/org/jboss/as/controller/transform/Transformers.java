@@ -98,8 +98,12 @@ public interface Transformers {
             return new TransformersImpl(target);
         }
 
+        public static ResourceTransformationContext create(TransformationTarget target, Resource model, ImmutableManagementResourceRegistration registration, ExpressionResolver resolver, RunningMode runningMode, ProcessType type, Transformers.ResourceIgnoredTransformationRegistry ignoredTransformationRegistry) {
+            return ResourceTransformationContextImpl.create(target, model, registration, runningMode, type, ignoredTransformationRegistry);
+        }
+
         public static ResourceTransformationContext create(TransformationTarget target, Resource model, ImmutableManagementResourceRegistration registration, ExpressionResolver resolver, RunningMode runningMode, ProcessType type) {
-            return ResourceTransformationContextImpl.create(target, model, registration, runningMode, type, DEFAULT);
+            return create(target, model, registration, resolver, runningMode, type, DEFAULT);
         }
 
         /**
