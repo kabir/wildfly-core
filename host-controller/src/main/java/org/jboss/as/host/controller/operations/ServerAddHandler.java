@@ -20,12 +20,9 @@ package org.jboss.as.host.controller.operations;
 
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.GROUP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RUNNING_SERVER;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUP;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SOCKET_BINDING_GROUP;
 
 import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
@@ -37,7 +34,7 @@ import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.registry.PlaceholderResource;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.domain.controller.LocalHostControllerInfo;
-import org.jboss.as.host.controller.logging.HostControllerLogger;
+import org.jboss.as.domain.controller.operations.DomainModelReferenceValidator;
 import org.jboss.as.host.controller.resources.ServerConfigResourceDefinition;
 import org.jboss.dmr.ModelNode;
 
@@ -87,32 +84,7 @@ public class ServerAddHandler extends AbstractAddStepHandler {
             }
         }, OperationContext.Stage.MODEL, true);
 
-        final String group = model.require(GROUP).asString();
-        final String socketBindingGroup = model.hasDefined(SOCKET_BINDING_GROUP) ? model.get(SOCKET_BINDING_GROUP).asString() : null;
-        final Resource root = context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS, false);
-
-        //Check for missing data and pull it down if necessary
-        boolean missingData = false;
-        if (!context.isBooting() && root.getChild(PathElement.pathElement(SERVER_GROUP, group)) == null) {
-            if (hostControllerInfo.isMasterDomainController() || !hostControllerInfo.isRemoteDomainControllerIgnoreUnaffectedConfiguration()) {
-                throw HostControllerLogger.ROOT_LOGGER.noServerGroupCalled(group);
-            } else {
-                missingData = true;
-            }
-        }
-        if (socketBindingGroup != null) {
-            if (!context.isBooting() && root.getChild(PathElement.pathElement(SOCKET_BINDING_GROUP, socketBindingGroup)) == null) {
-                if (hostControllerInfo.isMasterDomainController() || !hostControllerInfo.isRemoteDomainControllerIgnoreUnaffectedConfiguration()) {
-                    throw HostControllerLogger.ROOT_LOGGER.noSocketBindingGroupCalled(socketBindingGroup);
-                } else {
-                    missingData = true;
-                }
-            }
-        }
-
-        if (missingData) {
-            //
-        }
+        context.addStep(DomainModelReferenceValidator.INSTANCE, OperationContext.Stage.MODEL);
     }
 
     protected void populateModel(ModelNode operation, ModelNode model) throws OperationFailedException {

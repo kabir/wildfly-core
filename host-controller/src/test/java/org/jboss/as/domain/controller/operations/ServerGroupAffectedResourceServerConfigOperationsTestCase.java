@@ -37,7 +37,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VAL
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -132,7 +134,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testAddServerConfigBadInfo(true, false, true, SocketBindingGroupOverrideType.GOOD);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testAddServerConfigBadServerGroupSlave() throws Exception {
         testAddServerConfigBadInfo(false, false, true, SocketBindingGroupOverrideType.GOOD);
     }
@@ -143,7 +145,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testAddServerConfigBadInfo(true, true, true, SocketBindingGroupOverrideType.GOOD);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testAddServerConfigBadServerGroupSlaveRollback() throws Exception {
         testAddServerConfigBadInfo(false, true, true, SocketBindingGroupOverrideType.GOOD);
     }
@@ -153,7 +155,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testAddServerConfigBadInfo(true, false, false, SocketBindingGroupOverrideType.BAD);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testAddServerConfigBadSocketBindingGroupOverrideSlave() throws Exception {
         testAddServerConfigBadInfo(false, false, false, SocketBindingGroupOverrideType.BAD);
     }
@@ -164,13 +166,13 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testAddServerConfigBadInfo(true, true, false, SocketBindingGroupOverrideType.BAD);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testAddServerConfigBadSocketBindingGroupOverrideSlaveRollback() throws Exception {
         testAddServerConfigBadInfo(false, true, false, SocketBindingGroupOverrideType.BAD);
     }
 
     private void testAddServerConfigBadInfo(boolean master, boolean rollback, boolean badServerGroup, SocketBindingGroupOverrideType socketBindingGroupOverride) throws Exception {
-        PathAddress pa = PathAddress.pathAddress(PathElement.pathElement(HOST, "localhost"), PathElement.pathElement(SERVER_GROUP, "server-four"));
+        PathAddress pa = PathAddress.pathAddress(PathElement.pathElement(HOST, "localhost"), PathElement.pathElement(SERVER_CONFIG, "server-four"));
         final MockOperationContext operationContext = getOperationContext(rollback, pa);
 
         String serverGroupName = badServerGroup ? "bad-server-group" : "group-one";
@@ -191,7 +193,15 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
             operation.get(SOCKET_BINDING_GROUP).set(socketBindingGroupName);
         }
 
-        ServerAddHandler.create(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        try {
+            ServerAddHandler.create(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         if (master && (socketBindingGroupOverride == SocketBindingGroupOverrideType.BAD || badServerGroup)) {
             Assert.fail();
@@ -262,7 +272,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testUpdateServerConfigServerGroup(true, false, true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testUpdateServerConfigBadServerGroupSlave() throws Exception {
         testUpdateServerConfigServerGroup(false, false, true);
     }
@@ -272,7 +282,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testUpdateServerConfigServerGroup(true, true, true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testUpdateServerConfigBadServerGroupSlaveRollback() throws Exception {
         testUpdateServerConfigServerGroup(false, true, true);
     }
@@ -289,7 +299,15 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         operation.get(NAME).set(GROUP);
         operation.get(VALUE).set(groupName);
 
-        ServerRestartRequiredServerConfigWriteAttributeHandler.createGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        try {
+            ServerRestartRequiredServerConfigWriteAttributeHandler.createGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         if (master && badGroup) {
             //master will throw an exception
@@ -327,7 +345,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testUpdateServerConfigSocketBindingGroup(true, false, SocketBindingGroupOverrideType.BAD);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testUpdateServerConfigBadSocketBindingGroupSlave() throws Exception {
         testUpdateServerConfigSocketBindingGroup(false, false, SocketBindingGroupOverrideType.BAD);
     }
@@ -337,12 +355,12 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testUpdateServerConfigSocketBindingGroup(true, true, SocketBindingGroupOverrideType.BAD);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testUpdateServerConfigBadSocketBindingGroupSlaveRollback() throws Exception {
         testUpdateServerConfigSocketBindingGroup(false, true, SocketBindingGroupOverrideType.BAD);
     }
 
-
+    @Test
     public void testUpdateServerConfigNoSocketBindingGroupMaster() throws Exception {
         testUpdateServerConfigSocketBindingGroup(true, false, SocketBindingGroupOverrideType.NONE);
     }
@@ -352,6 +370,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         testUpdateServerConfigSocketBindingGroup(false, false, SocketBindingGroupOverrideType.NONE);
     }
 
+    @Test
     public void testUpdateServerConfigNoSocketBindingGroupMasterRollback() throws Exception {
         testUpdateServerConfigSocketBindingGroup(true, true, SocketBindingGroupOverrideType.NONE);
     }
@@ -381,7 +400,15 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         operation.get(NAME).set(SOCKET_BINDING_GROUP);
         operation.get(VALUE).set(socketBindingGroupName != null ? new ModelNode(socketBindingGroupName) : new ModelNode());
 
-        ServerRestartRequiredServerConfigWriteAttributeHandler.createSocketBindingGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        try {
+            ServerRestartRequiredServerConfigWriteAttributeHandler.createSocketBindingGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         if (master && socketBindingGroupOverride == SocketBindingGroupOverrideType.BAD) {
             //master will throw an exception
@@ -476,7 +503,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
     private class MockOperationContext extends AbstractOperationTestCase.MockOperationContext {
         private boolean reloadRequired;
         private boolean rollback;
-        private OperationStepHandler nextStep;
+        private final Queue<OperationStepHandler> nextHandlers = new ArrayDeque<>();
 
         protected MockOperationContext(final Resource root, final boolean booting, final PathAddress operationAddress, final boolean rollback) {
             super(root, booting, operationAddress);
@@ -484,7 +511,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         }
 
         public void completeStep(ResultHandler resultHandler) {
-            if (nextStep != null) {
+            if (!nextHandlers.isEmpty()) {
                 stepCompleted();
             } else if (rollback) {
                 resultHandler.handleResult(ResultAction.ROLLBACK, this, null);
@@ -492,10 +519,9 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         }
 
         public void stepCompleted() {
-            if (nextStep != null) {
+            if (!nextHandlers.isEmpty()) {
                 try {
-                    OperationStepHandler step = nextStep;
-                    nextStep = null;
+                    OperationStepHandler step = nextHandlers.poll();
                     step.execute(this, null);
                 } catch (OperationFailedException e) {
                     throw new RuntimeException(e);
@@ -516,7 +542,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         }
 
         public void addStep(OperationStepHandler step, OperationContext.Stage stage) throws IllegalArgumentException {
-            nextStep = step;
+            nextHandlers.add(step);
         }
 
         public void addStep(ModelNode operation, OperationStepHandler step, OperationContext.Stage stage) throws IllegalArgumentException {

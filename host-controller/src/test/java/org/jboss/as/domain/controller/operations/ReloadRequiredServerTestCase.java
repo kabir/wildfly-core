@@ -41,7 +41,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.jboss.as.controller.ControlledProcessState.State;
+import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProxyController;
@@ -119,7 +121,7 @@ public class ReloadRequiredServerTestCase extends AbstractOperationTestCase {
         testChangeServerGroupInvalidProfile(true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testChangeServerGroupInvalidProfileSlave() throws Exception {
         testChangeServerGroupInvalidProfile(false);
     }
@@ -139,7 +141,15 @@ public class ReloadRequiredServerTestCase extends AbstractOperationTestCase {
         operation.get(NAME).set(PROFILE);
         operation.get(VALUE).set("does-not-exist");
 
-        new ServerGroupProfileWriteAttributeHandler(master).execute(operationContext, operation);
+        try {
+            new ServerGroupProfileWriteAttributeHandler(master).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         operationContext.verify();
 
@@ -207,7 +217,7 @@ public class ReloadRequiredServerTestCase extends AbstractOperationTestCase {
         testChangeServerConfigGroupBadGroup(true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testChangeServerConfigGroupBadGroupSlave() throws Exception {
         testChangeServerConfigGroupBadGroup(false);
     }
@@ -222,7 +232,15 @@ public class ReloadRequiredServerTestCase extends AbstractOperationTestCase {
         operation.get(NAME).set(GROUP);
         operation.get(VALUE).set("bad-group");
 
-        ServerRestartRequiredServerConfigWriteAttributeHandler.createGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        try {
+            ServerRestartRequiredServerConfigWriteAttributeHandler.createGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         operationContext.verify();
 
@@ -290,7 +308,7 @@ public class ReloadRequiredServerTestCase extends AbstractOperationTestCase {
         testChangeServerConfigSocketBindingGroupBadGroup(true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testChangeServerConfigSocketBindingGroupBadGroupSlave() throws Exception {
         testChangeServerConfigSocketBindingGroupBadGroup(false);
     }
@@ -305,7 +323,15 @@ public class ReloadRequiredServerTestCase extends AbstractOperationTestCase {
         operation.get(NAME).set(SOCKET_BINDING_GROUP);
         operation.get(VALUE).set("bad-group");
 
-        ServerRestartRequiredServerConfigWriteAttributeHandler.createSocketBindingGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        try {
+            ServerRestartRequiredServerConfigWriteAttributeHandler.createSocketBindingGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         operationContext.verify();
 
@@ -535,8 +561,33 @@ public class ReloadRequiredServerTestCase extends AbstractOperationTestCase {
 
     private class MockOperationContext extends AbstractOperationTestCase.MockOperationContext {
         private boolean reloadRequired;
+        private OperationStepHandler nextStep;
         protected MockOperationContext(final Resource root, final boolean booting, final PathAddress operationAddress) {
             super(root, booting, operationAddress);
+        }
+
+        public void completeStep(ResultHandler resultHandler) {
+            if (nextStep != null) {
+                stepCompleted();
+            } else {
+                resultHandler.handleResult(ResultAction.KEEP, this, null);
+            }
+        }
+
+        public void stepCompleted() {
+            if (nextStep != null) {
+                try {
+                    OperationStepHandler step = nextStep;
+                    nextStep = null;
+                    step.execute(this, null);
+                } catch (OperationFailedException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+
+        public void addStep(OperationStepHandler step, OperationContext.Stage stage) throws IllegalArgumentException {
+            nextStep = step;
         }
 
         public void reloadRequired() {

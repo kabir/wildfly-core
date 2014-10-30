@@ -73,48 +73,44 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
         testAddServerGroupBadInfo(master, rollback, false, false);
     }
 
-    @Ignore("validation changed")
     @Test(expected=OperationFailedException.class)
     public void testAddServerGroupBadProfileMaster() throws Exception {
         testAddServerGroupBadInfo(true, false, true, false);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testAddServerGroupBadProfileSlave() throws Exception {
         testAddServerGroupBadInfo(false, false, true, false);
     }
 
-    @Ignore("validation changed")
     @Test(expected=OperationFailedException.class)
     public void testAddServerGroupBadProfileMasterRollback() throws Exception {
         //This won't actually get to the rollback part
         testAddServerGroupBadInfo(true, true, true, false);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testAddServerGroupBadProfileSlaveRollback() throws Exception {
         testAddServerGroupBadInfo(false, true, true, false);
     }
 
-    @Ignore("validation changed")
     @Test(expected=OperationFailedException.class)
     public void testAddServerGroupBadSocketBindingGroupMaster() throws Exception {
         testAddServerGroupBadInfo(true, false, false, true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testAddServerGroupBadSocketBindingGroupSlave() throws Exception {
         testAddServerGroupBadInfo(false, false, false, true);
     }
 
-    @Ignore("validation changed")
     @Test(expected=OperationFailedException.class)
     public void testAddServerGroupBadSocketBindingGroupMasterRollback() throws Exception {
         //This won't actually get to the rollback part
         testAddServerGroupBadInfo(true, true, false, true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testAddServerGroupBadSocketBindingGroupSlaveRollback() throws Exception {
         testAddServerGroupBadInfo(false, true, false, true);
     }
@@ -132,7 +128,15 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
         operation.get(PROFILE).set(profileName);
         operation.get(SOCKET_BINDING_GROUP).set(socketBindingGroupName);
 
-        new ServerGroupAddHandler(master).execute(operationContext, operation);
+        try {
+            new ServerGroupAddHandler(master).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         if (master && (badProfile || badSocketBindingGroup)) {
             // Assert.fail();
@@ -140,12 +144,6 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
 
         if (rollback) {
             Assert.assertFalse(operationContext.isReloadRequired());
-        } else {
-//            if (badProfile || badSocketBindingGroup) {
-//                Assert.assertTrue(operationContext.isReloadRequired());
-//            } else {
-//                Assert.assertFalse(operationContext.isReloadRequired());
-//            }
         }
     }
 
@@ -208,7 +206,7 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
         testUpdateServerGroupProfile(true, false, true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testUpdateServerGroupBadProfileSlave() throws Exception {
         testUpdateServerGroupProfile(false, false, true);
     }
@@ -218,7 +216,7 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
         testUpdateServerGroupProfile(true, true, true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testUpdateServerGroupBadProfileSlaveRollback() throws Exception {
         testUpdateServerGroupProfile(false, true, true);
     }
@@ -235,7 +233,15 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
         operation.get(NAME).set(PROFILE);
         operation.get(VALUE).set(profileName);
 
-        new ServerGroupProfileWriteAttributeHandler(master).execute(operationContext, operation);
+        try {
+            new ServerGroupProfileWriteAttributeHandler(master).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         if (master && badProfile) {
             //master will throw an exception
@@ -244,12 +250,6 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
 
         if (rollback) {
             Assert.assertFalse(operationContext.isReloadRequired());
-        } else {
-//            if (badProfile) {
-//                Assert.assertTrue(operationContext.isReloadRequired());
-//            } else {
-//                Assert.assertFalse(operationContext.isReloadRequired());
-//            }
         }
     }
 
@@ -281,7 +281,7 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
         testUpdateServerGroupSocketBindingGroup(true, false, true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testUpdateServerGroupBadSocketBindingGroupSlave() throws Exception {
         testUpdateServerGroupSocketBindingGroup(false, false, true);
     }
@@ -291,7 +291,7 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
         testUpdateServerGroupSocketBindingGroup(true, true, true);
     }
 
-    @Test
+    @Test(expected=OperationFailedException.class)
     public void testUpdateServerGroupBadSocketBindingGroupSlaveRollback() throws Exception {
         testUpdateServerGroupSocketBindingGroup(false, true, true);
     }
@@ -309,7 +309,15 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
         operation.get(NAME).set(SOCKET_BINDING_GROUP);
         operation.get(VALUE).set(socketBindingGroupName);
 
-        new ServerGroupSocketBindingGroupWriteAttributeHandler(master).execute(operationContext, operation);
+        try {
+            new ServerGroupSocketBindingGroupWriteAttributeHandler(master).execute(operationContext, operation);
+        } catch (RuntimeException e) {
+            final Throwable t = e.getCause();
+            if (t instanceof OperationFailedException) {
+                throw (OperationFailedException) t;
+            }
+            throw e;
+        }
 
         if (master && badSocketBindingGroup) {
             //master will throw an exception
@@ -318,12 +326,6 @@ public class ServerGroupAffectedResourceServerGroupOperationsTestCase extends Ab
 
         if (rollback) {
             Assert.assertFalse(operationContext.isReloadRequired());
-        } else {
-//            if (badSocketBindingGroup) {
-//                Assert.assertTrue(operationContext.isReloadRequired());
-//            } else {
-//                Assert.assertFalse(operationContext.isReloadRequired());
-//            }
         }
     }
 

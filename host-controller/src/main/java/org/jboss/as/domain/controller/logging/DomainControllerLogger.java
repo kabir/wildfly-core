@@ -735,4 +735,6 @@ public interface DomainControllerLogger extends BasicLogger {
     @Message(id = 74, value = "Cannot synchronize the model due to missing extensions: %s")
     OperationFailedException missingExtensions(Set<String> missingExtensions);
 
+    @Message(id = 74, value = "Model references of type '%s' are missing: %s")
+    OperationFailedException missingReferences(String type, Set<String> missing);
 }
