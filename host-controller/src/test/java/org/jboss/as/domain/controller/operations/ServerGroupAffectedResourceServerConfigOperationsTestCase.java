@@ -31,7 +31,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REMOVE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_CONFIG;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SOCKET_BINDING_GROUP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
@@ -300,7 +299,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         operation.get(VALUE).set(groupName);
 
         try {
-            ServerRestartRequiredServerConfigWriteAttributeHandler.createGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+            ServerRestartRequiredServerConfigWriteAttributeHandler.INSTANCE.execute(operationContext, operation);
         } catch (RuntimeException e) {
             final Throwable t = e.getCause();
             if (t instanceof OperationFailedException) {
@@ -401,7 +400,7 @@ public class ServerGroupAffectedResourceServerConfigOperationsTestCase extends A
         operation.get(VALUE).set(socketBindingGroupName != null ? new ModelNode(socketBindingGroupName) : new ModelNode());
 
         try {
-            ServerRestartRequiredServerConfigWriteAttributeHandler.createSocketBindingGroupInstance(new MockHostControllerInfo(master)).execute(operationContext, operation);
+            ServerRestartRequiredServerConfigWriteAttributeHandler.INSTANCE.execute(operationContext, operation);
         } catch (RuntimeException e) {
             final Throwable t = e.getCause();
             if (t instanceof OperationFailedException) {
