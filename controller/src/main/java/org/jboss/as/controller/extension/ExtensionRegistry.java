@@ -328,6 +328,24 @@ public class ExtensionRegistry {
         }
     }
 
+    /**
+     * Checks if an extension module has initialised its subsystems yet. This is for internal use only.
+     *
+     * @param moduleName the name of the extension module
+     * @return {@code true} if the module has initialised its subsystems
+     */
+    public boolean hasInitializedSubsystems(String moduleName) {
+        final Map<String, SubsystemInformation> infos = getAvailableSubsystems(moduleName);
+        if(infos != null && ! infos.isEmpty()) {
+            for(final Map.Entry<String, SubsystemInformation> entry : infos.entrySet()) {
+                if (this.subsystemsInfo.containsKey(entry.getKey())) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private ExtensionInfo getExtensionInfo(final String extensionModuleName) {
         ExtensionInfo result = extensions.get(extensionModuleName);
         if (result == null) {

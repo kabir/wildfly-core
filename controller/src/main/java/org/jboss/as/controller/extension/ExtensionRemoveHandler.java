@@ -19,6 +19,8 @@
 package org.jboss.as.controller.extension;
 
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REMOVE;
 
@@ -26,7 +28,10 @@ import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
+import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
 
 /**
@@ -62,14 +67,56 @@ public class ExtensionRemoveHandler implements OperationStepHandler {
         context.removeResource(PathAddress.EMPTY_ADDRESS);
 
         final ManagementResourceRegistration rootRegistration = rootResourceRegistrationProvider.getRootResourceRegistrationForUpdate(context);
-        extensionRegistry.removeExtension(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS), module, rootRegistration);
+        if (!checkLastCopy(context, address)) {
+            context.stepCompleted();
+        } else {
+            extensionRegistry.removeExtension(context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS), module, rootRegistration);
 
-        context.completeStep(new OperationContext.RollbackHandler() {
-            @Override
-            public void handleRollback(OperationContext context, ModelNode operation) {
-                // Restore the extension to the ExtensionRegistry and the ManagementResourceRegistration tree
-                ExtensionAddHandler.initializeExtension(extensionRegistry, module, rootRegistration, isMasterDomainController);
+            context.completeStep(new OperationContext.RollbackHandler() {
+                @Override
+                public void handleRollback(OperationContext context, ModelNode operation) {
+                    // Restore the extension to the ExtensionRegistry and the ManagementResourceRegistration tree
+                    ExtensionAddHandler.initializeExtension(extensionRegistry, module, rootRegistration, isMasterDomainController);
+                }
+            });
+        }
+    }
+
+    private boolean checkLastCopy(OperationContext context, PathAddress address) {
+        if (context.getProcessType() != ProcessType.HOST_CONTROLLER) {
+            return true;
+        } else {
+            Resource root = context.readResourceFromRoot(PathAddress.EMPTY_ADDRESS);
+            //In domain mode extensions can be registered in either the domain model, in the host model, or both.
+            //Only remove from the registry when the last one is removed
+            final PathAddress otherAddress;
+            if (address.getElement(0).getKey().equals(EXTENSION)) {
+                //We are removing from the domain model, look in the local host model
+                String localHostName = determineHostName(root);
+                otherAddress = PathAddress.pathAddress(HOST, localHostName).append(address.getLastElement());
+            } else {
+                //We are removing from the host model, look in the local domain model
+                otherAddress = PathAddress.pathAddress(address.getLastElement());
             }
-        });
+            Resource resource = root;
+            for (PathElement element : otherAddress) {
+                resource = root.getChild(element);
+                if (resource == null) {
+                    break;
+                }
+            }
+            return resource == null;
+        }
+    }
+
+    static String determineHostName(final Resource domain) {
+        // This could use a better way to determine the local host name
+        for (final Resource.ResourceEntry entry : domain.getChildren(HOST)) {
+            if (entry.isProxy() || entry.isRuntime()) {
+                continue;
+            }
+            return entry.getName();
+        }
+        return null;
     }
 }

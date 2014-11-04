@@ -29,6 +29,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DIR
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DISCOVERY_OPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DISCOVERY_OPTIONS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DOMAIN_CONTROLLER;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HTTP_INTERFACE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.IGNORED_RESOURCES;
@@ -75,14 +76,17 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import javax.xml.stream.XMLStreamException;
 
 import org.jboss.as.controller.RunningMode;
+import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.parsing.Attribute;
 import org.jboss.as.controller.parsing.Element;
+import org.jboss.as.controller.parsing.ExtensionXml;
 import org.jboss.as.controller.parsing.Namespace;
 import org.jboss.as.controller.parsing.ParseUtils;
 import org.jboss.as.controller.persistence.ModelMarshallingContext;
@@ -104,6 +108,7 @@ import org.jboss.as.server.parsing.CommonXml;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.dmr.Property;
+import org.jboss.modules.ModuleLoader;
 import org.jboss.staxmapper.XMLExtendedStreamReader;
 import org.jboss.staxmapper.XMLExtendedStreamWriter;
 
@@ -120,11 +125,15 @@ public class HostXml extends CommonXml {
     private final String defaultHostControllerName;
     private final RunningMode runningMode;
     private final boolean isCachedDc;
+    private final ExtensionXml extensionXml;
 
-    public HostXml(String defaultHostControllerName, RunningMode runningMode, boolean isCachedDC) {
+
+    public HostXml(String defaultHostControllerName, RunningMode runningMode, boolean isCachedDC, final ModuleLoader loader, ExecutorService executorService, ExtensionRegistry extensionRegistry) {
         this.defaultHostControllerName = defaultHostControllerName;
         this.runningMode = runningMode;
         this.isCachedDc = isCachedDC;
+        extensionXml = new ExtensionXml(loader, executorService, extensionRegistry);
+
     }
 
     @Override
@@ -171,6 +180,9 @@ public class HostXml extends CommonXml {
 
         writeNewLine(writer);
 
+        if (modelNode.hasDefined(EXTENSION)) {
+            extensionXml.writeExtensions(writer, modelNode.get(EXTENSION));
+        }
         if (modelNode.hasDefined(SYSTEM_PROPERTY)) {
             writeProperties(writer, modelNode.get(SYSTEM_PROPERTY), Element.SYSTEM_PROPERTIES, false);
             writeNewLine(writer);
@@ -409,7 +421,13 @@ public class HostXml extends CommonXml {
         // Handle elements: sequence
 
         Element element = nextElement(reader, namespace);
-
+        if (element == Element.EXTENSIONS) {
+            if (namespace.compareTo(Namespace.DOMAIN_3_0) < 0) {
+                throw ParseUtils.unexpectedElement(reader);
+            }
+            extensionXml.parseExtensions(reader, address, namespace, list);
+            element = nextElement(reader, namespace);
+        }
         if (element == Element.SYSTEM_PROPERTIES) {
             parseSystemProperties(reader, address, namespace, list, false);
             element = nextElement(reader, namespace);

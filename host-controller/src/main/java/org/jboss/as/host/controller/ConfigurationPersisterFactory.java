@@ -58,9 +58,9 @@ public class ConfigurationPersisterFactory {
     static final String CACHED_DOMAIN_XML = "domain.cached-remote.xml";
 
     // host.xml
-    public static ExtensibleConfigurationPersister createHostXmlConfigurationPersister(final ConfigurationFile file, final HostControllerEnvironment environment) {
+    public static ExtensibleConfigurationPersister createHostXmlConfigurationPersister(final ConfigurationFile file, final HostControllerEnvironment environment, ExecutorService executorService, ExtensionRegistry extensionRegistry) {
         HostXml hostXml = new HostXml(environment.getHostControllerName(), environment.getRunningModeControl().getRunningMode(),
-                environment.isUseCachedDc());
+                environment.isUseCachedDc(), Module.getBootModuleLoader(), executorService, extensionRegistry);
         BackupXmlConfigurationPersister persister =  new BackupXmlConfigurationPersister(file, new QName(Namespace.CURRENT.getUriString(), "host"), hostXml, hostXml);
         for (Namespace namespace : Namespace.domainValues()) {
             if (!namespace.equals(Namespace.CURRENT)) {

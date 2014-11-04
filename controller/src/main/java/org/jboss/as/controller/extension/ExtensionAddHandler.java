@@ -21,12 +21,12 @@ package org.jboss.as.controller.extension;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 
-import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
 import org.jboss.modules.Module;
@@ -110,6 +110,10 @@ public class ExtensionAddHandler implements OperationStepHandler {
                 ClassLoader oldTccl = WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(extension.getClass());
                 try {
                     if (unknownModule || !extensionRegistry.getExtensionModuleNames().contains(module)) {
+                        //In domain mode extensions can be registered in either the domain model, in the host model, or both.
+                        //Only add to the registry the first time it ia added to a model (the operation address/controller should guard against other duplicates).
+
+
                         // This extension wasn't handled by the standalone.xml or domain.xml parsing logic, so we
                         // need to initialize its parsers so we can display what XML namespaces it supports
                         extension.initializeParsers(extensionRegistry.getExtensionParsingContext(module, null));
@@ -117,7 +121,11 @@ public class ExtensionAddHandler implements OperationStepHandler {
                         // now that we know the registry was unaware of the module
                         unknownModule = true;
                     }
-                    extension.initialize(extensionRegistry.getExtensionContext(module, rootRegistration, isMasterDomainController));
+                    if (!extensionRegistry.hasInitializedSubsystems(module)) {
+                        //In domain mode extensions can be registered in either the domain model, in the host model, or both.
+                        //Only add to the registry the first time it is added to a model (the operation address/controller should guard against other duplicates).
+                        extension.initialize(extensionRegistry.getExtensionContext(module, rootRegistration, isMasterDomainController));
+                    }
                 } finally {
                     WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(oldTccl);
                 }

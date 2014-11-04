@@ -331,6 +331,7 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
                 PathElement.pathElement(MANAGEMENT_CLIENT_CONTENT, ROLLOUT_PLANS), new RolloutPlanValidator(), DomainResolver.getResolver(ROLLOUT_PLANS), DomainResolver.getResolver(ROLLOUT_PLAN)));
 
         // Extensions
+        //TODO this actually looks like it is passing in the opposite value for master from what it should be, or the extension resources call it master and it should be slave?
         resourceRegistration.registerSubModel(new ExtensionResourceDefinition(extensionRegistry, true, !isMaster, rootResourceRegistrationProvider));
 
 

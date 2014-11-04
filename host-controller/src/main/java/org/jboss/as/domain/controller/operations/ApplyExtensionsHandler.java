@@ -192,8 +192,12 @@ public class ApplyExtensionsHandler implements OperationStepHandler {
             for (final Extension extension : Module.loadServiceFromCallerModuleLoader(ModuleIdentifier.fromString(module), Extension.class)) {
                 ClassLoader oldTccl = SecurityActions.setThreadContextClassLoader(extension.getClass());
                 try {
-                    extension.initializeParsers(extensionRegistry.getExtensionParsingContext(module, null));
-                    extension.initialize(extensionRegistry.getExtensionContext(module, rootRegistration, false));
+                    if (!extensionRegistry.hasInitializedSubsystems(module)) {
+                        //In domain mode extensions can be registered in either the domain model, in the host model, or both.
+                        //Only add to the registry the first time it is added to a model (the operation address/controller should guard against other duplicates).
+                        extension.initializeParsers(extensionRegistry.getExtensionParsingContext(module, null));
+                        extension.initialize(extensionRegistry.getExtensionContext(module, rootRegistration, false));
+                    }
                 } finally {
                     SecurityActions.setThreadContextClassLoader(oldTccl);
                 }

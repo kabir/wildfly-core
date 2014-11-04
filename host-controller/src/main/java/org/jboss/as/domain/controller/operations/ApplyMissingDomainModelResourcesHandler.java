@@ -39,12 +39,13 @@ import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
+import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.extension.ExtensionResource;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.domain.controller.DomainController;
-import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.as.domain.controller.LocalHostControllerInfo;
+import org.jboss.as.domain.controller.logging.DomainControllerLogger;
 import org.jboss.as.host.controller.HostControllerEnvironment;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
 import org.jboss.dmr.ModelNode;
@@ -194,8 +195,13 @@ class ApplyMissingDomainModelResourcesHandler implements OperationStepHandler {
             for (final Extension extension : Module.loadServiceFromCallerModuleLoader(ModuleIdentifier.fromString(module), Extension.class)) {
                 ClassLoader oldTccl = SecurityActions.setThreadContextClassLoader(extension.getClass());
                 try {
-                    extension.initializeParsers(domainController.getExtensionRegistry().getExtensionParsingContext(module, null));
-                    extension.initialize(domainController.getExtensionRegistry().getExtensionContext(module, rootRegistration, false));
+                    final ExtensionRegistry extensionRegistry = domainController.getExtensionRegistry();
+                    if (!extensionRegistry.hasInitializedSubsystems(module)) {
+                        //In domain mode extensions can be registered in either the domain model, in the host model, or both.
+                        //Only add to the registry the first time it is added to a model (the operation address/controller should guard against other duplicates).
+                        extension.initializeParsers(extensionRegistry.getExtensionParsingContext(module, null));
+                        extension.initialize(extensionRegistry.getExtensionContext(module, rootRegistration, false));
+                    }
                 } finally {
                     SecurityActions.setThreadContextClassLoader(oldTccl);
                 }

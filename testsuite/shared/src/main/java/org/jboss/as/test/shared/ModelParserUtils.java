@@ -27,7 +27,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPE
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROLLBACK_ON_RUNTIME_FAILURE;
 
-import javax.xml.namespace.QName;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +39,8 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import javax.xml.namespace.QName;
 
 import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.BootErrorCollector;
@@ -290,8 +291,9 @@ public class ModelParserUtils {
 
     //TODO use HostInitializer & TestModelControllerService
     private static ModelNode loadHostModel(final ServiceContainer serviceContainer, final File file) throws Exception {
+        final ExtensionRegistry extensionRegistry = new ExtensionRegistry(ProcessType.HOST_CONTROLLER, new RunningModeControl(RunningMode.NORMAL), null, null);
         final QName rootElement = new QName(Namespace.CURRENT.getUriString(), "host");
-        final HostXml parser = new HostXml("host-controller", RunningMode.NORMAL, false);
+        final HostXml parser = new HostXml("host-controller", RunningMode.NORMAL, false, Module.getBootModuleLoader(), null, extensionRegistry);
         final XmlConfigurationPersister persister = new XmlConfigurationPersister(file, rootElement, parser, parser);
         for (Namespace namespace : Namespace.domainValues()) {
             if (namespace != Namespace.CURRENT) {

@@ -67,7 +67,7 @@ public class HostControllerConfigurationPersister implements ExtensibleConfigura
         if (environment.getRunningModeControl().isReloaded()) {
             configurationFile.resetBootFile(environment.getRunningModeControl().isUseCurrentConfig());
         }
-        this.hostPersister = ConfigurationPersisterFactory.createHostXmlConfigurationPersister(configurationFile, environment);
+        this.hostPersister = ConfigurationPersisterFactory.createHostXmlConfigurationPersister(configurationFile, environment, executorService, extensionRegistry);
     }
 
     public void initializeDomainConfigurationPersister(boolean slave) {

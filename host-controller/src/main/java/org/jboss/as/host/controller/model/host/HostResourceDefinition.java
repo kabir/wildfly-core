@@ -40,6 +40,8 @@ import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraint
 import org.jboss.as.controller.audit.ManagedAuditLogger;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.extension.ExtensionRegistry;
+import org.jboss.as.controller.extension.ExtensionResourceDefinition;
+import org.jboss.as.controller.extension.MutableRootResourceRegistrationProvider;
 import org.jboss.as.controller.operations.common.NamespaceAddHandler;
 import org.jboss.as.controller.operations.common.NamespaceRemoveHandler;
 import org.jboss.as.controller.operations.common.ProcessStateAttributeHandler;
@@ -324,7 +326,7 @@ public class HostResourceDefinition extends SimpleResourceDefinition {
 
 
     @Override
-    public void registerChildren(ManagementResourceRegistration hostRegistration) {
+    public void registerChildren(final ManagementResourceRegistration hostRegistration) {
         super.registerChildren(hostRegistration);
 
 
@@ -396,5 +398,18 @@ public class HostResourceDefinition extends SimpleResourceDefinition {
         //server configurations
         hostRegistration.registerSubModel(new ServerConfigResourceDefinition(hostControllerInfo, serverInventory, pathManager));
         hostRegistration.registerSubModel(new StoppedServerResource(serverInventory));
+
+        // Extensions
+
+        //TODO this actually looks like it is passing in the opposite value for master from what it should be, or the extension resources call it master and it should be slave?
+        hostRegistration.registerSubModel(new ExtensionResourceDefinition(extensionRegistry, true,
+                !hostControllerInfo.isMasterDomainController(),
+                new MutableRootResourceRegistrationProvider() {
+                    @Override
+                    public ManagementResourceRegistration getRootResourceRegistrationForUpdate(OperationContext context) {
+                        return hostRegistration;
+                    }
+                }));
+
     }
 }
