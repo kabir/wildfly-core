@@ -110,6 +110,7 @@ public class ExtensionRegistry {
     private final ProcessType processType;
 
     private SubsystemXmlWriterRegistry writerRegistry;
+
     private volatile PathManager pathManager;
 
     private final ConcurrentMap<String, ExtensionInfo> extensions = new ConcurrentHashMap<String, ExtensionInfo>();
@@ -155,7 +156,6 @@ public class ExtensionRegistry {
      */
     public void setWriterRegistry(final SubsystemXmlWriterRegistry writerRegistry) {
         this.writerRegistry = writerRegistry;
-
     }
 
     /**
@@ -304,6 +304,7 @@ public class ExtensionRegistry {
             transformerRegistry = TransformerRegistry.Factory.create();
             extensions.clear();
             reverseMap.clear();
+            subsystemsInfo.clear();
         }
     }
 
@@ -365,6 +366,10 @@ public class ExtensionRegistry {
 
     public TransformerRegistry getTransformerRegistry() {
         return transformerRegistry;
+    }
+
+    private boolean isDeferredWriterRegistry() {
+        return processType == ProcessType.HOST_CONTROLLER && writerRegistry == null;
     }
 
     private class ExtensionParsingContextImpl implements ExtensionParsingContext {
@@ -996,4 +1001,5 @@ public class ExtensionRegistry {
         public void setNonFacadeMBeansSensitive(boolean sensitive) {
         }
     };
+
 }

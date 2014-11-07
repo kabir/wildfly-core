@@ -32,6 +32,7 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
+import org.jboss.staxmapper.XMLMapper;
 
 /**
  * An XML configuration persister which backs up the old file before overwriting it.
@@ -42,6 +43,28 @@ public class BackupXmlConfigurationPersister extends XmlConfigurationPersister {
 
     ConfigurationFile configurationFile;
     private final AtomicBoolean successfulBoot = new AtomicBoolean();
+    //In domain mode this mapper is shared between the domain and host parsers, so that
+    //parsers installed by extensions installed by the host xml are also available when parsing the domain model
+    private final XMLMapper xmlMapper;
+
+
+    /**
+     * Construct a new instance.
+     *
+     * @param file the configuration base file
+     * @param rootElement the root element of the configuration file
+     * @param rootParser the root model parser
+     * @param rootDeparser the root model deparser
+     * @param xmlMapper the xml mapper to use. In domain mode, this should be shared between the host and domain parsers. If {@code null} a new one will be created
+     * @param subsystemXmlWriterRegistry the subsystem xml writer registry to use. In domain mode, this should be shared between the host and domain parserss. If {@code null} a new one will be created
+     */
+    public BackupXmlConfigurationPersister(final ConfigurationFile file, final QName rootElement, final XMLElementReader<List<ModelNode>> rootParser,
+            final XMLElementWriter<ModelMarshallingContext> rootDeparser, XMLMapper xmlMapper, SubsystemXmlWriterRegistry subsystemXmlWriterRegistry) {
+        super(file.getBootFile(), rootElement, rootParser, rootDeparser, subsystemXmlWriterRegistry);
+        this.configurationFile = file;
+        this.xmlMapper = xmlMapper == null ? XMLMapper.Factory.create() : xmlMapper;
+    }
+
     /**
      * Construct a new instance.
      *
@@ -50,9 +73,9 @@ public class BackupXmlConfigurationPersister extends XmlConfigurationPersister {
      * @param rootParser the root model parser
      * @param rootDeparser the root model deparser
      */
-    public BackupXmlConfigurationPersister(final ConfigurationFile file, final QName rootElement, final XMLElementReader<List<ModelNode>> rootParser, final XMLElementWriter<ModelMarshallingContext> rootDeparser) {
-        super(file.getBootFile(), rootElement, rootParser, rootDeparser);
-        this.configurationFile = file;
+    public BackupXmlConfigurationPersister(final ConfigurationFile file, final QName rootElement, final XMLElementReader<List<ModelNode>> rootParser,
+            final XMLElementWriter<ModelMarshallingContext> rootDeparser) {
+        this(file, rootElement, rootParser, rootDeparser, XMLMapper.Factory.create(), null);
     }
 
     public void registerAdditionalRootElement(final QName anotherRoot, final XMLElementReader<List<ModelNode>> parser){
@@ -93,5 +116,10 @@ public class BackupXmlConfigurationPersister extends XmlConfigurationPersister {
     @Override
     public void deleteSnapshot(final String name) {
         configurationFile.deleteSnapshot(name);
+    }
+
+    @Override
+    protected XMLMapper getXMLMapper() {
+        return xmlMapper;
     }
 }

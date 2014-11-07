@@ -39,6 +39,7 @@ import org.jboss.as.controller.persistence.ConfigurationPersister;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.persistence.ModelMarshallingContext;
 import org.jboss.as.controller.persistence.NullConfigurationPersister;
+import org.jboss.as.controller.persistence.SubsystemXmlWriterRegistry;
 import org.jboss.as.controller.persistence.XmlConfigurationPersister;
 import org.jboss.as.host.controller.logging.HostControllerLogger;
 import org.jboss.as.host.controller.parsing.DomainXml;
@@ -47,6 +48,7 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.modules.Module;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
+import org.jboss.staxmapper.XMLMapper;
 
 /**
  * Factory methods to produce an {@link ExtensibleConfigurationPersister} for different Host Controller use cases.
@@ -58,22 +60,27 @@ public class ConfigurationPersisterFactory {
     static final String CACHED_DOMAIN_XML = "domain.cached-remote.xml";
 
     // host.xml
-    public static ExtensibleConfigurationPersister createHostXmlConfigurationPersister(final ConfigurationFile file, final HostControllerEnvironment environment, ExecutorService executorService, ExtensionRegistry extensionRegistry) {
+    public static ExtensibleConfigurationPersister createHostXmlConfigurationPersister(final ConfigurationFile file, final HostControllerEnvironment environment,
+            ExecutorService executorService, ExtensionRegistry extensionRegistry, XMLMapper xmlMapper) {
         HostXml hostXml = new HostXml(environment.getHostControllerName(), environment.getRunningModeControl().getRunningMode(),
                 environment.isUseCachedDc(), Module.getBootModuleLoader(), executorService, extensionRegistry);
-        BackupXmlConfigurationPersister persister =  new BackupXmlConfigurationPersister(file, new QName(Namespace.CURRENT.getUriString(), "host"), hostXml, hostXml);
+        BackupXmlConfigurationPersister persister
+                =  new BackupXmlConfigurationPersister(file, new QName(Namespace.CURRENT.getUriString(), "host"), hostXml, hostXml, xmlMapper, null);
         for (Namespace namespace : Namespace.domainValues()) {
             if (!namespace.equals(Namespace.CURRENT)) {
                 persister.registerAdditionalRootElement(new QName(namespace.getUriString(), "host"), hostXml);
             }
         }
+        extensionRegistry.setWriterRegistry(persister);
         return persister;
     }
 
     // domain.xml
-    public static ExtensibleConfigurationPersister createDomainXmlConfigurationPersister(final ConfigurationFile file, ExecutorService executorService, ExtensionRegistry extensionRegistry) {
+    public static ExtensibleConfigurationPersister createDomainXmlConfigurationPersister(final ConfigurationFile file, ExecutorService executorService,
+            ExtensionRegistry extensionRegistry, XMLMapper xmlMapper, SubsystemXmlWriterRegistry subsystemXmlWriterRegistry) {
         DomainXml domainXml = new DomainXml(Module.getBootModuleLoader(), executorService, extensionRegistry);
-        BackupXmlConfigurationPersister persister = new BackupXmlConfigurationPersister(file, new QName(Namespace.CURRENT.getUriString(), "domain"), domainXml, domainXml);
+        BackupXmlConfigurationPersister persister
+                = new BackupXmlConfigurationPersister(file, new QName(Namespace.CURRENT.getUriString(), "domain"), domainXml, domainXml, xmlMapper, subsystemXmlWriterRegistry);
         for (Namespace namespace : Namespace.domainValues()) {
             if (!namespace.equals(Namespace.CURRENT)) {
                 persister.registerAdditionalRootElement(new QName(namespace.getUriString(), "domain"), domainXml);
@@ -84,10 +91,12 @@ public class ConfigurationPersisterFactory {
     }
 
     // --backup
-    public static ExtensibleConfigurationPersister createRemoteBackupDomainXmlConfigurationPersister(final File configDir, ExecutorService executorService, ExtensionRegistry extensionRegistry) {
+    public static ExtensibleConfigurationPersister createRemoteBackupDomainXmlConfigurationPersister(final File configDir,
+            ExecutorService executorService, ExtensionRegistry extensionRegistry, SubsystemXmlWriterRegistry subsystemXmlWriterRegistry) {
         DomainXml domainXml = new DomainXml(Module.getBootModuleLoader(), executorService, extensionRegistry);
         File file = new File(configDir, CACHED_DOMAIN_XML);
-        BackupRemoteDomainXmlPersister persister = new BackupRemoteDomainXmlPersister(file, new QName(Namespace.CURRENT.getUriString(), "domain"), domainXml, domainXml);
+        BackupRemoteDomainXmlPersister persister
+                = new BackupRemoteDomainXmlPersister(file, new QName(Namespace.CURRENT.getUriString(), "domain"), domainXml, domainXml, subsystemXmlWriterRegistry);
         for (Namespace namespace : Namespace.domainValues()) {
             if (!namespace.equals(Namespace.CURRENT)) {
                 persister.registerAdditionalRootElement(new QName(namespace.getUriString(), "domain"), domainXml);
@@ -98,10 +107,11 @@ public class ConfigurationPersisterFactory {
     }
 
     // --cached-dc
-    public static ExtensibleConfigurationPersister createCachedRemoteDomainXmlConfigurationPersister(final File configDir, ExecutorService executorService, ExtensionRegistry extensionRegistry) {
+    public static ExtensibleConfigurationPersister createCachedRemoteDomainXmlConfigurationPersister(final File configDir,
+            ExecutorService executorService, ExtensionRegistry extensionRegistry, SubsystemXmlWriterRegistry delegateRegistry) {
         DomainXml domainXml = new DomainXml(Module.getBootModuleLoader(), executorService, extensionRegistry);
         File file = new File(configDir, CACHED_DOMAIN_XML);
-        CachedRemoteDomainXmlPersister persister = new CachedRemoteDomainXmlPersister(file, new QName(Namespace.CURRENT.getUriString(), "domain"), domainXml, domainXml);
+        CachedRemoteDomainXmlPersister persister = new CachedRemoteDomainXmlPersister(file, new QName(Namespace.CURRENT.getUriString(), "domain"), domainXml, domainXml, delegateRegistry);
         for (Namespace namespace : Namespace.domainValues()) {
             if (!namespace.equals(Namespace.CURRENT)) {
                 persister.registerAdditionalRootElement(new QName(namespace.getUriString(), "domain"), domainXml);
@@ -112,9 +122,10 @@ public class ConfigurationPersisterFactory {
     }
 
     // slave=true
-    public static ExtensibleConfigurationPersister createTransientDomainXmlConfigurationPersister(ExecutorService executorService, ExtensionRegistry extensionRegistry) {
+    public static ExtensibleConfigurationPersister createTransientDomainXmlConfigurationPersister(ExecutorService executorService,
+            ExtensionRegistry extensionRegistry, SubsystemXmlWriterRegistry delegateRegistry) {
         DomainXml domainXml = new DomainXml(Module.getBootModuleLoader(), executorService, extensionRegistry);
-        ExtensibleConfigurationPersister persister =  new NullConfigurationPersister(domainXml);
+        ExtensibleConfigurationPersister persister =  new NullConfigurationPersister(domainXml, delegateRegistry);
         extensionRegistry.setWriterRegistry(persister);
         return persister;
     }
@@ -124,8 +135,9 @@ public class ConfigurationPersisterFactory {
      */
     static class BackupRemoteDomainXmlPersister extends XmlConfigurationPersister {
 
-        BackupRemoteDomainXmlPersister(File fileName, QName rootElement, XMLElementReader<List<ModelNode>> rootParser, XMLElementWriter<ModelMarshallingContext> rootDeparser) {
-            super(fileName, rootElement, rootParser, rootDeparser);
+        BackupRemoteDomainXmlPersister(File fileName, QName rootElement, XMLElementReader<List<ModelNode>> rootParser,
+                XMLElementWriter<ModelMarshallingContext> rootDeparser, SubsystemXmlWriterRegistry subsystemXmlWriterRegistry) {
+            super(fileName, rootElement, rootParser, rootDeparser, subsystemXmlWriterRegistry);
         }
 
         @Override
@@ -143,8 +155,9 @@ public class ConfigurationPersisterFactory {
     static class CachedRemoteDomainXmlPersister extends XmlConfigurationPersister {
 
         volatile boolean started = false;
-        CachedRemoteDomainXmlPersister(File fileName, QName rootElement, XMLElementReader<List<ModelNode>> rootParser, XMLElementWriter<ModelMarshallingContext> rootDeparser) {
-            super(fileName, rootElement, rootParser, rootDeparser);
+        CachedRemoteDomainXmlPersister(File fileName, QName rootElement, XMLElementReader<List<ModelNode>> rootParser,
+                XMLElementWriter<ModelMarshallingContext> rootDeparser, SubsystemXmlWriterRegistry subsystemXmlWriterRegistry) {
+            super(fileName, rootElement, rootParser, rootDeparser, subsystemXmlWriterRegistry);
         }
 
         @Override

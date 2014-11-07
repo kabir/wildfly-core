@@ -36,14 +36,21 @@ import org.jboss.staxmapper.XMLElementWriter;
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
 public final class NullConfigurationPersister extends AbstractConfigurationPersister {
+    private final SubsystemXmlWriterRegistry writerRegistry;
 
     public NullConfigurationPersister() {
-        super(null);
+        this(null);
     }
 
     public NullConfigurationPersister(XMLElementWriter<ModelMarshallingContext> rootDeparser) {
-        super(rootDeparser);
+        this(rootDeparser, null);
     }
+
+    public NullConfigurationPersister(XMLElementWriter<ModelMarshallingContext> rootDeparser, SubsystemXmlWriterRegistry writerRegistry) {
+        super(rootDeparser);
+        this.writerRegistry = writerRegistry;
+    }
+
 
     /** {@inheritDoc} */
     @Override
@@ -56,6 +63,26 @@ public final class NullConfigurationPersister extends AbstractConfigurationPersi
     public List<ModelNode> load() {
         return Collections.emptyList();
     }
+
+    @Override
+    public void registerSubsystemWriter(String name, XMLElementWriter<SubsystemMarshallingContext> deparser) {
+        if (writerRegistry == null) {
+            super.registerSubsystemWriter(name, deparser);
+        } else {
+            writerRegistry.registerSubsystemWriter(name, deparser);
+        }
+    }
+
+    @Override
+    public void unregisterSubsystemWriter(String name) {
+        if (writerRegistry == null) {
+            super.unregisterSubsystemWriter(name);
+        } else {
+            writerRegistry.unregisterSubsystemWriter(name);
+        }
+    }
+
+
 
     private static class NullPersistenceResource implements ConfigurationPersister.PersistenceResource {
 

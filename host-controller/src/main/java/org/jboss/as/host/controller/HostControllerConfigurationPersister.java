@@ -40,6 +40,7 @@ import org.jboss.as.domain.controller.LocalHostControllerInfo;
 import org.jboss.as.host.controller.logging.HostControllerLogger;
 import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementWriter;
+import org.jboss.staxmapper.XMLMapper;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
@@ -55,6 +56,7 @@ public class HostControllerConfigurationPersister implements ExtensibleConfigura
     private final LocalHostControllerInfo hostControllerInfo;
     private final ExecutorService executorService;
     private final ExtensionRegistry extensionRegistry;
+    private final XMLMapper xmlMapper;
     private Boolean slave;
 
     public HostControllerConfigurationPersister(final HostControllerEnvironment environment, final LocalHostControllerInfo localHostControllerInfo,
@@ -67,7 +69,8 @@ public class HostControllerConfigurationPersister implements ExtensibleConfigura
         if (environment.getRunningModeControl().isReloaded()) {
             configurationFile.resetBootFile(environment.getRunningModeControl().isUseCurrentConfig());
         }
-        this.hostPersister = ConfigurationPersisterFactory.createHostXmlConfigurationPersister(configurationFile, environment, executorService, extensionRegistry);
+        this.xmlMapper = XMLMapper.Factory.create();
+        this.hostPersister = ConfigurationPersisterFactory.createHostXmlConfigurationPersister(configurationFile, environment, executorService, extensionRegistry, xmlMapper);
     }
 
     public void initializeDomainConfigurationPersister(boolean slave) {
@@ -81,13 +84,13 @@ public class HostControllerConfigurationPersister implements ExtensibleConfigura
             if (environment.isBackupDomainFiles()) {
                 // --backup
                 domainConfigurationFile = getBackupDomainConfigurationFile();
-                domainPersister = ConfigurationPersisterFactory.createRemoteBackupDomainXmlConfigurationPersister(configDir, executorService, extensionRegistry);
+                domainPersister = ConfigurationPersisterFactory.createRemoteBackupDomainXmlConfigurationPersister(configDir, executorService, extensionRegistry, hostPersister);
             } else if(environment.isUseCachedDc()) {
                 // --cached-dc
                 domainConfigurationFile = getBackupDomainConfigurationFile();
-                domainPersister = ConfigurationPersisterFactory.createCachedRemoteDomainXmlConfigurationPersister(configDir, executorService, extensionRegistry);
+                domainPersister = ConfigurationPersisterFactory.createCachedRemoteDomainXmlConfigurationPersister(configDir, executorService, extensionRegistry, hostPersister);
             } else {
-                domainPersister = ConfigurationPersisterFactory.createTransientDomainXmlConfigurationPersister(executorService, extensionRegistry);
+                domainPersister = ConfigurationPersisterFactory.createTransientDomainXmlConfigurationPersister(executorService, extensionRegistry, hostPersister);
             }
         } else {
             domainConfigurationFile = getStandardDomainConfigurationFile();
@@ -110,7 +113,7 @@ public class HostControllerConfigurationPersister implements ExtensibleConfigura
                 domainConfigurationFile.resetBootFile(environment.getRunningModeControl().isUseCurrentDomainConfig());
             }
 
-            domainPersister = ConfigurationPersisterFactory.createDomainXmlConfigurationPersister(domainConfigurationFile, executorService, extensionRegistry);
+            domainPersister = ConfigurationPersisterFactory.createDomainXmlConfigurationPersister(domainConfigurationFile, executorService, extensionRegistry, xmlMapper, hostPersister);
         }
         // Store this back to environment so mgmt api that exposes it can still work
         environment.setDomainConfigurationFile(domainConfigurationFile);
@@ -211,12 +214,17 @@ public class HostControllerConfigurationPersister implements ExtensibleConfigura
 
     @Override
     public void registerSubsystemWriter(String name, XMLElementWriter<SubsystemMarshallingContext> writer) {
-        domainPersister.registerSubsystemWriter(name, writer);
+        hostPersister.registerSubsystemWriter(name, writer);
     }
 
     @Override
     public void unregisterSubsystemWriter(String name) {
-        domainPersister.unregisterSubsystemWriter(name);
+        hostPersister.unregisterSubsystemWriter(name);
+    }
+
+    @Override
+    public XMLElementWriter<SubsystemMarshallingContext> getSubsystemWriter(String name) {
+        return hostPersister.getSubsystemWriter(name);
     }
 
     private ConfigurationFile getStandardDomainConfigurationFile() {

@@ -361,8 +361,6 @@ public class ServerManagementTestCase {
     private ModelNode validateResponse(ModelNode response, boolean validateResult) {
 
         if(! SUCCESS.equals(response.get(OUTCOME).asString())) {
-            System.out.println("Failed response:");
-            System.out.println(response);
             Assert.fail(response.get(FAILURE_DESCRIPTION).toString());
         }
 

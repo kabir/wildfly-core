@@ -38,8 +38,8 @@ import javax.xml.namespace.QName;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamReader;
 
-import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
@@ -57,6 +57,7 @@ public class XmlConfigurationPersister extends AbstractConfigurationPersister {
     private final XMLElementReader<List<ModelNode>> rootParser;
     private final Map<QName, XMLElementReader<List<ModelNode>>> additionalParsers;
 
+
     /**
      * Construct a new instance.
      *
@@ -64,9 +65,25 @@ public class XmlConfigurationPersister extends AbstractConfigurationPersister {
      * @param rootElement the root element of the configuration file
      * @param rootParser the root model parser
      * @param rootDeparser the root model deparser
+     * @param subsystemXmlWriterRegistry the subsystem xml writer registry to use. In domain mode, this should be shared between the host and domain parserss. If {@code null} a new one will be created
      */
-    public XmlConfigurationPersister(final File fileName, final QName rootElement, final XMLElementReader<List<ModelNode>> rootParser, final XMLElementWriter<ModelMarshallingContext> rootDeparser) {
-        super(rootDeparser);
+    public XmlConfigurationPersister(final File fileName, final QName rootElement, final XMLElementReader<List<ModelNode>> rootParser,
+            final XMLElementWriter<ModelMarshallingContext> rootDeparser) {
+        this(fileName, rootElement, rootParser, rootDeparser, null);
+    }
+
+    /**
+     * Construct a new instance.
+     *
+     * @param fileName the configuration base file name
+     * @param rootElement the root element of the configuration file
+     * @param rootParser the root model parser
+     * @param rootDeparser the root model deparser
+     * @param subsystemXmlWriterRegistry the subsystem xml writer registry to use. In domain mode, this should be shared between the host and domain parserss. If {@code null} a new one will be created
+     */
+    public XmlConfigurationPersister(final File fileName, final QName rootElement, final XMLElementReader<List<ModelNode>> rootParser,
+            final XMLElementWriter<ModelMarshallingContext> rootDeparser, final SubsystemXmlWriterRegistry subsystemXmlWriterRegistry) {
+        super(rootDeparser, subsystemXmlWriterRegistry);
         this.fileName = fileName;
         this.rootElement = rootElement;
         this.rootParser = rootParser;
@@ -88,7 +105,7 @@ public class XmlConfigurationPersister extends AbstractConfigurationPersister {
     /** {@inheritDoc} */
     @Override
     public List<ModelNode> load() throws ConfigurationPersistenceException {
-        final XMLMapper mapper = XMLMapper.Factory.create();
+        final XMLMapper mapper = getXMLMapper();
         mapper.registerRootElement(rootElement, rootParser);
         synchronized (additionalParsers) {
             for (Map.Entry<QName, XMLElementReader<List<ModelNode>>> entry : additionalParsers.entrySet()) {
@@ -129,5 +146,9 @@ public class XmlConfigurationPersister extends AbstractConfigurationPersister {
     @Override
     public String snapshot() throws ConfigurationPersistenceException {
         return "";
+    }
+
+    protected XMLMapper getXMLMapper() {
+        return XMLMapper.Factory.create();
     }
 }

@@ -43,4 +43,12 @@ public interface SubsystemXmlWriterRegistry {
      * @param name the name of the subsystem
      */
     void unregisterSubsystemWriter(String name);
+
+    /**
+     * Gets the XML configuration writer of the named subsystem.
+     *
+     * @param name the name of the subsystem
+     * @return the XML writer
+     */
+    XMLElementWriter<SubsystemMarshallingContext> getSubsystemWriter(String name);
 }

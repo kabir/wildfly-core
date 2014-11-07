@@ -22,6 +22,8 @@
 
 package org.jboss.as.controller.extension;
 
+import static org.jboss.as.controller.logging.ControllerLogger.MGMT_OP_LOGGER;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,17 +33,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.jboss.as.controller._private.OperationFailedRuntimeException;
-import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.ParsedBootOp;
+import org.jboss.as.controller._private.OperationFailedRuntimeException;
+import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.dmr.ModelNode;
-
-import static org.jboss.as.controller.logging.ControllerLogger.MGMT_OP_LOGGER;
 
 /**
  * Special handler that executes extension initialization in parallel.
@@ -93,7 +93,6 @@ public class ParallelExtensionAddHandler implements OperationStepHandler {
         return new OperationStepHandler() {
             @Override
             public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
-
                 long start = System.currentTimeMillis();
                 final Map<String, Future<OperationFailedRuntimeException>> futures = new LinkedHashMap<String, Future<OperationFailedRuntimeException>>();
                 final ManagementResourceRegistration rootResourceRegistration = rootResourceRegistrationProvider.getRootResourceRegistrationForUpdate(context);

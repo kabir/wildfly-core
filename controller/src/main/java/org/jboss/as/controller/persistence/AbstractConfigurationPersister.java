@@ -22,6 +22,8 @@
 
 package org.jboss.as.controller.persistence;
 
+import static org.jboss.as.controller.logging.ControllerLogger.ROOT_LOGGER;
+
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,8 +36,6 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementWriter;
 import org.jboss.staxmapper.XMLMapper;
 
-import static org.jboss.as.controller.logging.ControllerLogger.ROOT_LOGGER;
-
 /**
  * Abstract superclass for {@link ExtensibleConfigurationPersister} implementations.
  *
@@ -44,7 +44,7 @@ import static org.jboss.as.controller.logging.ControllerLogger.ROOT_LOGGER;
 public abstract class AbstractConfigurationPersister implements ExtensibleConfigurationPersister {
 
     private final XMLElementWriter<ModelMarshallingContext> rootDeparser;
-    private final Map<String, XMLElementWriter<SubsystemMarshallingContext>> subsystemWriters = new HashMap<String, XMLElementWriter<SubsystemMarshallingContext>>();
+    private final SubsystemXmlWriterRegistry subsystemXmlWriterRegistry;
 
     /**
      * Construct a new instance.
@@ -52,21 +52,33 @@ public abstract class AbstractConfigurationPersister implements ExtensibleConfig
      * @param rootDeparser the root model deparser
      */
     public AbstractConfigurationPersister(final XMLElementWriter<ModelMarshallingContext> rootDeparser) {
+        this(rootDeparser, null);
+    }
+
+    /**
+     * Construct a new instance.
+     *
+     * @param rootDeparser the root model deparser
+     * @param subsystemXmlWriterRegistry the subsystem xml writer registry to use. In domain mode, this should be shared between the host and domain parserss. If {@code null} a new one will be created
+     */
+    public AbstractConfigurationPersister(final XMLElementWriter<ModelMarshallingContext> rootDeparser, SubsystemXmlWriterRegistry subsystemXmlWriterRegistry) {
         this.rootDeparser = rootDeparser;
+        this.subsystemXmlWriterRegistry = subsystemXmlWriterRegistry != null ? subsystemXmlWriterRegistry : new StandardSubsystemWriterRegistry();
     }
 
     @Override
     public void registerSubsystemWriter(String name, XMLElementWriter<SubsystemMarshallingContext> deparser) {
-        synchronized (subsystemWriters) {
-            subsystemWriters.put(name, deparser);
-        }
+        subsystemXmlWriterRegistry.registerSubsystemWriter(name, deparser);
     }
 
     @Override
     public void unregisterSubsystemWriter(String name) {
-        synchronized (subsystemWriters) {
-            subsystemWriters.remove(name);
-        }
+        subsystemXmlWriterRegistry.unregisterSubsystemWriter(name);
+    }
+
+    @Override
+    public XMLElementWriter<SubsystemMarshallingContext> getSubsystemWriter(String name) {
+        return subsystemXmlWriterRegistry.getSubsystemWriter(name);
     }
 
     /** {@inheritDoc} */
@@ -85,10 +97,8 @@ public abstract class AbstractConfigurationPersister implements ExtensibleConfig
                     }
 
                     @Override
-                    public XMLElementWriter<SubsystemMarshallingContext> getSubsystemWriter(String extensionName) {
-                        synchronized (subsystemWriters) {
-                            return subsystemWriters.get(extensionName);
-                        }
+                    public XMLElementWriter<SubsystemMarshallingContext> getSubsystemWriter(String name) {
+                        return subsystemXmlWriterRegistry.getSubsystemWriter(name);
                     }
                 };
                 mapper.deparseDocument(rootDeparser, extensibleModel, streamWriter);
@@ -124,6 +134,31 @@ public abstract class AbstractConfigurationPersister implements ExtensibleConfig
             streamWriter.close();
         } catch (Throwable t) {
             ROOT_LOGGER.failedToCloseResource(t, streamWriter);
+        }
+    }
+
+    private static final class StandardSubsystemWriterRegistry implements SubsystemXmlWriterRegistry {
+        private final Map<String, XMLElementWriter<SubsystemMarshallingContext>> subsystemWriters = new HashMap<String, XMLElementWriter<SubsystemMarshallingContext>>();
+
+        @Override
+        public void registerSubsystemWriter(String name, XMLElementWriter<SubsystemMarshallingContext> deparser) {
+            synchronized (subsystemWriters) {
+                subsystemWriters.put(name, deparser);
+            }
+        }
+
+        @Override
+        public void unregisterSubsystemWriter(String name) {
+            synchronized (subsystemWriters) {
+                subsystemWriters.remove(name);
+            }
+        }
+
+        @Override
+        public XMLElementWriter<SubsystemMarshallingContext> getSubsystemWriter(String name) {
+            synchronized (subsystemWriters) {
+                return subsystemWriters.get(name);
+            }
         }
     }
 }
