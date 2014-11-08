@@ -45,6 +45,7 @@ import java.io.File;
 import java.io.IOException;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.services.path.AbsolutePathService;
 import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.subsystem.test.AbstractSubsystemBaseTest;
@@ -73,21 +74,31 @@ public class RemotingLegacySubsystemTestCase extends AbstractSubsystemBaseTest {
 
     @Test
     public void testSubsystemWithThreadParameters() throws Exception {
-        standardSubsystemTest("remoting-with-threads.xml", null, true, AdditionalInitialization.ADMIN_ONLY_HC);
+        System.setProperty(ExtensionRegistry.TURN_OFF_HC_PROFILE_RESOURCE, "true");
+        try {
+            standardSubsystemTest("remoting-with-threads.xml", null, true, AdditionalInitialization.ADMIN_ONLY_HC);
+        } finally {
+            System.clearProperty(ExtensionRegistry.TURN_OFF_HC_PROFILE_RESOURCE);
+        }
     }
 
     @Test
     public void testSubsystemWithThreadAttributeChange() throws Exception {
-        KernelServices services = createKernelServicesBuilder(AdditionalInitialization.ADMIN_ONLY_HC)
-                .setSubsystemXmlResource("remoting-with-threads.xml")
-                .build();
+        System.setProperty(ExtensionRegistry.TURN_OFF_HC_PROFILE_RESOURCE, "true");
+        try {
+            KernelServices services = createKernelServicesBuilder(AdditionalInitialization.ADMIN_ONLY_HC)
+                    .setSubsystemXmlResource("remoting-with-threads.xml")
+                    .build();
 
-        updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_READ_THREADS, 5, 6);
-        updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_TASK_CORE_THREADS, 6, 2);
-        updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_TASK_KEEPALIVE, 7, 3);
-        updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_TASK_LIMIT, 8, 4);
-        updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_TASK_MAX_THREADS, 9, 5);
-        updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_WRITE_THREADS, 10, 6);
+            updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_READ_THREADS, 5, 6);
+            updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_TASK_CORE_THREADS, 6, 2);
+            updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_TASK_KEEPALIVE, 7, 3);
+            updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_TASK_LIMIT, 8, 4);
+            updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_TASK_MAX_THREADS, 9, 5);
+            updateAndCheckThreadAttribute(services, CommonAttributes.WORKER_WRITE_THREADS, 10, 6);
+        } finally {
+            System.clearProperty(ExtensionRegistry.TURN_OFF_HC_PROFILE_RESOURCE);
+        }
     }
 
     private void updateAndCheckThreadAttribute(KernelServices services, String attrName, int before, int after) throws Exception {

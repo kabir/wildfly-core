@@ -90,6 +90,7 @@ import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
 import org.jboss.staxmapper.XMLMapper;
+import org.wildfly.security.manager.WildFlySecurityManager;
 
 /**
  * A registry for information about {@link org.jboss.as.controller.Extension}s to the core application server.
@@ -97,6 +98,9 @@ import org.jboss.staxmapper.XMLMapper;
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  */
 public class ExtensionRegistry {
+
+    //If set then getExtensionContext() does not try to find the profile resource
+    public static final String TURN_OFF_HC_PROFILE_RESOURCE = "org.jboss.as.test.turn.off.hc.profile.resource";
 
     // Hack to restrict the extensions to which we expose ExtensionContextSupplement
     private static final Set<String> legallySupplemented;
@@ -121,6 +125,9 @@ public class ExtensionRegistry {
     private final JmxAuthorizer authorizer;
     private final ConcurrentHashMap<String, SubsystemInformation> subsystemsInfo = new ConcurrentHashMap<String, SubsystemInformation>();
     private volatile TransformerRegistry transformerRegistry = TransformerRegistry.Factory.create();
+    //Set by the TURN_OFF_HC_PROFILE_RESOURCE system property. If true then
+    //getExtensionContext() does not try to find the profile resource for a HC process (mainly used for tests)
+    private final boolean noProfileForHc;
 
     /**
      * Constructor
@@ -135,6 +142,8 @@ public class ExtensionRegistry {
         this.runningModeControl = runningModeControl;
         this.auditLogger = auditLogger != null ? auditLogger : AuditLogger.NO_OP_LOGGER;
         this.authorizer = authorizer != null ? authorizer : NO_OP_AUTHORIZER;
+        noProfileForHc = WildFlySecurityManager.isChecking() ?
+                Boolean.getBoolean(TURN_OFF_HC_PROFILE_RESOURCE) : Boolean.valueOf(WildFlySecurityManager.getPropertyPrivileged(TURN_OFF_HC_PROFILE_RESOURCE, "false"));
     }
 
     /**
@@ -224,8 +233,10 @@ public class ExtensionRegistry {
     public ExtensionContext getExtensionContext(final String moduleName, ManagementResourceRegistration rootRegistration, boolean isMasterDomainController) {
         // Can't use processType.isServer() to determine where to look for profile reg because a lot of test infrastructure
         // doesn't add the profile mrr even in HC-based tests
-        ManagementResourceRegistration profileRegistration = rootRegistration.getSubModel(PathAddress.pathAddress(PathElement.pathElement(PROFILE)));
-        if (profileRegistration == null) {
+        final ManagementResourceRegistration profileRegistration;
+        if (processType == ProcessType.HOST_CONTROLLER && !noProfileForHc) {
+            profileRegistration = rootRegistration.getSubModel(PathAddress.pathAddress(PathElement.pathElement(PROFILE)));
+        } else {
             profileRegistration = rootRegistration;
         }
         ManagementResourceRegistration deploymentsRegistration = processType.isServer() ? rootRegistration.getSubModel(PathAddress.pathAddress(PathElement.pathElement(DEPLOYMENT))) : null;
