@@ -27,6 +27,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.IN_
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_CLIENT_CONTENT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MAX_FAILED_SERVERS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MAX_FAILURE_PERCENTAGE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROLLBACK_ACROSS_GROUPS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROLLING_TO_SERVERS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROLLOUT_PLAN;
@@ -40,6 +41,7 @@ import java.util.Set;
 import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PropertiesAttributeDefinition;
 import org.jboss.as.controller.ResourceDefinition;
@@ -302,7 +304,12 @@ public class DomainRootDefinition extends SimpleResourceDefinition {
         final ManagementResourceRegistration coreMgmt = resourceRegistration.registerSubModel(CoreManagementResourceDefinition.forDomain(authorizer));
         coreMgmt.registerSubModel(new HostConnectionResourceDefinition(hostRegistrations));
 
-        resourceRegistration.registerSubModel(new ProfileResourceDefinition(extensionRegistry));
+        if (resourceRegistration.getSubModel(PathAddress.pathAddress(PathElement.pathElement(PROFILE))) == null) {
+            //See HostModelUtil.createHostRegistry. When running in domain mode, we register the profile registration when creating the host registry.
+            //This is so that extensions can be added to the host model at boot.
+            //The core model tests don't add this though, so we check and add here
+            resourceRegistration.registerSubModel(new ProfileResourceDefinition(extensionRegistry));
+        }
         resourceRegistration.registerSubModel(PathResourceDefinition.createNamed(pathManager));
         ResourceDefinition domainDeploymentDefinition = isMaster
                 ? DomainDeploymentResourceDefinition.createForDomainMaster(contentRepo)

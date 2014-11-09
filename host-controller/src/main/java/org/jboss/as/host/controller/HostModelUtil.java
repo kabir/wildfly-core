@@ -36,6 +36,7 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.services.path.PathManagerService;
 import org.jboss.as.domain.controller.DomainController;
+import org.jboss.as.domain.controller.resources.ProfileResourceDefinition;
 import org.jboss.as.domain.management.security.WhoAmIOperation;
 import org.jboss.as.host.controller.descriptions.HostEnvironmentResourceDefinition;
 import org.jboss.as.host.controller.ignored.IgnoredDomainResourceRegistry;
@@ -121,6 +122,11 @@ public class HostModelUtil {
                         hostControllerInfo, serverInventory, remoteFileRepository,
                         contentRepository, domainController, extensionRegistry,
                         vaultReader, ignoredRegistry, processState, pathManager, authorizer, auditLogger, bootErrorCollector));
+
+        //Register the profile resource definition in the domain model since this registration is needed when adding modules
+        //to the host model at boot
+        root.registerSubModel(new ProfileResourceDefinition(extensionRegistry));
+
 
         //TODO See if some of all these parameters can come from domain controller
         LocalDomainControllerAddHandler localDcAddHandler = LocalDomainControllerAddHandler.getInstance(root, hostControllerInfo,
