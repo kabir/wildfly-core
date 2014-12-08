@@ -61,6 +61,7 @@ public class RequestControllerExtension implements Extension {
     @Override
     public void initialize(ExtensionContext context) {
         final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, 1, 1, 0);
+
         final ManagementResourceRegistration registration = subsystem.registerSubsystemModel(new RequestControllerRootDefinition(context.isRuntimeOnlyRegistrationValid()));
         registration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE, false);
         subsystem.registerXMLElementWriter(RequestControllerSubsystemParser_1_0.INSTANCE);

@@ -23,6 +23,7 @@
 package org.jboss.as.controller.extension;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.DEPLOYMENT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 
@@ -231,20 +232,35 @@ public class ExtensionRegistry {
      * @return  the {@link ExtensionContext}.  Will not return {@code null}
      */
     public ExtensionContext getExtensionContext(final String moduleName, ManagementResourceRegistration rootRegistration, boolean isMasterDomainController) {
+        //The parent for host controller subsystems if running as HC
+        ManagementResourceRegistration hostProfileRegistration = null;
         // Can't use processType.isServer() to determine where to look for profile reg because a lot of test infrastructure
         // doesn't add the profile mrr even in HC-based tests
         final ManagementResourceRegistration profileRegistration;
         if (processType == ProcessType.HOST_CONTROLLER && !noProfileForHc) {
             profileRegistration = rootRegistration.getSubModel(PathAddress.pathAddress(PathElement.pathElement(PROFILE)));
+            Set<PathElement> children = rootRegistration.getChildAddresses(PathAddress.EMPTY_ADDRESS);
+            if (children != null) {
+                for (PathElement child : children) {
+                    if (child.getKey().equals(HOST)) {
+                        ManagementResourceRegistration reg = rootRegistration.getSubModel(PathAddress.pathAddress(child));
+                        if (!reg.isRemote()) {
+                            hostProfileRegistration = reg;
+                            break;
+                        }
+                    }
+                }
+            }
         } else {
             profileRegistration = rootRegistration;
+            hostProfileRegistration = null;
         }
         ManagementResourceRegistration deploymentsRegistration = processType.isServer() ? rootRegistration.getSubModel(PathAddress.pathAddress(PathElement.pathElement(DEPLOYMENT))) : null;
 
         // Hack to restrict extra data to specified extension(s)
         boolean allowSupplement = legallySupplemented.contains(moduleName);
         ManagedAuditLogger al = allowSupplement ? auditLogger : null;
-        return new ExtensionContextImpl(moduleName, profileRegistration, deploymentsRegistration, pathManager, isMasterDomainController, al);
+        return new ExtensionContextImpl(moduleName, profileRegistration, hostProfileRegistration, deploymentsRegistration, pathManager, isMasterDomainController, al);
     }
 
     public Set<ProfileParsingCompletionHandler> getProfileParsingCompletionHandlers() {
@@ -429,10 +445,20 @@ public class ExtensionRegistry {
         private final boolean registerTransformers;
         private final ManagedAuditLogger auditLogger;
         private final boolean allowSupplement;
+
+        /*This is either:
+         *Standalone/Server case - the root resource containing the subsystems
+         *Host controlller - the /profile=* registration in the domain model
+         */
         private final ManagementResourceRegistration profileRegistration;
+
+        //Null in the standalone/server case. For a HC, it is the root of the local host registration
+        private final ManagementResourceRegistration localHostRootRegistration;
+
         private final ManagementResourceRegistration deploymentsRegistration;
 
         private ExtensionContextImpl(String extensionName, ManagementResourceRegistration profileResourceRegistration,
+                                    ManagementResourceRegistration localHostRootResourceRegstration,
                                      ManagementResourceRegistration deploymentsResourceRegistration, PathManager pathManager,
                                      boolean registerTransformers, ManagedAuditLogger auditLogger) {
             assert pathManager != null || !processType.isServer() : "pathManager is null";
@@ -442,6 +468,7 @@ public class ExtensionRegistry {
             this.auditLogger = auditLogger;
             this.allowSupplement = auditLogger != null;
             this.profileRegistration = profileResourceRegistration;
+            this.localHostRootRegistration = localHostRootResourceRegstration;
 
             if (deploymentsResourceRegistration != null) {
                 PathAddress subdepAddress = PathAddress.pathAddress(PathElement.pathElement(ModelDescriptionConstants.SUBDEPLOYMENT));
@@ -477,7 +504,7 @@ public class ExtensionRegistry {
                 ControllerLogger.DEPRECATED_LOGGER.extensionDeprecated(name);
             }
             return new SubsystemRegistrationImpl(name, majorVersion, minorVersion, microVersion,
-                    profileRegistration, deploymentsRegistration);
+                    profileRegistration, localHostRootRegistration, deploymentsRegistration);
         }
 
         @Override
@@ -593,29 +620,49 @@ public class ExtensionRegistry {
         private final String name;
         private final ModelVersion version;
         private final ManagementResourceRegistration profileRegistration;
+
+        //Null in the standalone/server case. For a HC, it is the root of the local host registration
+          private final ManagementResourceRegistration localHostRootRegistration;
         private final ManagementResourceRegistration deploymentsRegistration;
+        private boolean hostCapable;
+        private boolean modelsRegistered;
 
         private SubsystemRegistrationImpl(String name, int major, int minor, int micro,
                                           ManagementResourceRegistration profileRegistration,
+                                          ManagementResourceRegistration localHostRootRegistration,
                                           ManagementResourceRegistration deploymentsRegistration) {
             assert profileRegistration != null;
             this.name = name;
             this.profileRegistration = profileRegistration;
+            this.localHostRootRegistration = localHostRootRegistration;
             this.deploymentsRegistration = deploymentsRegistration;
             this.version = ModelVersion.create(major, minor, micro);
         }
 
         @Override
+        public void setHostCapable() {
+            if (modelsRegistered) {
+                throw ControllerLogger.ROOT_LOGGER.registerHostCapableMustHappenFirst(name);
+            }
+            hostCapable = true;
+        }
+
+        @Override
         public ManagementResourceRegistration registerSubsystemModel(ResourceDefinition resourceDefinition) {
             assert resourceDefinition != null : "resourceDefinition is null";
-
-            return profileRegistration.registerSubModel(resourceDefinition);
+            modelsRegistered = true;
+            if (!hostCapable || localHostRootRegistration == null) {
+                return profileRegistration.registerSubModel(resourceDefinition);
+            } else {
+                return new DualProfileManagementResourceRegistration(profileRegistration, localHostRootRegistration).registerSubModel(resourceDefinition);
+            }
         }
 
         @Override
         public ManagementResourceRegistration registerDeploymentModel(ResourceDefinition resourceDefinition) {
             assert resourceDefinition != null : "resourceDefinition is null";
             final ManagementResourceRegistration deploymentsReg = deploymentsRegistration;
+            modelsRegistered = true;
             ManagementResourceRegistration base = deploymentsReg != null
                     ? deploymentsReg
                     : getDummyRegistration();
@@ -629,22 +676,26 @@ public class ExtensionRegistry {
 
         @Override
         public TransformersSubRegistration registerModelTransformers(final ModelVersionRange range, final ResourceTransformer subsystemTransformer) {
+            modelsRegistered = true;
             return transformerRegistry.registerSubsystemTransformers(name, range, subsystemTransformer);
         }
 
         @Override
         public TransformersSubRegistration registerModelTransformers(ModelVersionRange version, ResourceTransformer resourceTransformer, OperationTransformer operationTransformer, boolean placeholder) {
+            modelsRegistered = true;
             return transformerRegistry.registerSubsystemTransformers(name, version, resourceTransformer, operationTransformer, placeholder);
         }
 
         @Override
         public TransformersSubRegistration registerModelTransformers(ModelVersionRange version, ResourceTransformer resourceTransformer, OperationTransformer operationTransformer) {
+            modelsRegistered = true;
             return transformerRegistry.registerSubsystemTransformers(name, version, resourceTransformer, operationTransformer, false);
         }
 
 
         @Override
         public TransformersSubRegistration registerModelTransformers(ModelVersionRange version, CombinedTransformer combinedTransformer) {
+            modelsRegistered = true;
             return transformerRegistry.registerSubsystemTransformers(name, version, combinedTransformer, combinedTransformer, false);
         }
 

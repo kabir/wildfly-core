@@ -22,10 +22,10 @@
 
 package org.jboss.as.controller.logging;
 
-import static org.jboss.logging.annotations.Message.NONE;
 import static org.jboss.logging.Logger.Level.ERROR;
 import static org.jboss.logging.Logger.Level.INFO;
 import static org.jboss.logging.Logger.Level.WARN;
+import static org.jboss.logging.annotations.Message.NONE;
 
 import java.io.Closeable;
 import java.io.File;
@@ -3259,7 +3259,10 @@ public interface ControllerLogger extends BasicLogger {
     @Message(id = 370, value="Incomplete expression: %s")
     OperationFailedException incompleteExpression(String expression);
 
-    // TODO use 371-373 for the next messages!
+    // TODO use 372-373 for the next messages!
+
+    @Message(id = 371, value = "The call to registerHostCapable() should happen before registering models or transformers for the '%s' subsystem.")
+    IllegalStateException registerHostCapableMustHappenFirst(String name);
 
     @Message(id = 374, value = "Unable to resolve expressions at this location.")
     OperationFailedException unableToResolveExpressions();
@@ -3283,5 +3286,5 @@ public interface ControllerLogger extends BasicLogger {
     @Message(id = 380, value="Attribute '%s' needs to be set or passed before attribute '%s' can be correctly set")
     OperationFailedException requiredAttributeNotSet(String required, String name);
 
-    // TODO use 371-373 for the next messages!
+    // TODO use 372-373 for the next messages!
 }
