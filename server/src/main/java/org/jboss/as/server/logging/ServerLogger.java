@@ -43,6 +43,7 @@ import javax.xml.stream.XMLStreamException;
 
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.ProcessType;
 import org.jboss.as.process.CommandLineConstants;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
@@ -1088,4 +1089,7 @@ public interface ServerLogger extends BasicLogger {
     @LogMessage(level = WARN)
     @Message(id = 219, value = "%s deployment has been re-deployed, its content will not be removed. You will need to restart it.")
     void undeployingDeploymentHasBeenRedeployed(String deploymentName);
+
+    @Message(id = 220, value = "An attempt was made to add deployers to an unsupported location. Process type: %s. Address: %s")
+    OperationFailedException attemptToAddDeployersToUnsupportedLocation(ProcessType processType, PathAddress pathAddress);
 }

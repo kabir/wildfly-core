@@ -22,10 +22,15 @@
 
 package org.jboss.as.server;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP_ADDR;
+
 import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.OperationStepHandler;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.Phase;
+import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.dmr.ModelNode;
 
 /**
@@ -46,7 +51,10 @@ public abstract class AbstractDeploymentChainStep implements OperationStepHandle
         }
     };
 
-    public final void execute(final OperationContext context, final ModelNode operation) {
+    public final void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
+        if (!context.isRegisterDeployers()) {
+            throw ServerLogger.ROOT_LOGGER.attemptToAddDeployersToUnsupportedLocation(context.getProcessType(), PathAddress.pathAddress(operation.get(OP_ADDR)));
+        }
         execute(TARGET);
         context.stepCompleted();
     }

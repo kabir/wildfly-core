@@ -313,7 +313,7 @@ public abstract class AbstractOperationTestCase {
         }
 
         public void stepCompleted() {
-            
+
         }
 
         public ModelNode getFailureDescription() {
@@ -644,6 +644,11 @@ public abstract class AbstractOperationTestCase {
         @Override
         public void emit(Notification notification) {
             // no-op
+        }
+
+        @Override
+        public boolean isRegisterDeployers() {
+            return false;
         }
     }
 

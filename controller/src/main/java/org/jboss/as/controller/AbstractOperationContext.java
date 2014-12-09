@@ -26,6 +26,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ALL
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CANCELLED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OP;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATION_HEADERS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OPERATION_REQUIRES_RELOAD;
@@ -44,7 +45,9 @@ import static org.jboss.as.controller.logging.ControllerLogger.MGMT_OP_LOGGER;
 
 import java.io.IOException;
 import java.io.InputStream;
+
 import javax.security.auth.Subject;
+
 import java.net.InetAddress;
 import java.security.Principal;
 import java.util.ArrayDeque;
@@ -1060,6 +1063,18 @@ abstract class AbstractOperationContext implements OperationContext {
     @Override
     public Environment getCallEnvironment() {
         return callEnvironment;
+    }
+
+    @Override
+    public boolean isRegisterDeployers() {
+        if (getProcessType() != ProcessType.HOST_CONTROLLER) {
+            //Not HC processes should handle registering deployers the same as before
+            return true;
+        }
+        //Don't support adding deployers in the host model (the calls to this method when
+        //using the subsystem in the domain model should continue to not cause errors)
+        PathAddress address = activeStep.address;
+        return address.size() == 0 || !address.getElement(0).equals(HOST);
     }
 
     class Step {

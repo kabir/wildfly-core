@@ -864,6 +864,15 @@ public interface OperationContext extends ExpressionResolver {
      */
     <T> T getCapabilityRuntimeAPI(String capabilityName, Class<T> apiType);
 
+
+    /**
+     * Whether or not to register deployers. For subsystems running on a host controller, attempting to register deployers
+     * is explicitly disallowed and will cause an error. Authors of subsystems which may run on both a host controller and
+     * on a server should call this method as a check to see if deployers can be registered.
+     *
+     *  @return {@code true} if deployers can be registered, {@false} otherwise.
+     */
+    boolean isRegisterDeployers();
     /**
      * The stage at which a step should apply.
      */
