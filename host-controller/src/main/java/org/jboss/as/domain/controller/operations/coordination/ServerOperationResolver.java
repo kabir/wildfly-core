@@ -151,7 +151,8 @@ public class ServerOperationResolver {
         INTERFACE(ModelDescriptionConstants.INTERFACE),
         JVM(ModelDescriptionConstants.JVM),
         SERVER(ModelDescriptionConstants.SERVER),
-        SERVER_CONFIG(ModelDescriptionConstants.SERVER_CONFIG);
+        SERVER_CONFIG(ModelDescriptionConstants.SERVER_CONFIG),
+        SUBSYSTEM(ModelDescriptionConstants.SUBSYSTEM);
 
         private final String name;
 
@@ -594,6 +595,10 @@ public class ServerOperationResolver {
                 }
                 case SERVER_CONFIG: {
                     return resolveServerConfigOperation(operation, address, domain, host);
+                }
+                case SUBSYSTEM: {
+                    //Changes made to the subsystems on a host should not be propagated to the servers
+                    return Collections.emptyMap();
                 }
                 case SERVER:
                 default:
