@@ -26,6 +26,11 @@ public class HostModelTestCase extends AbstractCoreModelTest {
     }
 
     @Test
+    public void testHostWithProfile() throws Exception {
+        doHostXml("host-with-profile.xml");
+    }
+
+    @Test
     public void testDefaultHostXmlWithExpressions() throws Exception {
         doHostXml("host-with-expressions.xml");
     }

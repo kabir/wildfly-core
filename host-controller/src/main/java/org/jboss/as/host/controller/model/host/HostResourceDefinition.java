@@ -24,11 +24,18 @@ package org.jboss.as.host.controller.model.host;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
 
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+
+import org.jboss.as.controller.AttributeDefinition;
 import org.jboss.as.controller.BootErrorCollector;
 import org.jboss.as.controller.ControlledProcessState;
+import org.jboss.as.controller.DefaultAttributeMarshaller;
+import org.jboss.as.controller.ListAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.PathElement;
+import org.jboss.as.controller.PrimitiveListAttributeDefinition;
 import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.RunningMode;
@@ -188,6 +195,33 @@ public class HostResourceDefinition extends SimpleResourceDefinition {
             .addAccessConstraint(SensitiveTargetAccessConstraintDefinition.DOMAIN_CONTROLLER)
             .build();
 
+    public static final ListAttributeDefinition INCLUDES_PROFILE = new PrimitiveListAttributeDefinition.Builder(ModelDescriptionConstants.INCLUDES_PROFILE, ModelType.STRING)
+        .setAllowNull(true)
+        .setXmlName(ModelDescriptionConstants.INCLUDES)
+        .setAttributeMarshaller(new DefaultAttributeMarshaller() {
+
+        @Override
+        public void marshallAsAttribute(AttributeDefinition attribute, ModelNode resourceModel, boolean marshallDefault,
+                XMLStreamWriter writer) throws XMLStreamException {
+            if (!isMarshallable(attribute, resourceModel, marshallDefault)) {
+                return;
+            }
+
+            boolean first = true;
+            StringBuilder sb = new StringBuilder();
+            for (ModelNode include : resourceModel.get(ModelDescriptionConstants.INCLUDES_PROFILE).asList()) {
+                if (first) {
+                    first = false;
+                } else {
+                    sb.append(" ");
+                }
+                sb.append(include.asString());
+            }
+            writer.writeAttribute(attribute.getXmlName(), sb.toString());
+        }
+    })
+    .build();
+
     private final HostControllerConfigurationPersister configurationPersister;
     private final HostControllerEnvironment environment;
     private final HostRunningModeControl runningModeControl;
@@ -270,6 +304,7 @@ public class HostResourceDefinition extends SimpleResourceDefinition {
         hostRegistration.registerReadWriteAttribute(HostResourceDefinition.NAME, environment.getProcessNameReadHandler(), environment.getProcessNameWriteHandler());
         hostRegistration.registerReadOnlyAttribute(HostResourceDefinition.HOST_STATE, new ProcessStateAttributeHandler(processState));
         hostRegistration.registerReadOnlyAttribute(ServerRootResourceDefinition.RUNNING_MODE, new RunningModeReadHandler(runningModeControl));
+        hostRegistration.registerReadWriteAttribute(INCLUDES_PROFILE, null, new ReloadRequiredWriteAttributeHandler(INCLUDES_PROFILE));
     }
 
 

@@ -34,6 +34,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOS
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HTTP_INTERFACE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.IGNORED_RESOURCES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.IGNORED_RESOURCE_TYPE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INCLUDES_PROFILE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.INTERFACE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.JVM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.LOCAL;
@@ -56,7 +57,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.STA
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SYSTEM_PROPERTY;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.USERNAME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VALUE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.VAULT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRITE_ATTRIBUTE_OPERATION;
 import static org.jboss.as.controller.parsing.Namespace.DOMAIN_1_0;
 import static org.jboss.as.controller.parsing.ParseUtils.isNoNamespaceAttribute;
 import static org.jboss.as.controller.parsing.ParseUtils.missingOneOf;
@@ -70,6 +73,7 @@ import static org.jboss.as.controller.parsing.ParseUtils.requireNoContent;
 import static org.jboss.as.controller.parsing.ParseUtils.requireNoNamespaceAttribute;
 import static org.jboss.as.controller.parsing.ParseUtils.unexpectedAttribute;
 import static org.jboss.as.controller.parsing.ParseUtils.unexpectedElement;
+import static org.jboss.as.domain.controller.logging.DomainControllerLogger.HOST_CONTROLLER_LOGGER;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -85,6 +89,7 @@ import java.util.concurrent.ExecutorService;
 import javax.xml.XMLConstants;
 import javax.xml.stream.XMLStreamException;
 
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.RunningMode;
 import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.logging.ControllerLogger;
@@ -2183,7 +2188,42 @@ public class HostXml extends CommonXml {
 
     private void parseHostProfile(XMLExtendedStreamReader reader, ModelNode address, List<ModelNode> list) throws XMLStreamException {
         // Attributes
-        requireNoAttributes(reader);
+        // Attributes
+        final int count = reader.getAttributeCount();
+        for (int i = 0; i < count; i++) {
+            if (!isNoNamespaceAttribute(reader, i)) {
+                throw unexpectedAttribute(reader, i);
+            } else {
+                final Attribute attribute = Attribute.forName(reader.getAttributeLocalName(i));
+                switch (attribute) {
+                    case INCLUDES: {
+                        //Once parsed we will make this a write-attribute op
+                        ModelNode includesProfile = Util.createAddOperation(PathAddress.pathAddress(address));
+                        for (String val : reader.getListAttributeValue(i)) {
+                            HostResourceDefinition.INCLUDES_PROFILE.parseAndAddParameterElement(val, includesProfile, reader);
+                        }
+                        HashSet<String> includes = new HashSet<>();
+                        for (ModelNode include : includesProfile.get(INCLUDES_PROFILE).asList()) {
+                            if (!includes.add(include.asString())) {
+                                throw HOST_CONTROLLER_LOGGER.duplicateProfile(include.asString());
+                            }
+                        }
+
+                        //Now turn the temp add op into a write attribute op
+                        includesProfile.get(OP).set(WRITE_ATTRIBUTE_OPERATION);
+                        includesProfile.get(NAME).set(INCLUDES_PROFILE);
+                        ModelNode value = includesProfile.remove(INCLUDES_PROFILE);
+                        includesProfile.get(VALUE).set(value);
+
+                        list.add(includesProfile);
+                        break;
+                    }
+                    default: {
+                        throw unexpectedAttribute(reader, i);
+                    }
+                }
+            }
+        }
 
         // Content
         final Map<String, List<ModelNode>> profileOps = new LinkedHashMap<String, List<ModelNode>>();
@@ -2369,23 +2409,28 @@ public class HostXml extends CommonXml {
 
         final ModelNode profileNode = context.getModelNode();
         // In case there are no subsystems defined
-        if (!profileNode.hasDefined(SUBSYSTEM)) {
+        if (!profileNode.hasDefined(SUBSYSTEM) && !profileNode.hasDefined(INCLUDES_PROFILE)) {
             return;
         }
 
         writer.writeStartElement(Element.PROFILE.getLocalName());
-        Set<String> subsystemNames = profileNode.get(SUBSYSTEM).keys();
-        if (subsystemNames.size() > 0) {
-            String defaultNamespace = writer.getNamespaceContext().getNamespaceURI(XMLConstants.DEFAULT_NS_PREFIX);
-            for (String subsystemName : subsystemNames) {
-                try {
-                    ModelNode subsystem = profileNode.get(SUBSYSTEM, subsystemName);
-                    XMLElementWriter<SubsystemMarshallingContext> subsystemWriter = context.getSubsystemWriter(subsystemName);
-                    if (subsystemWriter != null) { // FIXME -- remove when extensions are doing the registration
-                        subsystemWriter.writeContent(writer, new SubsystemMarshallingContext(subsystem, writer));
+        if (profileNode.hasDefined(INCLUDES_PROFILE)) {
+            HostResourceDefinition.INCLUDES_PROFILE.getAttributeMarshaller().marshallAsAttribute(HostResourceDefinition.INCLUDES_PROFILE, profileNode, false, writer);
+        }
+        if (profileNode.hasDefined(SUBSYSTEM)) {
+            Set<String> subsystemNames = profileNode.get(SUBSYSTEM).keys();
+            if (subsystemNames.size() > 0) {
+                String defaultNamespace = writer.getNamespaceContext().getNamespaceURI(XMLConstants.DEFAULT_NS_PREFIX);
+                for (String subsystemName : subsystemNames) {
+                    try {
+                        ModelNode subsystem = profileNode.get(SUBSYSTEM, subsystemName);
+                        XMLElementWriter<SubsystemMarshallingContext> subsystemWriter = context.getSubsystemWriter(subsystemName);
+                        if (subsystemWriter != null) { // FIXME -- remove when extensions are doing the registration
+                            subsystemWriter.writeContent(writer, new SubsystemMarshallingContext(subsystem, writer));
+                        }
+                    } finally {
+                        writer.setDefaultNamespace(defaultNamespace);
                     }
-                } finally {
-                    writer.setDefaultNamespace(defaultNamespace);
                 }
             }
         }

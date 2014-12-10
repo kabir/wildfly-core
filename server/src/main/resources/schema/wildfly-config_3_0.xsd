@@ -2764,9 +2764,9 @@
         </xs:sequence>
     </xs:complexType>
 
-    <xs:complexType name="host">
+    <xs:complexType name="host-profileType">
         <xs:annotation>
-            <xs:documentation>Contains a list of subsystems</xs:documentation>
+            <xs:documentation>Contains a list of subsystems that will be run on the host</xs:documentation>
         </xs:annotation>
         <xs:sequence>
             <xs:choice minOccurs="1" maxOccurs="unbounded">
@@ -2779,6 +2779,14 @@
                 </xs:any>
             </xs:choice>
         </xs:sequence>
+        <xs:attribute name="includes" type="stringListType" use="optional">
+            <xs:annotation>
+                <xs:documentation>
+                  The host's profile may include another profile from the domain configuration. If the same subsystem is 
+                  defined in the host's profile and in the one being included, the host profile's version will take precedence
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
     </xs:complexType>
     
     <!-- general socket definition -->
