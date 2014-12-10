@@ -524,6 +524,11 @@ public class AuthorizedAddressTest {
             return false;
         }
 
+        @Override
+        public boolean isDefaultRequiresRuntime() {
+            return false;
+        }
+
     }
 
 }

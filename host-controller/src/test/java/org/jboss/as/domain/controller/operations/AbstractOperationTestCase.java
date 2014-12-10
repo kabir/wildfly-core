@@ -650,6 +650,11 @@ public abstract class AbstractOperationTestCase {
         public boolean isRegisterDeployers() {
             return false;
         }
+
+        @Override
+        public boolean isDefaultRequiresRuntime() {
+            return false;
+        }
     }
 
     Resource createRootResource() {

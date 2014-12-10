@@ -1691,6 +1691,7 @@ final class OperationContextImpl extends AbstractOperationContext {
         return context;
     }
 
+
     class ContextServiceTarget implements ServiceTarget {
 
         private final Step targetActiveStep;

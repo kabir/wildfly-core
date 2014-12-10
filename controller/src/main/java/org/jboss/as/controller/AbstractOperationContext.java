@@ -40,6 +40,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROL
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ROLLOUT_PLAN;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RUNTIME_UPDATE_SKIPPED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUPS;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.jboss.as.controller.logging.ControllerLogger.MGMT_OP_LOGGER;
 
@@ -1075,6 +1076,23 @@ abstract class AbstractOperationContext implements OperationContext {
         //using the subsystem in the domain model should continue to not cause errors)
         PathAddress address = activeStep.address;
         return address.size() == 0 || !address.getElement(0).equals(HOST);
+    }
+
+    @Override
+    public boolean isDefaultRequiresRuntime() {
+        if (getProcessType().isServer()) {
+            return isNormalServer();
+        } else if (getProcessType() == ProcessType.HOST_CONTROLLER) {
+            return isHostCapableAddress();
+        }
+        return false;
+    }
+
+    private boolean isHostCapableAddress() {
+        if (activeStep.address.size() >= 2 && activeStep.address.getElement(0).getKey().equals(HOST) && activeStep.address.getElement(1).getKey().equals(SUBSYSTEM)) {
+            return true;
+        }
+        return false;
     }
 
     class Step {
