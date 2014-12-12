@@ -163,6 +163,9 @@ public class LoggingExtension implements Extension {
         final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, MANAGEMENT_API_MAJOR_VERSION,
                 MANAGEMENT_API_MINOR_VERSION, MANAGEMENT_API_MICRO_VERSION);
 
+        //This subsystem should be runnable on a host
+        subsystem.setHostCapable();
+
 
         PathManager pathManager = null;
         // The path manager is only available if this is a server

@@ -72,17 +72,19 @@ class LoggingSubsystemAdd extends AbstractAddStepHandler {
     protected void performRuntime(final OperationContext context, final ModelNode operation, final ModelNode model) throws OperationFailedException {
         final boolean addDependencies = LoggingResourceDefinition.ADD_LOGGING_API_DEPENDENCIES.resolveModelAttribute(context, model).asBoolean();
         final boolean useLoggingConfig = LoggingResourceDefinition.USE_DEPLOYMENT_LOGGING_CONFIG.resolveModelAttribute(context, model).asBoolean();
-        context.addStep(new AbstractDeploymentChainStep() {
-            @Override
-            protected void execute(final DeploymentProcessorTarget processorTarget) {
-                if (addDependencies) {
-                    processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_LOGGING, new LoggingDependencyDeploymentProcessor());
+        if (context.isRegisterDeployers()) {
+            context.addStep(new AbstractDeploymentChainStep() {
+                @Override
+                protected void execute(final DeploymentProcessorTarget processorTarget) {
+                    if (addDependencies) {
+                        processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_LOGGING, new LoggingDependencyDeploymentProcessor());
+                    }
+                    processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_LOGGING_CONFIG,
+                            new LoggingConfigDeploymentProcessor(LoggingExtension.CONTEXT_SELECTOR, LoggingResourceDefinition.USE_DEPLOYMENT_LOGGING_CONFIG.getName(), useLoggingConfig));
+                    processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_LOGGING_PROFILE, new LoggingProfileDeploymentProcessor(LoggingExtension.CONTEXT_SELECTOR));
                 }
-                processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_LOGGING_CONFIG,
-                        new LoggingConfigDeploymentProcessor(LoggingExtension.CONTEXT_SELECTOR, LoggingResourceDefinition.USE_DEPLOYMENT_LOGGING_CONFIG.getName(), useLoggingConfig));
-                processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_LOGGING_PROFILE, new LoggingProfileDeploymentProcessor(LoggingExtension.CONTEXT_SELECTOR));
-            }
-        }, Stage.RUNTIME);
+            }, Stage.RUNTIME);
+        }
 
         final Resource resource = context.readResource(PathAddress.EMPTY_ADDRESS);
 

@@ -31,6 +31,7 @@ import java.nio.channels.FileLock;
 import java.util.List;
 
 import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.ProcessType;
 import org.jboss.as.logging.CommonAttributes;
 import org.jboss.as.logging.logging.LoggingLogger;
 import org.jboss.as.logging.resolvers.FileResolver;
@@ -374,11 +375,15 @@ public class ConfigurationPersistence implements Configurator, LogContextConfigu
         final String loggingConfig;
         switch (context.getProcessType()) {
             case DOMAIN_SERVER: {
-                loggingConfig = FileResolver.resolvePath(context, "jboss.server.data.dir", PROPERTIES_FILE);
+                final String property = context.getProcessType() == ProcessType.HOST_CONTROLLER ?
+                        "jboss.domain.data.dir" : "jboss.server.data.dir";
+                loggingConfig = FileResolver.resolvePath(context, property, PROPERTIES_FILE);
                 break;
             }
             default: {
-                loggingConfig = FileResolver.resolvePath(context, "jboss.server.config.dir", PROPERTIES_FILE);
+                final String property = context.getProcessType() == ProcessType.HOST_CONTROLLER ?
+                        "jboss.domain.config.dir" : "jboss.server.config.dir";
+                loggingConfig = FileResolver.resolvePath(context, property, PROPERTIES_FILE);
             }
         }
         if (loggingConfig == null) {
