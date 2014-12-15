@@ -1486,5 +1486,4 @@ class ModelControllerImpl implements ModelController {
             }
         };
     }
-
 }

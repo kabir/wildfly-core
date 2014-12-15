@@ -37,6 +37,9 @@ import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelControllerServiceInitialization;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.operations.global.GlobalNotifications;
@@ -88,14 +91,20 @@ class TestModelControllerService extends ModelTestModelControllerService impleme
     }
 
     @Override
-    protected void performControllerInitialization(ServiceTarget target, ManagementModel managementModel) {
-        super.performControllerInitialization(target, managementModel);
+    protected OperationStepHandler getControllerInitializationBootStep(final ServiceTarget target, final ManagementModel managementModel) {
         if (additionalInit.getProcessType().isServer()) {
-            final ServiceLoader<ModelControllerServiceInitialization> sl = ServiceLoader.load(ModelControllerServiceInitialization.class);
-            for (ModelControllerServiceInitialization init : sl) {
-                    init.initializeStandalone(target, managementModel);
-            }
+            return new OperationStepHandler() {
+                @Override
+                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                    final ServiceLoader<ModelControllerServiceInitialization> sl = ServiceLoader.load(ModelControllerServiceInitialization.class);
+                    for (ModelControllerServiceInitialization init : sl) {
+                            init.initializeStandalone(target, managementModel);
+                    }
+                    context.stepCompleted();
+                }
+            };
         }
+        return null;
     }
 
     @Override

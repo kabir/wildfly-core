@@ -35,6 +35,9 @@ import org.jboss.as.controller.ControlledProcessState.State;
 import org.jboss.as.controller.ExpressionResolver;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelControllerServiceInitialization;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.RunningMode;
@@ -42,6 +45,7 @@ import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.controller.access.management.DelegatingConfigurableAuthorizer;
 import org.jboss.as.controller.audit.ManagedAuditLogger;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
+import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
@@ -93,14 +97,19 @@ public abstract class TestModelControllerService extends AbstractControllerServi
     }
 
     @Override
-    protected void performControllerInitialization(ServiceTarget target, ManagementModel managementModel) {
-        super.performControllerInitialization(target, managementModel);
-        if (processType.isServer()) {
-            final ServiceLoader<ModelControllerServiceInitialization> sl = ServiceLoader.load(ModelControllerServiceInitialization.class);
-            for (ModelControllerServiceInitialization init : sl) {
-                init.initializeStandalone(target, managementModel);
+    protected OperationStepHandler getControllerInitializationBootStep(final ServiceTarget target, final ManagementModel managementModel) {
+        return new OperationStepHandler() {
+
+            @Override
+            public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                final ServiceLoader<ModelControllerServiceInitialization> sl = ServiceLoader.load(ModelControllerServiceInitialization.class);
+                for (ModelControllerServiceInitialization init : sl) {
+                    init.initializeStandalone(target, managementModel);
+                }
+                context.stepCompleted();
             }
-        }
+        };
     }
+
 
 }

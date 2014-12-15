@@ -531,6 +531,10 @@ public class DomainModelControllerService extends AbstractControllerService impl
             List<ModelNode> hostBootOps = hostControllerConfigurationPersister.load();
             ModelNode addHostOp = hostBootOps.remove(0);
             ok = boot(Collections.singletonList(addHostOp), true);
+
+            // Add the controller initialization operation
+            hostBootOps.add(registerControllerInitializationBootStep(context));
+
             ok = ok && boot(hostBootOps, true);
 
             final RunningMode currentRunningMode = runningModeControl.getRunningMode();
@@ -547,8 +551,6 @@ public class DomainModelControllerService extends AbstractControllerService impl
                     installDiscoveryService(serviceTarget, discoveryOptions);
                 }
 
-                // Run the initialization
-                runPerformControllerInitialization(context);
 
                 if (!hostControllerInfo.isMasterDomainController() && !environment.isUseCachedDc()) {
 
@@ -770,14 +772,19 @@ public class DomainModelControllerService extends AbstractControllerService impl
     }
 
     @Override
-    protected void performControllerInitialization(ServiceTarget target, ManagementModel managementModel) {
-        //
-        final ServiceLoader<ModelControllerServiceInitialization> sl = ServiceLoader.load(ModelControllerServiceInitialization.class);
-        final String hostName = hostControllerInfo.getLocalHostName();
-        for (ModelControllerServiceInitialization init : sl) {
-            init.initializeHost(target, managementModel, hostName);
-            init.initializeDomain(target, managementModel);
-        }
+    protected OperationStepHandler getControllerInitializationBootStep(final ServiceTarget target, final ManagementModel managementModel) {
+        return new OperationStepHandler() {
+            @Override
+            public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
+                final ServiceLoader<ModelControllerServiceInitialization> sl = ServiceLoader.load(ModelControllerServiceInitialization.class);
+                final String hostName = hostControllerInfo.getLocalHostName();
+                for (ModelControllerServiceInitialization init : sl) {
+                    init.initializeHost(target, managementModel, hostName);
+                    init.initializeDomain(target, managementModel);
+                }
+                context.stepCompleted();
+            }
+        };
     }
 
     private void establishServerInventory(Future<ServerInventory> future) {

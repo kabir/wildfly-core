@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 
+import org.jboss.as.controller.OperationContext.Stage;
 import org.jboss.as.controller.access.management.DelegatingConfigurableAuthorizer;
 import org.jboss.as.controller.access.management.WritableAuthorizerConfiguration;
 import org.jboss.as.controller.audit.AuditLogger;
@@ -41,6 +42,7 @@ import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.extension.MutableRootResourceRegistrationProvider;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.notification.NotificationSupport;
+import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
@@ -105,6 +107,11 @@ public abstract class AbstractControllerService implements Service<ModelControll
             }
         }
     }
+
+    private static final OperationDefinition INIT_CONTROLLER_OP = new SimpleOperationDefinitionBuilder("boottime-controller-initializer-step", null)
+        .setPrivateEntry()
+        .setRuntimeOnly()
+        .build();
 
     protected final ProcessType processType;
     protected final DelegatingConfigurableAuthorizer authorizer;
@@ -295,8 +302,12 @@ public abstract class AbstractControllerService implements Service<ModelControll
      *          if the configuration failed to be loaded
      */
     protected void boot(final BootContext context) throws ConfigurationPersistenceException {
-        runPerformControllerInitialization(context);
-        boot(configurationPersister.load(), false);
+        List<ModelNode> bootOps = configurationPersister.load();
+        ModelNode op = registerControllerInitializationBootStep(context);
+        if (op != null) {
+            bootOps.add(op);
+        }
+        boot(bootOps, false);
         finishBoot();
     }
 
@@ -437,12 +448,23 @@ public abstract class AbstractControllerService implements Service<ModelControll
         this.configurationPersister = persister;
     }
 
-    protected void runPerformControllerInitialization(BootContext context) {
-        performControllerInitialization(context.getServiceTarget(), controller.getManagementModel());
+
+    protected ModelNode registerControllerInitializationBootStep(BootContext context) {
+        OperationStepHandler handler = getControllerInitializationBootStep(context.getServiceTarget(), controller.getManagementModel());
+        if (handler != null) {
+            //Register the hidden op
+            controller.getManagementModel().getRootResourceRegistration().registerOperationHandler(INIT_CONTROLLER_OP, new ControllerInitializationBootTimeStepHandler(handler));
+            //Return the operation
+            return Util.createEmptyOperation(INIT_CONTROLLER_OP.getName(), PathAddress.EMPTY_ADDRESS);
+        }
+        return null;
     }
 
-    protected void performControllerInitialization(ServiceTarget target, ManagementModel managementModel) {
-        //
+    /**
+     * Needs to register operations invisible to user, and to add the steps to
+     */
+    protected OperationStepHandler getControllerInitializationBootStep(ServiceTarget target, ManagementModel managementModel) {
+        return null;
     }
 
     protected abstract void initModel(ManagementModel managementModel, Resource modelControllerResource);
@@ -453,6 +475,23 @@ public abstract class AbstractControllerService implements Service<ModelControll
 
     protected BootErrorCollector getBootErrorCollector() {
         return bootErrorCollector;
+    }
+
+    private static final class ControllerInitializationBootTimeStepHandler implements OperationStepHandler {
+        private final OperationStepHandler handler;
+
+        public ControllerInitializationBootTimeStepHandler(OperationStepHandler handler) {
+            this.handler = handler;
+        }
+
+        @Override
+        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            if (!context.isBooting()) {
+                throw ControllerLogger.ROOT_LOGGER.operationCanOnlyBeCalledWhileBooting();
+            }
+            context.addStep(handler, Stage.RUNTIME);
+            context.stepCompleted();
+        }
     }
 }
 
