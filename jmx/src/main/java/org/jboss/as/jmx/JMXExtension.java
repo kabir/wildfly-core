@@ -123,7 +123,7 @@ public class JMXExtension implements Extension {
         final SubsystemRegistration registration = context.registerSubsystem(SUBSYSTEM_NAME, MANAGEMENT_API_MAJOR_VERSION,
                 MANAGEMENT_API_MINOR_VERSION, MANAGEMENT_API_MICRO_VERSION);
 
-        //TODO - Temp hack to have something which can install as a host controller subsystem
+        //This subsystem should be runnable on a host
         registration.setHostCapable();
 
         //This is ugly but for now we don't want to make the audit logger easily available to all extensions

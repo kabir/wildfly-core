@@ -26,7 +26,6 @@ import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.access.management.JmxAuthorizer;
 import org.jboss.as.controller.audit.ManagedAuditLogger;
 import org.jboss.as.controller.registry.Resource;
@@ -63,9 +62,8 @@ class JMXSubsystemAdd extends AbstractAddStepHandler {
             legacyWithProperPropertyFormat = ExposeModelResourceExpression.DOMAIN_NAME.resolveModelAttribute(context, model).asBoolean();
         }
         boolean coreMBeanSensitivity = JMXSubsystemRootResource.CORE_MBEAN_SENSITIVITY.resolveModelAttribute(context, model).asBoolean();
-        boolean forStandalone = context.getProcessType() == ProcessType.STANDALONE_SERVER;
         MBeanServerService.addService(context.getServiceTarget(), resolvedDomain, expressionsDomain, legacyWithProperPropertyFormat,
-                            coreMBeanSensitivity, auditLoggerInfo, authorizer, forStandalone);
+                            coreMBeanSensitivity, auditLoggerInfo, authorizer, context.getProcessType());
     }
 
     /**
