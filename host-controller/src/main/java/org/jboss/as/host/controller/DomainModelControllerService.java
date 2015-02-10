@@ -662,7 +662,6 @@ public class DomainModelControllerService extends AbstractControllerService impl
                     @Override
                     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
                         DomainModelReferenceValidator.validate(context);
-                        context.stepCompleted();
                     }
                 }).getResponseNode();
 
