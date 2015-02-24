@@ -308,6 +308,8 @@ class ModelControllerImpl implements ModelController {
     protected OperationResponse internalExecute(final ModelNode operation, final OperationMessageHandler handler, final OperationTransactionControl control,
         final OperationAttachments attachments, final OperationStepHandler prepareStep, final boolean attemptLock) {
 
+        System.out.println("=====> ModelControllerImpl.internalExecute() " + operation);
+
         SecurityManager sm = System.getSecurityManager();
         if (sm != null) {
             sm.checkPermission(ModelController.ACCESS_PERMISSION);

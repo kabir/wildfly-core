@@ -46,6 +46,7 @@ class ReadDomainModelHandler implements OperationStepHandler {
     }
 
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        System.out.println("====> ReadDomainModelHandler");
         // Acquire the lock to make sure that nobody can modify the model before the slave has applied it
         context.acquireControllerLock();
 

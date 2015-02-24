@@ -71,6 +71,7 @@ abstract class SyncModelHandlerBase implements OperationStepHandler {
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
 
+        System.out.println("=====> " + this.getClass().getSimpleName());
         // Create the remote model based on the result of the read-master-model operation
         final Set<String> remoteExtensions = new HashSet<>();
         final Resource remote = ReadMasterDomainModelUtil.createResourceFromDomainModelOp(operation.require(DOMAIN_MODEL), remoteExtensions);
