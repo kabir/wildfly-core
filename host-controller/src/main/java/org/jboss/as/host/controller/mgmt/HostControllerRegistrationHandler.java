@@ -268,6 +268,8 @@ public class HostControllerRegistrationHandler implements ManagementRequestHandl
 
         @Override
         public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
+            System.out.println("====> HostRegistrationStepHandler");
+
             // First lock the domain controller
             context.acquireControllerLock();
             // Check with the controller lock held
@@ -315,6 +317,7 @@ public class HostControllerRegistrationHandler implements ManagementRequestHandl
             // Now run the read-domain model operation
             final ReadMasterDomainModelHandler handler = new ReadMasterDomainModelHandler(hostInfo, transformers, domainController.getExtensionRegistry());
             context.addStep(READ_DOMAIN_MODEL.getOperation(), handler, OperationContext.Stage.MODEL);
+            System.out.println("====> HostRegistrationStepHandler - END");
         }
     }
 

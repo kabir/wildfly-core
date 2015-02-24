@@ -89,6 +89,8 @@ public class GenericModelDescribeOperationHandler implements OperationStepHandle
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
 
+        System.out.println("====> GenericModelDescribeOperationHandler (" + this.getClass().getSimpleName() + ")");
+
         final PathAddress address = PathAddress.pathAddress(operation.require(ModelDescriptionConstants.OP_ADDR));
         final PathAddressFilter filter = context.getAttachment(PathAddressFilter.KEY);
         if (filter != null && ! filter.accepts(address)) {

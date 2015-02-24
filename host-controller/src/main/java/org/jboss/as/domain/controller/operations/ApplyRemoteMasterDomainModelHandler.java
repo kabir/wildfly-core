@@ -137,6 +137,7 @@ public class ApplyRemoteMasterDomainModelHandler implements OperationStepHandler
 
     @Override
     public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
+        System.out.println("====> ApplyRemoteMasterDOmainModelHandler");
 
         // We get the model as a list of resources descriptions
         final ModelNode domainModel = operation.get(DOMAIN_MODEL);

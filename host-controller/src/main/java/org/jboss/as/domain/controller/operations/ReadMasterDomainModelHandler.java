@@ -57,6 +57,8 @@ public class ReadMasterDomainModelHandler implements OperationStepHandler {
 
     @Override
     public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+        System.out.println("====> ReadMasterDomainModelHandler");
+
         context.acquireControllerLock();
 
         final Transformers.ResourceIgnoredTransformationRegistry ignoredTransformationRegistry;

@@ -67,6 +67,7 @@ public class ReadMasterDomainOperationsHandler implements OperationStepHandler {
 
     @Override
     public void execute(final OperationContext context, final ModelNode operation) throws OperationFailedException {
+        System.out.println("=====> ReadMasterDomainOperationsHandler");
         context.acquireControllerLock();
         context.attach(PathAddressFilter.KEY, DEFAULT_FILTER);
         context.addStep(operation, GenericModelDescribeOperationHandler.INSTANCE, OperationContext.Stage.MODEL, true);

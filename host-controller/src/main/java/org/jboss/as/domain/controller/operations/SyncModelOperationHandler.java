@@ -88,6 +88,7 @@ class SyncModelOperationHandler implements OperationStepHandler {
 
     @Override
     public void execute(OperationContext context, ModelNode original) throws OperationFailedException {
+        System.out.println("=====> SyncModelOperationHandler");
 
         // In case we want to automatically ignore extensions we would need to add them before describing the operations
         // This is also required for resolving the corresponding OperationStepHandler here
