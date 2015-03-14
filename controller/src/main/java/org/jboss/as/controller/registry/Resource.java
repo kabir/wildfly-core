@@ -136,12 +136,29 @@ public interface Resource extends Cloneable {
     void registerChild(PathElement address, Resource resource);
 
     /**
+     * Register a child resource
+     *
+     * @param address the address
+     * @param index the index at which to add the resource. Existing children with this index and higher will be shifted one uo
+     * @param resource the resource
+     * @throws IllegalStateException for a duplicate entry or if the resource does not support ordered childred
+     */
+    void registerChild(PathElement address, int index, Resource resource);
+
+    /**
      * Remove a child resource.
      *
      * @param address the address
      * @return the resource
      */
     Resource removeChild(PathElement address);
+
+    /**
+     * Return whether the order of the children matters for a child type
+     *
+     * @return {@code true} if the order of the children matters
+     */
+    boolean isOrderedChildType(String childType);
 
     boolean isRuntime();
     boolean isProxy();
@@ -188,6 +205,18 @@ public interface Resource extends Cloneable {
          */
         public static Resource create(boolean runtimeOnly) {
             return new BasicResource(runtimeOnly);
+        }
+
+        /**
+         * Create a default resource implementation.
+         *
+         * @param runtimeOnly the value the resource should return from {@link Resource#isRuntime()}
+         * @param orderedChildTypes the names of any child types where the order of the children matters
+         *
+         * @return the resource
+         */
+        public static Resource create(boolean runtimeOnly, String...orderedChildTypes) {
+            return new BasicResource(runtimeOnly, orderedChildTypes);
         }
     }
 

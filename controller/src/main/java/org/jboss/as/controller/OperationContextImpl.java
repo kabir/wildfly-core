@@ -823,8 +823,32 @@ final class OperationContextImpl extends AbstractOperationContext {
     }
 
     @Override
-    public void addResource(PathAddress relativeAddress, Resource toAdd) {
+    public Resource createResource(int index) {
+        ImmutableManagementResourceRegistration current = getResourceRegistration();
+        final Resource toAdd = Resource.Factory.create(current.isRuntimeOnly());
+        addResource(index, toAdd);
+        return toAdd;
+    }
 
+    Resource createResource(PathAddress relativeAddress, int index) {
+        ImmutableManagementResourceRegistration current = getResourceRegistration();
+        ImmutableManagementResourceRegistration mrr = relativeAddress == PathAddress.EMPTY_ADDRESS ? current : current.getSubModel(relativeAddress);
+        final Resource toAdd = Resource.Factory.create(mrr.isRuntimeOnly());
+        addResource(relativeAddress, index, toAdd);
+        return toAdd;
+    }
+
+
+    @Override
+    public void addResource(PathAddress relativeAddress, Resource toAdd) {
+        addResource(relativeAddress, -1, toAdd);
+    }
+
+    public void addResource(int index, Resource toAdd) {
+        addResource(PathAddress.EMPTY_ADDRESS, index, toAdd);
+    }
+
+    void addResource(PathAddress relativeAddress, int index, Resource toAdd) {
         readOnly = false;
 
         assert isControllingThread();
@@ -862,7 +886,11 @@ final class OperationContextImpl extends AbstractOperationContext {
                     if(!childrenNames.contains(key)) {
                         throw ControllerLogger.ROOT_LOGGER.noChildType(key);
                     }
-                    model.registerChild(element, toAdd);
+                    if (index < 0) {
+                        model.registerChild(element, toAdd);
+                    } else {
+                        model.registerChild(element, index, toAdd);
+                    }
                     model = toAdd;
                 }
             } else {
