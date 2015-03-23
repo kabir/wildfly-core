@@ -328,6 +328,11 @@ abstract class TransformationRule {
        }
 
        @Override
+       public void registerChild(PathElement address, int index, Resource resource) {
+           throw ControllerLogger.ROOT_LOGGER.immutableResource();
+       }
+
+       @Override
        public Resource removeChild(PathElement address) {
            throw ControllerLogger.ROOT_LOGGER.immutableResource();
        }
@@ -340,6 +345,11 @@ abstract class TransformationRule {
        @Override
        public boolean isProxy() {
            return delegate.isProxy();
+       }
+
+       @Override
+       public Set<String> getOrderedChildTypes() {
+           return delegate.getOrderedChildTypes();
        }
 
        public Resource clone() {

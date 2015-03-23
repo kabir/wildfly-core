@@ -3318,4 +3318,10 @@ public interface ControllerLogger extends BasicLogger {
     @Message(id = 390, value = "An invalid key '%s' has been supplied for parameter '%s'")
     OperationFailedException invalidKeyForObjectType(String key, String parameter);
 
+    @Message(id = 391, value = "Indexed child resources can only be registered if the parent resource supports ordered children. The parent of '%s' is not indexed")
+    IllegalStateException indexedChildResourceRegistrationNotAvailable(PathElement element);
+
+    @Message(id = 392, value = "An attempt was made to rename the resource found at %s to %s. However, '%s' is one of the resource types defined to be ordered on the parent resource %s")
+    OperationFailedRuntimeException orderedChildTypeRenamed(PathAddress read, PathAddress transformed, String type, Set<String> parentOrderedChildren);
+
 }

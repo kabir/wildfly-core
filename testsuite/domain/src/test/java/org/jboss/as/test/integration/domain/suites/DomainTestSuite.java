@@ -49,6 +49,7 @@ import org.junit.runners.Suite;
         ManagementReadsTestCase.class,
         ManagementVersionTestCase.class,
         ModuleLoadingManagementTestCase.class,
+        OrderedChildResourcesTestCase.class,
         OperationCancellationTestCase.class,
         OperationTransformationTestCase.class,
         ResponseStreamTestCase.class,
