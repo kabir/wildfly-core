@@ -21,14 +21,17 @@
  */
 
 package org.jboss.as.test.integration.domain.suites;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD_INDEX;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CHILD_TYPE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.EXTENSION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.HOST;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADD_INDEX;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROFILE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RECURSIVE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER;
 
+import java.util.List;
 import java.util.Set;
 
 import org.jboss.as.controller.PathAddress;
@@ -40,6 +43,7 @@ import org.jboss.as.test.integration.domain.extension.OrderedChildResourceExtens
 import org.jboss.as.test.integration.domain.management.util.DomainLifecycleUtil;
 import org.jboss.as.test.integration.domain.management.util.DomainTestSupport;
 import org.jboss.as.test.integration.domain.management.util.DomainTestUtils;
+import org.jboss.as.test.shared.TimeoutUtil;
 import org.jboss.dmr.ModelNode;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -63,6 +67,8 @@ public class OrderedChildResourcesTestCase {
     private static DomainTestSupport testSupport;
     private static DomainLifecycleUtil domainMasterLifecycleUtil;
     private static DomainLifecycleUtil domainSlaveLifecycleUtil;
+
+    private static final int ADJUSTED_SECOND = TimeoutUtil.adjust(1000);
 
     @BeforeClass
     public static void setupDomain() throws Exception {
@@ -104,6 +110,42 @@ public class OrderedChildResourcesTestCase {
                 checkDomainChildOrder(masterClient, "N", "Z");
                 compareSubsystemModels(masterClient, slaveClient);
 
+                //Restart the DC as admin-only
+                ModelNode restartAdminOnly = Util.createEmptyOperation("reload", MASTER_SERVER_SUBSYSTEM_ADDRESS.subAddress(0, 1));
+                restartAdminOnly.get("admin-only").set(true);
+                domainMasterLifecycleUtil.executeAwaitConnectionClosed(restartAdminOnly);
+                domainMasterLifecycleUtil.connect();
+                domainMasterLifecycleUtil.awaitHostController(System.currentTimeMillis());
+                masterClient = domainMasterLifecycleUtil.createDomainClient();
+
+                //Execute an indexed add op on the DC. The DC should change,
+                //but the slave should stay the same since the DC is now in admin-only mode
+                addChild(masterClient, "S", 1);
+                //Check the domain model rather than the slave model since the DC is admin-only
+                checkDomainChildOrder(masterClient, SUBSYSTEM_ADDRESS, "N", "S", "Z");
+                checkDomainChildOrder(slaveClient, SUBSYSTEM_ADDRESS, "N", "Z");
+
+                //Restart the DC as normal
+                restartAdminOnly.get("admin-only").set(false);
+                domainMasterLifecycleUtil.executeAwaitConnectionClosed(restartAdminOnly);
+                domainMasterLifecycleUtil.connect();
+                domainMasterLifecycleUtil.awaitHostController(System.currentTimeMillis());
+                masterClient = domainMasterLifecycleUtil.createDomainClient();
+
+                //Wait for the slave to reconnect, look for the slave in the list of hosts
+                long end = System.currentTimeMillis() + 20 * ADJUSTED_SECOND;
+                boolean slaveReconnected = false;
+                do {
+                    Thread.sleep(1 * ADJUSTED_SECOND);
+                    slaveReconnected = checkSlaveReconnected(masterClient);
+                } while (!slaveReconnected && System.currentTimeMillis() < end);
+
+                Assert.assertTrue("Slave did not reconnect", slaveReconnected);
+
+                //Check the slave again after reboot
+                checkDomainChildOrder(masterClient, "N", "S", "Z");
+
+                compareSubsystemModels(masterClient, slaveClient); // Might need to loop a bit here to make sure that the fresh domain model gets pulled down
 
             } finally {
                 DomainTestUtils.executeForResult(Util.createRemoveOperation(SUBSYSTEM_ADDRESS), masterClient);
@@ -139,9 +181,13 @@ public class OrderedChildResourcesTestCase {
         DomainTestUtils.executeForResult(op, masterClient);
     }
 
-    private void checkDomainChildOrder(DomainClient masterClient, String...childNames ) throws Exception {
-        final ModelNode op = getRecursiveReadResourceOperation(SUBSYSTEM_ADDRESS);
-        final ModelNode result = DomainTestUtils.executeForResult(getRecursiveReadResourceOperation(MASTER_SERVER_SUBSYSTEM_ADDRESS), masterClient);
+
+    private void checkDomainChildOrder(DomainClient client, String...childNames ) throws Exception {
+        checkDomainChildOrder(client, MASTER_SERVER_SUBSYSTEM_ADDRESS, childNames);
+    }
+
+    private void checkDomainChildOrder(DomainClient client, PathAddress address, String...childNames ) throws Exception {
+        final ModelNode result = DomainTestUtils.executeForResult(getRecursiveReadResourceOperation(address), client);
         if (childNames.length > 0) {
             Assert.assertTrue(result.hasDefined(OrderedChildResourceExtension.CHILD.getKey()));
             Set<String> childKeys = result.get(OrderedChildResourceExtension.CHILD.getKey()).keys();
@@ -150,5 +196,24 @@ public class OrderedChildResourcesTestCase {
         } else {
             Assert.assertFalse(result.hasDefined(OrderedChildResourceExtension.CHILD.getKey()));
         }
+    }
+
+    private boolean checkSlaveReconnected(DomainClient masterClient) throws Exception {
+        ModelNode op = Util.createEmptyOperation(READ_CHILDREN_NAMES_OPERATION, PathAddress.EMPTY_ADDRESS);
+        op.get(CHILD_TYPE).set(HOST);
+        try {
+            ModelNode ret = DomainTestUtils.executeForResult(op, masterClient);
+            List<ModelNode> list = ret.asList();
+            if (list.size() == 2) {
+                for (ModelNode entry : list) {
+                    if ("slave".equals(entry.asString())){
+                        return true;
+                    }
+                }
+            }
+        } catch (Exception e) {
+        }
+        return false;
+
     }
 }
