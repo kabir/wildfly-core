@@ -22,9 +22,6 @@
 
 package org.jboss.as.controller.client.impl;
 
-import org.jboss.as.controller.client.logging.ControllerClientLogger;
-import org.jboss.as.protocol.StreamUtils;
-
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.DataOutput;
@@ -33,6 +30,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+
+import org.jboss.as.controller.client.logging.ControllerClientLogger;
+import org.jboss.as.protocol.StreamUtils;
 
 /**
  * @author Emanuel Muckenhuber
@@ -53,6 +53,20 @@ public interface InputStreamEntry extends Closeable {
      * @throws IOException for any error
      */
     void copyStream(DataOutput output) throws IOException;
+
+    class Factory {
+        /**
+         * Creates an input stream where the size is known, and so no copy will be made before sending it to the server.
+         * It is the responsibility of the caller to close the stream once the operation has completed successfully, or
+         * with a failure.
+         *
+         * @param in the inputstream
+         * @param size the size of the data
+         */
+        public static InputStream createSizedInputStream(InputStream in, int size) {
+            return new KnownSizeStreamEntry(in, size);
+        }
+    }
 
     /**
      * Copy the data in-memory.
@@ -151,6 +165,38 @@ public interface InputStreamEntry extends Closeable {
         }
     }
 
+    /**
+     * The size is known, so use the stream directly
+     */
+    class KnownSizeStreamEntry implements InputStreamEntry, InputStream {
+
+        private final InputStream original;
+        private final int size;
+
+        private KnownSizeStreamEntry(final InputStream original, final int size) {
+            this.original = original;
+            this.size = size;
+        }
+
+        public synchronized int initialize() throws IOException {
+            return size;
+        }
+
+        @Override
+        public synchronized void copyStream(final DataOutput output) throws IOException {
+
+        }
+
+        @Override
+        public synchronized void close() throws IOException {
+            original.close();
+        }
+
+        @Override
+        public int read() throws IOException {
+            return original.read();
+        }
+    }
     InputStreamEntry EMPTY = new InputStreamEntry() {
         @Override
         public int initialize() throws IOException {
@@ -167,5 +213,6 @@ public interface InputStreamEntry extends Closeable {
             //
         }
     };
+
 
 }

@@ -28,6 +28,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PRO
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RELEASE_VERSION;
 
+import java.io.BufferedInputStream;
 import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -40,6 +41,7 @@ import javax.inject.Inject;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.helpers.standalone.ServerDeploymentManager;
+import org.jboss.as.controller.client.impl.InputStreamEntry;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.test.shared.TimeoutUtil;
 import org.jboss.dmr.ModelNode;
@@ -93,7 +95,7 @@ public class ClientAgainstOldServerTestCase {
         final ServerDeploymentManager manager = ServerDeploymentManager.Factory.create(client);
 
         //Deploy
-        try (final InputStream is = testDeploymentFile.getInputStream()){
+        try (final InputStream is = InputStreamEntry.Factory.createSizedInputStream(new BufferedInputStream(testDeploymentFile.getInputStream()), (int)testDeploymentFile.getFile().length()){
             Future<?> future = manager.execute(
                     manager.newDeploymentPlan().add(testDeploymentFile.getName(), is).deploy(testDeploymentFile.getName()).build());
             awaitDeploymentExecution(future);
