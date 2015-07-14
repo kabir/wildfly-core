@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
-import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.as.protocol.ProtocolChannelClient;
 import org.jboss.as.protocol.ProtocolConnectionConfiguration;
@@ -70,7 +69,6 @@ public abstract class ManagementClientChannelStrategy implements Closeable {
      *
      * @param setup the remoting setup
      * @param handler the {@code ManagementMessageHandler}
-     * @param cbHandler a callback handler
      * @param saslOptions the sasl options
      * @param sslContext the ssl context
      * @param closeHandler a close handler
@@ -78,11 +76,10 @@ public abstract class ManagementClientChannelStrategy implements Closeable {
      */
     public static ManagementClientChannelStrategy create(final ProtocolChannelClient setup,
                                                    final ManagementMessageHandler handler,
-                                                   final CallbackHandler cbHandler,
                                                    final Map<String, String> saslOptions,
                                                    final SSLContext sslContext,
                                                    final CloseHandler<Channel> closeHandler) {
-        return create(createConfiguration(setup.getConfiguration(), saslOptions, cbHandler, sslContext), ManagementChannelReceiver.createDelegating(handler), closeHandler);
+        return create(createConfiguration(setup.getConfiguration(), saslOptions, sslContext), ManagementChannelReceiver.createDelegating(handler), closeHandler);
     }
 
     /**
@@ -124,10 +121,9 @@ public abstract class ManagementClientChannelStrategy implements Closeable {
     }
 
     private static ProtocolConnectionConfiguration createConfiguration(final ProtocolConnectionConfiguration configuration,
-                                                                       final Map<String, String> saslOptions, final CallbackHandler callbackHandler,
+                                                                       final Map<String, String> saslOptions,
                                                                        final SSLContext sslContext) {
         final ProtocolConnectionConfiguration config = ProtocolConnectionConfiguration.copy(configuration);
-        config.setCallbackHandler(callbackHandler);
         config.setSslContext(sslContext);
         config.setSaslOptions(saslOptions);
         return config;
