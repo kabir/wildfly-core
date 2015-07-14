@@ -22,19 +22,18 @@
 
 package org.jboss.as.protocol.mgmt;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
 import org.jboss.as.protocol.logging.ProtocolLogger;
 import org.jboss.remoting3.Attachments;
 import org.jboss.remoting3.Channel;
 import org.jboss.remoting3.Connection;
-import org.jboss.remoting3.security.InetAddressPrincipal;
 import org.jboss.threads.AsyncFuture;
-
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.security.Principal;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
 /**
  * Generic management channel handler allowing to assemble multiple {@code ManagementRequestHandlerFactory} per channel.
@@ -99,13 +98,11 @@ public final class ManagementChannelHandler extends AbstractMessageHandler imple
         try {
             final Channel channel = strategy.getChannel();
             final Connection connection = channel.getConnection();
-            for (Principal principal : connection.getPrincipals()) {
-                if (principal instanceof InetAddressPrincipal) {
-                    return ((InetAddressPrincipal)principal).getInetAddress();
-                }
+            final InetSocketAddress socketAddress = connection.getPeerAddress(InetSocketAddress.class);
+            if (socketAddress != null) {
+                return socketAddress.getAddress();
             }
-        } catch (IOException e) {
-            return null;
+        } catch (IOException ignore) {
         }
         return null;
     }

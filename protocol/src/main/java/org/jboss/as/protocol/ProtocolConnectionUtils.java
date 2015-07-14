@@ -22,34 +22,28 @@
 
 package org.jboss.as.protocol;
 
-import org.jboss.as.protocol.logging.ProtocolLogger;
-import org.jboss.remoting3.Connection;
-import org.jboss.remoting3.Endpoint;
-import org.jboss.remoting3.RemotingOptions;
-import org.xnio.IoFuture;
-import org.xnio.OptionMap;
-import org.xnio.Options;
-
 import static org.xnio.Options.SASL_POLICY_NOANONYMOUS;
 import static org.xnio.Options.SASL_POLICY_NOPLAINTEXT;
 
-import org.xnio.Property;
-import org.xnio.Sequence;
-
-import javax.security.auth.callback.Callback;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.callback.NameCallback;
-import javax.security.auth.callback.UnsupportedCallbackException;
-
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
+
+import org.jboss.as.protocol.logging.ProtocolLogger;
+import org.jboss.remoting3.Connection;
+import org.jboss.remoting3.Endpoint;
+import org.jboss.remoting3.RemotingOptions;
+import org.wildfly.security.auth.client.AuthenticationContext;
+import org.xnio.IoFuture;
+import org.xnio.OptionMap;
+import org.xnio.Options;
+import org.xnio.Property;
+import org.xnio.Sequence;
 
 /**
  * Protocol Connection utils.
@@ -70,22 +64,26 @@ public class ProtocolConnectionUtils {
      * @throws IOException
      */
     public static IoFuture<Connection> connect(final ProtocolConnectionConfiguration configuration) throws IOException {
-        return connect(configuration.getCallbackHandler(), configuration);
-    }
-
-    private static IoFuture<Connection> connect(final CallbackHandler handler, final ProtocolConnectionConfiguration configuration) throws IOException {
         final Endpoint endpoint = configuration.getEndpoint();
         final OptionMap options = getOptions(configuration);
-        final CallbackHandler actualHandler = handler != null ? handler : new AnonymousCallbackHandler();
 
+        //TODO what do we do about this client bind address?
+        /*
         String clientBindAddress = configuration.getClientBindAddress();
         if (clientBindAddress == null) {
+            //This constructor does not exist
             return endpoint.connect(configuration.getUri(), options, actualHandler, configuration.getSslContext());
         } else {
             InetSocketAddress bindAddr = new InetSocketAddress(clientBindAddress, 0);
             InetSocketAddress destAddr = new InetSocketAddress(configuration.getUri().getHost(), configuration.getUri().getPort());
+            //This constructor does not exist
             return endpoint.connect(configuration.getUri().getScheme(), bindAddr, destAddr, options, actualHandler, configuration.getSslContext());
         }
+        */
+        final AuthenticationContext authenticationContext = configuration.getAuthenticationContext() == null ?
+                AuthenticationContext.captureCurrent() : configuration.getAuthenticationContext();
+
+        return endpoint.connect(configuration.getUri(), options, authenticationContext);
     }
 
     /**
@@ -97,21 +95,13 @@ public class ProtocolConnectionUtils {
      */
     public static Connection connectSync(final ProtocolConnectionConfiguration configuration) throws IOException {
         long timeoutMillis = configuration.getConnectionTimeout();
-        CallbackHandler handler = configuration.getCallbackHandler();
-        final CallbackHandler actualHandler;
         ProtocolTimeoutHandler timeoutHandler = configuration.getTimeoutHandler();
         // Note: If a client supplies a ProtocolTimeoutHandler it is taking on full responsibility for timeout management.
         if (timeoutHandler == null) {
             GeneralTimeoutHandler defaultTimeoutHandler = new GeneralTimeoutHandler();
-            // No point wrapping our AnonymousCallbackHandler.
-            actualHandler = handler != null ? new WrapperCallbackHandler(defaultTimeoutHandler, handler)
-                    : new AnonymousCallbackHandler();
             timeoutHandler = defaultTimeoutHandler;
-        } else {
-            actualHandler = handler != null ? handler : new AnonymousCallbackHandler();
         }
-
-        final IoFuture<Connection> future = connect(actualHandler, configuration);
+        final IoFuture<Connection> future = connect(configuration);
 
         IoFuture.Status status = timeoutHandler.await(future, timeoutMillis);
 
@@ -205,59 +195,4 @@ public class ProtocolConnectionUtils {
             return false;
         }
     }
-
-    private static final class WrapperCallbackHandler implements CallbackHandler {
-
-        private final GeneralTimeoutHandler timeoutHandler;
-        private final CallbackHandler wrapped;
-
-        WrapperCallbackHandler(final GeneralTimeoutHandler timeoutHandler, final CallbackHandler toWrap) {
-            this.timeoutHandler = timeoutHandler;
-            this.wrapped = toWrap;
-        }
-
-        public void handle(final Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-
-            try {
-                timeoutHandler.suspendAndExecute(new Runnable() {
-
-                    @Override
-                    public void run() {
-                        try {
-                            wrapped.handle(callbacks);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        } catch (UnsupportedCallbackException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                });
-            } catch (RuntimeException e) {
-                if (e.getCause() instanceof IOException) {
-                    throw (IOException) e.getCause();
-                } else if (e.getCause() instanceof UnsupportedCallbackException) {
-                    throw (UnsupportedCallbackException) e.getCause();
-                }
-                throw e;
-            }
-        }
-
-    }
-
-    private static final class AnonymousCallbackHandler implements CallbackHandler {
-
-        public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
-            for (Callback current : callbacks) {
-                if (current instanceof NameCallback) {
-                    NameCallback ncb = (NameCallback) current;
-                    ncb.setName("anonymous");
-                } else {
-                    throw new UnsupportedCallbackException(current);
-                }
-            }
-        }
-
-    }
-
-
 }

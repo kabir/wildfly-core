@@ -23,11 +23,7 @@ package org.jboss.as.protocol;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.Map;
 import java.util.concurrent.Executor;
-
-import javax.net.ssl.SSLContext;
-import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.as.protocol.logging.ProtocolLogger;
 import org.jboss.remoting3.Connection;
@@ -55,31 +51,13 @@ public class ProtocolChannelClient implements Closeable {
         return new ProtocolChannelClient(configuration);
     }
 
-    public IoFuture<Connection> connect(CallbackHandler handler) throws IOException {
+    public IoFuture<Connection> connect() throws IOException {
         final ProtocolConnectionConfiguration config = ProtocolConnectionConfiguration.copy(configuration);
-        config.setCallbackHandler(handler);
         return ProtocolConnectionUtils.connect(config);
     }
 
-    public IoFuture<Connection> connect(CallbackHandler handler, Map<String, String> saslOptions, SSLContext sslContext) throws IOException {
+    public Connection connectSync() throws IOException {
         final ProtocolConnectionConfiguration config = ProtocolConnectionConfiguration.copy(configuration);
-        config.setCallbackHandler(handler);
-        config.setSaslOptions(saslOptions);
-        config.setSslContext(sslContext);
-        return ProtocolConnectionUtils.connect(config);
-    }
-
-    public Connection connectSync(CallbackHandler handler) throws IOException {
-        final ProtocolConnectionConfiguration config = ProtocolConnectionConfiguration.copy(configuration);
-        config.setCallbackHandler(handler);
-        return ProtocolConnectionUtils.connectSync(config);
-    }
-
-    public Connection connectSync(CallbackHandler handler, Map<String, String> saslOptions, SSLContext sslContext) throws IOException {
-        final ProtocolConnectionConfiguration config = ProtocolConnectionConfiguration.copy(configuration);
-        config.setCallbackHandler(handler);
-        config.setSaslOptions(saslOptions);
-        config.setSslContext(sslContext);
         return ProtocolConnectionUtils.connectSync(config);
     }
 

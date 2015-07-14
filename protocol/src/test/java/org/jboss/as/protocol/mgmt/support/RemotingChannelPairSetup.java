@@ -23,6 +23,8 @@ package org.jboss.as.protocol.mgmt.support;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.concurrent.ExecutorService;
 
 import org.jboss.as.protocol.mgmt.ManagementMessageHandler;
@@ -37,7 +39,7 @@ public interface RemotingChannelPairSetup {
     Channel getServerChannel();
     Channel getClientChannel();
     ExecutorService getExecutorService();
-    void setupRemoting(ManagementMessageHandler serverChannelHandler) throws IOException;
+    void setupRemoting(ManagementMessageHandler serverChannelHandler) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException;
     void startChannels() throws IOException, URISyntaxException;
     void stopChannels();
     void shutdownRemoting() throws IOException, InterruptedException;

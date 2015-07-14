@@ -22,14 +22,15 @@
 
 package org.jboss.as.protocol;
 
-import javax.net.ssl.SSLContext;
-import javax.security.auth.callback.CallbackHandler;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 
+import javax.net.ssl.SSLContext;
+
 import org.jboss.as.protocol.logging.ProtocolLogger;
 import org.jboss.remoting3.Endpoint;
+import org.wildfly.security.auth.client.AuthenticationContext;
 import org.xnio.OptionMap;
 
 /**
@@ -44,13 +45,13 @@ public class ProtocolConnectionConfiguration {
     private Endpoint endpoint;
     private OptionMap optionMap = OptionMap.EMPTY;
     private long connectionTimeout = DEFAULT_CONNECT_TIMEOUT;
-    private CallbackHandler callbackHandler;
     private Map<String, String> saslOptions = Collections.emptyMap();
     private SSLContext sslContext;
     private String clientBindAddress;
     private ProtocolTimeoutHandler timeoutHandler;
     private boolean sslEnabled = true;
     private boolean useStartTLS = true;
+    private AuthenticationContext authenticationContext;
 
     protected ProtocolConnectionConfiguration() {
         // TODO AS7-6223 propagate clientBindAddress configuration up to end user level and get rid of this system property
@@ -111,14 +112,6 @@ public class ProtocolConnectionConfiguration {
         this.connectionTimeout = connectionTimeout;
     }
 
-    public CallbackHandler getCallbackHandler() {
-        return callbackHandler;
-    }
-
-    public void setCallbackHandler(CallbackHandler callbackHandler) {
-        this.callbackHandler = callbackHandler;
-    }
-
     public Map<String, String> getSaslOptions() {
         return saslOptions;
     }
@@ -165,6 +158,14 @@ public class ProtocolConnectionConfiguration {
         return copy(this);
     }
 
+    public AuthenticationContext getAuthenticationContext() {
+        return authenticationContext;
+    }
+
+    public void setAuthenticationContext(AuthenticationContext authenticationContext) {
+        this.authenticationContext = authenticationContext;
+    }
+
     public static ProtocolConnectionConfiguration create(final Endpoint endpoint, final URI uri) {
         return create(endpoint, uri, OptionMap.EMPTY);
     }
@@ -183,13 +184,13 @@ public class ProtocolConnectionConfiguration {
         configuration.endpoint = old.endpoint;
         configuration.optionMap = old.optionMap;
         configuration.connectionTimeout = old.connectionTimeout;
-        configuration.callbackHandler = old.callbackHandler;
         configuration.saslOptions = old.saslOptions;
         configuration.sslContext = old.sslContext;
         configuration.clientBindAddress = old.clientBindAddress;
         configuration.timeoutHandler = old.timeoutHandler;
         configuration.sslEnabled = old.sslEnabled;
         configuration.useStartTLS = old.useStartTLS;
+        configuration.authenticationContext = old.authenticationContext;
         return configuration;
     }
 
