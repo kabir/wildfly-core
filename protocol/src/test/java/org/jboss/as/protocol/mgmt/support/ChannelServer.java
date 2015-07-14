@@ -24,21 +24,29 @@ package org.jboss.as.protocol.mgmt.support;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
+import java.security.spec.InvalidKeySpecException;
 import java.util.concurrent.Executor;
+
+import javax.security.sasl.SaslServerFactory;
 
 import org.jboss.remoting3.Channel;
 import org.jboss.remoting3.Endpoint;
 import org.jboss.remoting3.OpenListener;
 import org.jboss.remoting3.Registration;
-import org.jboss.remoting3.Remoting;
 import org.jboss.remoting3.ServiceRegistrationException;
 import org.jboss.remoting3.remote.RemoteConnectionProviderFactory;
-import org.jboss.remoting3.security.SimpleServerAuthenticationProvider;
 import org.jboss.remoting3.spi.NetworkServerProvider;
+import org.wildfly.security.WildFlyElytronProvider;
+import org.wildfly.security.auth.provider.SimpleMapBackedSecurityRealm;
+import org.wildfly.security.auth.server.SecurityDomain;
+import org.wildfly.security.password.PasswordFactory;
+import org.wildfly.security.password.spec.ClearPasswordSpec;
+import org.wildfly.security.sasl.util.ServiceLoaderSaslServerFactory;
 import org.xnio.IoUtils;
 import org.xnio.OptionMap;
 import org.xnio.Options;
-import org.xnio.Sequence;
 import org.xnio.channels.AcceptingChannel;
 import org.xnio.channels.ConnectedStreamChannel;
 
@@ -60,26 +68,30 @@ public class ChannelServer implements Closeable {
         this.streamServer = streamServer;
     }
 
-    public static ChannelServer create(final Configuration configuration) throws IOException {
+    public static ChannelServer create(final Configuration configuration) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         if (configuration == null) {
             throw new IllegalArgumentException("Null configuration");
         }
         configuration.validate();
 
-        final Endpoint endpoint = Remoting.createEndpoint(configuration.getEndpointName(), configuration.getOptionMap());
+        final Endpoint endpoint = Endpoint.builder()
+                .setEndpointName(configuration.getEndpointName())
+                .setXnioWorkerOptions(configuration.getOptionMap())
+                .build();
 
         Registration registration = endpoint.addConnectionProvider(configuration.getUriScheme(), new RemoteConnectionProviderFactory(), OptionMap.create(Options.SSL_ENABLED, Boolean.FALSE));
 
         final NetworkServerProvider networkServerProvider = endpoint.getConnectionProviderInterface(configuration.getUriScheme(), NetworkServerProvider.class);
-        SimpleServerAuthenticationProvider provider = new SimpleServerAuthenticationProvider();
-        //There is currently a probable bug in jboss remoting, so the user realm name MUST be the same as
-        //the endpoint name.
-
-        provider.addUser("TestUser","localhost.localdomain", "TestUserPassword".toCharArray());
-        System.out.println(configuration.getBindAddress());
-        OptionMap options = OptionMap.create(Options.SASL_MECHANISMS, Sequence.of("ANONYMOUS"), Options.SASL_POLICY_NOANONYMOUS, Boolean.FALSE);
-        AcceptingChannel<? extends ConnectedStreamChannel> streamServer = networkServerProvider.createServer(configuration.getBindAddress(), options, provider, null);
-
+        Security.addProvider(new WildFlyElytronProvider());
+        final SecurityDomain.Builder domainBuilder = SecurityDomain.builder();
+        final SimpleMapBackedSecurityRealm mainRealm = new SimpleMapBackedSecurityRealm();
+        domainBuilder.addRealm("mainRealm", mainRealm);
+        domainBuilder.setDefaultRealmName("mainRealm");
+        final PasswordFactory passwordFactory = PasswordFactory.getInstance("clear");
+        mainRealm.setPasswordMap(RemoteChannelPairSetup.USER, passwordFactory.generatePassword(new ClearPasswordSpec(RemoteChannelPairSetup.PASSWORD.toCharArray())));
+        final SaslServerFactory saslServerFactory = new ServiceLoaderSaslServerFactory(ChannelServer.class.getClassLoader());
+        OptionMap options = OptionMap.create(Options.SASL_POLICY_NOANONYMOUS, Boolean.TRUE);
+        AcceptingChannel<? extends ConnectedStreamChannel> streamServer = networkServerProvider.createServer(configuration.getBindAddress(), options, domainBuilder.build(), saslServerFactory);
         return new ChannelServer(endpoint, registration, streamServer);
     }
 

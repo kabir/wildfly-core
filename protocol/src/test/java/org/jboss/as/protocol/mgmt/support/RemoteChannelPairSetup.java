@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -36,9 +38,11 @@ import org.jboss.as.protocol.mgmt.ManagementMessageHandler;
 import org.jboss.remoting3.Channel;
 import org.jboss.remoting3.Connection;
 import org.jboss.remoting3.OpenListener;
-import org.jboss.remoting3.security.PasswordClientCallbackHandler;
 import org.jboss.threads.JBossThreadFactory;
 import org.jboss.threads.QueueExecutor;
+import org.wildfly.security.auth.client.AuthenticationConfiguration;
+import org.wildfly.security.auth.client.AuthenticationContext;
+import org.wildfly.security.auth.client.MatchRule;
 import org.xnio.IoUtils;
 import org.xnio.OptionMap;
 import org.xnio.Options;
@@ -56,6 +60,8 @@ public class RemoteChannelPairSetup implements RemotingChannelPairSetup {
     static final int PORT = 32123;
     static final int EXECUTOR_MAX_THREADS = 20;
     private static final long EXECUTOR_KEEP_ALIVE_TIME = 60000;
+    static final String USER = "TestUser";
+    static final String PASSWORD = "TestUserPassword";
 
     ChannelServer channelServer;
 
@@ -78,7 +84,7 @@ public class RemoteChannelPairSetup implements RemotingChannelPairSetup {
         return executorService;
     }
 
-    public void setupRemoting(final ManagementMessageHandler handler) throws IOException {
+    public void setupRemoting(final ManagementMessageHandler handler) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
         //executorService = new ThreadPoolExecutor(16, 16, 1L, TimeUnit.DAYS, new LinkedBlockingQueue<Runnable>());
         ThreadFactory threadFactory = new JBossThreadFactory(new ThreadGroup("Remoting"), Boolean.FALSE, null, "Remoting %f thread %t", null, null);
         executorService = new QueueExecutor(EXECUTOR_MAX_THREADS / 4 + 1, EXECUTOR_MAX_THREADS, EXECUTOR_KEEP_ALIVE_TIME, TimeUnit.MILLISECONDS, 500, threadFactory, true, null);
@@ -111,10 +117,10 @@ public class RemoteChannelPairSetup implements RemotingChannelPairSetup {
         ProtocolChannelClient.Configuration configuration = new ProtocolChannelClient.Configuration();
         configuration.setEndpoint(channelServer.getEndpoint());
         configuration.setUri(new URI("" + URI_SCHEME + "://127.0.0.1:" + PORT + ""));
-        configuration.setOptionMap(OptionMap.create(Options.SASL_POLICY_NOANONYMOUS, Boolean.FALSE));
-
+        configuration.setOptionMap(OptionMap.create(Options.SASL_POLICY_NOANONYMOUS, Boolean.TRUE));
+        configuration.setAuthenticationContext(AuthenticationContext.empty().with(MatchRule.ALL, AuthenticationConfiguration.EMPTY.useName(USER).usePassword(PASSWORD).allowSaslMechanisms("SCRAM-SHA-256")));
         ProtocolChannelClient client = ProtocolChannelClient.create(configuration);
-        connection = client.connectSync(new PasswordClientCallbackHandler("TestUser", "localhost.localdomain", "TestUserPassword".toCharArray()));
+        connection = client.connectSync();
         clientChannel = connection.openChannel(TEST_CHANNEL, OptionMap.EMPTY).get();
         try {
             clientConnectedLatch.await();
