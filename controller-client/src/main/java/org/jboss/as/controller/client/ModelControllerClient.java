@@ -29,11 +29,11 @@ import java.net.UnknownHostException;
 import java.util.Map;
 
 import javax.net.ssl.SSLContext;
-import javax.security.auth.callback.CallbackHandler;
 
 import org.jboss.as.controller.client.impl.RemotingModelControllerClient;
 import org.jboss.dmr.ModelNode;
 import org.jboss.threads.AsyncFuture;
+import org.wildfly.security.auth.client.AuthenticationContext;
 
 /**
  * A client for an application server management model controller.
@@ -174,12 +174,12 @@ public interface ModelControllerClient extends Closeable {
          *
          * @param address the address of the remote host
          * @param port    the port
-         * @param handler CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @return A model controller client
          */
-        public static ModelControllerClient create(final InetAddress address, final int port, final CallbackHandler handler) {
+        public static ModelControllerClient create(final InetAddress address, final int port, final AuthenticationContext authenticationContext) {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(address.getHostAddress())
                     .setPort(port)
                     .build());
@@ -192,12 +192,12 @@ public interface ModelControllerClient extends Closeable {
          * @param protocol The prototcol to use. If this is http-remoting or https-remoting http upgrade will be used rather than the native remote protocol
          * @param address  the address of the remote host
          * @param port     the port
-         * @param handler  CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @return A model controller client
          */
-        public static ModelControllerClient create(final String protocol, final InetAddress address, final int port, final CallbackHandler handler) {
+        public static ModelControllerClient create(final String protocol, final InetAddress address, final int port, final AuthenticationContext authenticationContext) {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(address.getHostAddress())
                     .setPort(port)
                     .setProtocol(protocol)
@@ -209,15 +209,15 @@ public interface ModelControllerClient extends Closeable {
          *
          * @param address     the address of the remote host
          * @param port        the port
-         * @param handler     CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param saslOptions Additional options to be passed to the SASL mechanism.
          * @return A model controller client
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final InetAddress address, final int port, final CallbackHandler handler, final Map<String, String> saslOptions) {
+        public static ModelControllerClient create(final InetAddress address, final int port, final AuthenticationContext authenticationContext, final Map<String, String> saslOptions) {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(address.getHostAddress())
                     .setPort(port)
                     .setSaslOptions(saslOptions)
@@ -230,15 +230,15 @@ public interface ModelControllerClient extends Closeable {
          * @param protocol    The prototcol to use. If this is http-remoting or https-remoting http upgrade will be used
          * @param address     the address of the remote host
          * @param port        the port
-         * @param handler     CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param saslOptions Additional options to be passed to the SASL mechanism.
          * @return A model controller client
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String protocol, final InetAddress address, final int port, final CallbackHandler handler, final Map<String, String> saslOptions) {
+        public static ModelControllerClient create(final String protocol, final InetAddress address, final int port, final AuthenticationContext authenticationContext, final Map<String, String> saslOptions) {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(address.getHostAddress())
                     .setPort(port)
                     .setProtocol(protocol)
@@ -283,13 +283,13 @@ public interface ModelControllerClient extends Closeable {
          *
          * @param hostName the remote host
          * @param port     the port
-         * @param handler  CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @return A model controller client
          * @throws UnknownHostException if the host cannot be found
          */
-        public static ModelControllerClient create(final String hostName, final int port, final CallbackHandler handler) throws UnknownHostException {
+        public static ModelControllerClient create(final String hostName, final int port, final AuthenticationContext authenticationContext) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .build());
@@ -301,13 +301,13 @@ public interface ModelControllerClient extends Closeable {
          * @param protocol The prototcol to use. If this is http-remoting or https-remoting http upgrade will be used rather than the native remote protocol
          * @param hostName the remote host
          * @param port     the port
-         * @param handler  CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @return A model controller client
          * @throws UnknownHostException if the host cannot be found
          */
-        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final CallbackHandler handler) throws UnknownHostException {
+        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final AuthenticationContext authenticationContext) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setProtocol(protocol)
@@ -319,16 +319,16 @@ public interface ModelControllerClient extends Closeable {
          *
          * @param hostName   the remote host
          * @param port       the port
-         * @param handler    CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param sslContext a pre-initialised SSLContext
          * @return A model controller client
          * @throws UnknownHostException if the host cannot be found
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String hostName, final int port, final CallbackHandler handler, final SSLContext sslContext) throws UnknownHostException {
+        public static ModelControllerClient create(final String hostName, final int port, final AuthenticationContext authenticationContext, final SSLContext sslContext) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setSslContext(sslContext)
@@ -341,16 +341,16 @@ public interface ModelControllerClient extends Closeable {
          * @param protocol    The prototcol to use. If this is http-remoting or https-remoting http upgrade will be used rather than the native remote protocol
          * @param hostName   the remote host
          * @param port       the port
-         * @param handler    CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param sslContext a pre-initialised SSLContext
          * @return A model controller client
          * @throws UnknownHostException if the host cannot be found
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final CallbackHandler handler, final SSLContext sslContext) throws UnknownHostException {
+        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final AuthenticationContext authenticationContext, final SSLContext sslContext) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setProtocol(protocol)
@@ -363,7 +363,7 @@ public interface ModelControllerClient extends Closeable {
          *
          * @param hostName   the remote host
          * @param port       the port
-         * @param handler    CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param sslContext a pre-initialised SSLContext
          * @param connectionTimeout maximum time, in milliseconds, to wait for the connection to be established
          * @return A model controller client
@@ -371,10 +371,10 @@ public interface ModelControllerClient extends Closeable {
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String hostName, final int port, final CallbackHandler handler, final SSLContext sslContext, final int connectionTimeout) throws UnknownHostException {
+        public static ModelControllerClient create(final String hostName, final int port, final AuthenticationContext authenticationContext, final SSLContext sslContext, final int connectionTimeout) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
                     .setConnectionTimeout(connectionTimeout)
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setSslContext(sslContext)
@@ -387,17 +387,17 @@ public interface ModelControllerClient extends Closeable {
          * @param protocol    The prototcol to use. If this is http-remoting or https-remoting http upgrade will be used rather than the native remote protocol
          * @param hostName   the remote host
          * @param port       the port
-         * @param handler    CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param sslContext a pre-initialised SSLContext
          * @return A model controller client
          * @throws UnknownHostException if the host cannot be found
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final CallbackHandler handler, final SSLContext sslContext, final int connectionTimeout) throws UnknownHostException {
+        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final AuthenticationContext authenticationContext, final SSLContext sslContext, final int connectionTimeout) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
                     .setConnectionTimeout(connectionTimeout)
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setProtocol(protocol)
@@ -410,7 +410,7 @@ public interface ModelControllerClient extends Closeable {
          *
          * @param hostName   the remote host
          * @param port       the port
-         * @param handler    CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param sslContext a pre-initialised SSLContext
          * @param connectionTimeout maximum time, in milliseconds, to wait for the connection to be established
          * @param saslOptions Additional options to be passed to the SASL mechanism.
@@ -419,10 +419,10 @@ public interface ModelControllerClient extends Closeable {
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String hostName, final int port, final CallbackHandler handler, final SSLContext sslContext, final int connectionTimeout, final Map<String, String> saslOptions) throws UnknownHostException {
+        public static ModelControllerClient create(final String hostName, final int port, final AuthenticationContext authenticationContext, final SSLContext sslContext, final int connectionTimeout, final Map<String, String> saslOptions) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
                     .setConnectionTimeout(connectionTimeout)
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setSaslOptions(saslOptions)
@@ -436,7 +436,7 @@ public interface ModelControllerClient extends Closeable {
          * @param protocol    The prototcol to use. If this is http-remoting or https-remoting http upgrade will be used rather than the native remote protocol
          * @param hostName   the remote host
          * @param port       the port
-         * @param handler    CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param sslContext a pre-initialised SSLContext
          * @param connectionTimeout maximum time, in milliseconds, to wait for the connection to be established
          * @param saslOptions Additional options to be passed to the SASL mechanism.
@@ -445,10 +445,10 @@ public interface ModelControllerClient extends Closeable {
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final CallbackHandler handler, final SSLContext sslContext, final int connectionTimeout, final Map<String, String> saslOptions) throws UnknownHostException {
+        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final AuthenticationContext authenticationContext, final SSLContext sslContext, final int connectionTimeout, final Map<String, String> saslOptions) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
                     .setConnectionTimeout(connectionTimeout)
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setProtocol(protocol)
@@ -462,7 +462,7 @@ public interface ModelControllerClient extends Closeable {
          *
          * @param hostName   the remote host
          * @param port       the port
-         * @param handler    CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param sslContext a pre-initialised SSLContext
          * @param connectionTimeout maximum time, in milliseconds, to wait for the connection to be established
          * @param saslOptions Additional options to be passed to the SASL mechanism.
@@ -472,11 +472,11 @@ public interface ModelControllerClient extends Closeable {
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String hostName, final int port, final CallbackHandler handler, final SSLContext sslContext, final int connectionTimeout, final Map<String, String> saslOptions, final String clientBindAddress) throws UnknownHostException {
+        public static ModelControllerClient create(final String hostName, final int port, final AuthenticationContext authenticationContext, final SSLContext sslContext, final int connectionTimeout, final Map<String, String> saslOptions, final String clientBindAddress) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
                     .setClientBindAddress(clientBindAddress)
                     .setConnectionTimeout(connectionTimeout)
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setSaslOptions(saslOptions)
@@ -490,7 +490,7 @@ public interface ModelControllerClient extends Closeable {
          * @param protocol    The prototcol to use. If this is http-remoting or https-remoting http upgrade will be used rather than the native remote protocol
          * @param hostName   the remote host
          * @param port       the port
-         * @param handler    CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param sslContext a pre-initialised SSLContext
          * @param connectionTimeout maximum time, in milliseconds, to wait for the connection to be established
          * @param saslOptions Additional options to be passed to the SASL mechanism.
@@ -500,11 +500,11 @@ public interface ModelControllerClient extends Closeable {
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final CallbackHandler handler, final SSLContext sslContext, final int connectionTimeout, final Map<String, String> saslOptions, final String clientBindAddress) throws UnknownHostException {
+        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final AuthenticationContext authenticationContext, final SSLContext sslContext, final int connectionTimeout, final Map<String, String> saslOptions, final String clientBindAddress) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
                     .setClientBindAddress(clientBindAddress)
                     .setConnectionTimeout(connectionTimeout)
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setProtocol(protocol)
@@ -518,16 +518,16 @@ public interface ModelControllerClient extends Closeable {
          *
          * @param hostName    the remote host
          * @param port        the port
-         * @param handler     CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param saslOptions Additional options to be passed to the SASL mechanism.
          * @return A model controller client
          * @throws UnknownHostException if the host cannot be found
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String hostName, final int port, final CallbackHandler handler, final Map<String, String> saslOptions) throws UnknownHostException {
+        public static ModelControllerClient create(final String hostName, final int port, final AuthenticationContext authenticationContext, final Map<String, String> saslOptions) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setSaslOptions(saslOptions)
@@ -540,16 +540,16 @@ public interface ModelControllerClient extends Closeable {
          * @param protocol    The prototcol to use. If this is http-remoting or https-remoting http upgrade will be used rather than the native remote protocol
          * @param hostName    the remote host
          * @param port        the port
-         * @param handler     CallbackHandler to obtain authentication information for the call.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @param saslOptions Additional options to be passed to the SASL mechanism.
          * @return A model controller client
          * @throws UnknownHostException if the host cannot be found
          * @deprecated use {@link org.jboss.as.controller.client.ModelControllerClientConfiguration.Builder} and {@link #create(ModelControllerClientConfiguration)}
          */
         @Deprecated
-        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final CallbackHandler handler, final Map<String, String> saslOptions) throws UnknownHostException {
+        public static ModelControllerClient create(final String protocol, final String hostName, final int port, final AuthenticationContext authenticationContext, final Map<String, String> saslOptions) throws UnknownHostException {
             return create(new ModelControllerClientConfiguration.Builder()
-                    .setHandler(handler)
+                    .setAuthenticationContext(authenticationContext)
                     .setHostName(hostName)
                     .setPort(port)
                     .setProtocol(protocol)

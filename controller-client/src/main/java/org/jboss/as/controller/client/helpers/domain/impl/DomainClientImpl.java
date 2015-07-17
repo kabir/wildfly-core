@@ -33,8 +33,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import javax.security.auth.callback.CallbackHandler;
-
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.OperationBuilder;
@@ -47,6 +45,7 @@ import org.jboss.as.controller.client.helpers.domain.ServerStatus;
 import org.jboss.as.controller.client.logging.ControllerClientLogger;
 import org.jboss.dmr.ModelNode;
 import org.jboss.threads.AsyncFuture;
+import org.wildfly.security.auth.client.AuthenticationContext;
 
 /**
  * Domain client implementation.
@@ -62,16 +61,16 @@ public class DomainClientImpl implements DomainClient {
         this.delegate = ModelControllerClient.Factory.create(address, port);
     }
 
-    public DomainClientImpl(InetAddress address, int port, CallbackHandler handler) {
-        this.delegate = ModelControllerClient.Factory.create(address, port, handler);
+    public DomainClientImpl(InetAddress address, int port, AuthenticationContext authenticationContext) {
+        this.delegate = ModelControllerClient.Factory.create(address, port, authenticationContext);
     }
 
     public DomainClientImpl(String protocol, InetAddress address, int port) {
         this.delegate = ModelControllerClient.Factory.create(protocol, address, port);
     }
 
-    public DomainClientImpl(String protocol, InetAddress address, int port, CallbackHandler handler) {
-        this.delegate = ModelControllerClient.Factory.create(protocol, address, port, handler);
+    public DomainClientImpl(String protocol, InetAddress address, int port, AuthenticationContext authenticationContext) {
+        this.delegate = ModelControllerClient.Factory.create(protocol, address, port, authenticationContext);
     }
     public DomainClientImpl(ModelControllerClient delegate) {
         this.delegate = delegate;

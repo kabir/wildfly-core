@@ -22,13 +22,12 @@
 
 package org.jboss.as.controller.client.impl;
 
-import org.jboss.as.controller.client.logging.ControllerClientLogger;
-
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.ModelControllerClientConfiguration;
+import org.jboss.as.controller.client.logging.ControllerClientLogger;
 import org.jboss.as.protocol.ProtocolChannelClient;
 import org.jboss.as.protocol.StreamUtils;
 import org.jboss.as.protocol.mgmt.ManagementChannelAssociation;
@@ -37,11 +36,6 @@ import org.jboss.as.protocol.mgmt.ManagementClientChannelStrategy;
 import org.jboss.remoting3.Channel;
 import org.jboss.remoting3.CloseHandler;
 import org.jboss.remoting3.Endpoint;
-import org.jboss.remoting3.Remoting;
-import org.jboss.remoting3.remote.HttpUpgradeConnectionProviderFactory;
-import org.jboss.remoting3.remote.RemoteConnectionProviderFactory;
-import org.xnio.OptionMap;
-import org.xnio.Options;
 
 /**
  * {@link ModelControllerClient} based on a Remoting {@link Endpoint}.
@@ -119,15 +113,17 @@ public class RemotingModelControllerClient extends AbstractModelControllerClient
                 final ProtocolChannelClient.Configuration configuration = ProtocolConfigurationFactory.create(clientConfiguration);
 
                 // TODO move the endpoint creation somewhere else?
-                endpoint = Remoting.createEndpoint("management-client", OptionMap.EMPTY);
-                endpoint.addConnectionProvider("remote", new RemoteConnectionProviderFactory(), OptionMap.EMPTY);
-                endpoint.addConnectionProvider("http-remoting", new HttpUpgradeConnectionProviderFactory(), OptionMap.create(Options.SSL_ENABLED, Boolean.FALSE));
-                endpoint.addConnectionProvider("https-remoting", new HttpUpgradeConnectionProviderFactory(),  OptionMap.create(Options.SSL_ENABLED, Boolean.TRUE));
+                endpoint = Endpoint.builder().setEndpointName("management-client").build();
+//                endpoint = Remoting.createEndpoint("management-client", OptionMap.EMPTY);
+//                endpoint.addConnectionProvider("remote", new RemoteConnectionProviderFactory(), OptionMap.EMPTY);
+//                endpoint.addConnectionProvider("http-remoting", new HttpUpgradeConnectionProviderFactory(), OptionMap.create(Options.SSL_ENABLED, Boolean.FALSE));
+//                endpoint.addConnectionProvider("https-remoting", new HttpUpgradeConnectionProviderFactory(),  OptionMap.create(Options.SSL_ENABLED, Boolean.TRUE));
 
                 configuration.setEndpoint(endpoint);
 
+                //TODO How do we register something different for SSL?
                 final ProtocolChannelClient setup = ProtocolChannelClient.create(configuration);
-                strategy = ManagementClientChannelStrategy.create(setup, channelAssociation, clientConfiguration.getCallbackHandler(),
+                strategy = ManagementClientChannelStrategy.create(setup, channelAssociation,
                         clientConfiguration.getSaslOptions(), clientConfiguration.getSSLContext(),
                         new CloseHandler<Channel>() {
                     @Override

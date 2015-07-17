@@ -22,13 +22,13 @@
 
 package org.jboss.as.controller.client.helpers.standalone;
 
-import javax.security.auth.callback.CallbackHandler;
 import java.io.Closeable;
 import java.net.InetAddress;
 import java.util.concurrent.Future;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.helpers.standalone.impl.ModelControllerClientServerDeploymentManager;
+import org.wildfly.security.auth.client.AuthenticationContext;
 
 /**
  * Primary deployment interface for a standalone JBoss AS instance.
@@ -79,11 +79,11 @@ public interface ServerDeploymentManager extends Closeable {
          *
          * @param address The remote address to connect to
          * @param port The remote port
-         * @param handler The CallbackHandler for authentication
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @return A domain client
          */
-        public static ServerDeploymentManager create(final InetAddress address, int port, CallbackHandler handler) {
-            return create(ModelControllerClient.Factory.create(address, port, handler), true);
+        public static ServerDeploymentManager create(final InetAddress address, int port, AuthenticationContext authenticationContext) {
+            return create(ModelControllerClient.Factory.create(address, port, authenticationContext), true);
         }
         /**
          * Create an {@link ServerDeploymentManager} instance for a remote address and port.
@@ -94,11 +94,11 @@ public interface ServerDeploymentManager extends Closeable {
          * @param protocol The protocol to use
          * @param address The remote address to connect to
          * @param port The remote port
-         * @param handler The CallbackHandler for authentication
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @return A domain client
          */
-        public static ServerDeploymentManager create(final String protocol, final InetAddress address, int port, CallbackHandler handler) {
-            return create(ModelControllerClient.Factory.create(protocol, address, port, handler), true);
+        public static ServerDeploymentManager create(final String protocol, final InetAddress address, int port, AuthenticationContext authenticationContext) {
+            return create(ModelControllerClient.Factory.create(protocol, address, port, authenticationContext), true);
         }
 
         /**
