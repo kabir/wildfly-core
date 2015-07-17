@@ -51,6 +51,7 @@ class ProtocolConfigurationFactory {
         }
         configuration.setClientBindAddress(client.getClientBindAddress());
         configuration.setOptionMap(DEFAULT_OPTIONS);
+        configuration.setAuthenticationContext(client.getAuthenticationContext());
         final long timeout = client.getConnectionTimeout();
         if(timeout > 0) {
             configuration.setConnectionTimeout(timeout);

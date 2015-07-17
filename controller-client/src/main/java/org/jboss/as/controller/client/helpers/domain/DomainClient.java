@@ -22,7 +22,6 @@
 
 package org.jboss.as.controller.client.helpers.domain;
 
-import javax.security.auth.callback.CallbackHandler;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.util.List;
@@ -31,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.controller.client.helpers.domain.impl.DomainClientImpl;
+import org.wildfly.security.auth.client.AuthenticationContext;
 
 /**
  * Client interface used to interact with the domain management infrastructure.  THis interface allows clients to get
@@ -134,11 +134,11 @@ public interface DomainClient extends ModelControllerClient {
          *
          * @param address The remote address to connect to
          * @param port The remote port
-         * @param handler CallbackHandler to prompt for authentication requirements.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @return A domain client
          */
-        public static DomainClient create(final InetAddress address, int port, CallbackHandler handler) {
-            return new DomainClientImpl(address, port, handler);
+        public static DomainClient create(final InetAddress address, int port, AuthenticationContext authenticationContext) {
+            return new DomainClientImpl(address, port, authenticationContext);
         }
 
         /**
@@ -160,11 +160,11 @@ public interface DomainClient extends ModelControllerClient {
          * @param protocol The protocol to use
          * @param address The remote address to connect to
          * @param port    The remote port
-         * @param handler CallbackHandler to prompt for authentication requirements.
+         * @param authenticationContext The authentication context used to authenticate with the server.
          * @return A domain client
          */
-        public static DomainClient create(String protocol, final InetAddress address, int port, CallbackHandler handler) {
-            return new DomainClientImpl(protocol, address, port, handler);
+        public static DomainClient create(String protocol, final InetAddress address, int port, AuthenticationContext authenticationContext) {
+            return new DomainClientImpl(protocol, address, port, authenticationContext);
         }
 
         /**

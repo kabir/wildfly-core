@@ -22,12 +22,13 @@
 
 package org.jboss.as.controller.client.impl;
 
-import org.jboss.as.controller.client.ModelControllerClientConfiguration;
-
-import javax.net.ssl.SSLContext;
-import javax.security.auth.callback.CallbackHandler;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+
+import javax.net.ssl.SSLContext;
+
+import org.jboss.as.controller.client.ModelControllerClientConfiguration;
+import org.wildfly.security.auth.client.AuthenticationContext;
 
 
 /**
@@ -39,7 +40,7 @@ public class ClientConfigurationImpl implements ModelControllerClientConfigurati
     private final String address;
     private final String clientBindAddress;
     private final int port;
-    private final CallbackHandler handler;
+    private final AuthenticationContext authenticationContext;
     private final Map<String, String> saslOptions;
     private final SSLContext sslContext;
     private final ExecutorService executorService;
@@ -47,10 +48,12 @@ public class ClientConfigurationImpl implements ModelControllerClientConfigurati
     private final boolean shutdownExecutor;
     private final int connectionTimeout;
 
-    public ClientConfigurationImpl(String address, int port, CallbackHandler handler, Map<String, String> saslOptions, SSLContext sslContext, ExecutorService executorService, boolean shutdownExecutor, final int connectionTimeout, final String protocol, String clientBindAddress) {
+    public ClientConfigurationImpl(String address, int port, AuthenticationContext authenticationContext,
+                               Map<String, String> saslOptions, SSLContext sslContext, ExecutorService executorService,
+                               boolean shutdownExecutor, final int connectionTimeout, final String protocol, String clientBindAddress) {
         this.address = address;
         this.port = port;
-        this.handler = handler;
+        this.authenticationContext = authenticationContext;
         this.saslOptions = saslOptions;
         this.sslContext = sslContext;
         this.executorService = executorService;
@@ -77,8 +80,8 @@ public class ClientConfigurationImpl implements ModelControllerClientConfigurati
 
 
     @Override
-    public CallbackHandler getCallbackHandler() {
-        return handler;
+    public AuthenticationContext getAuthenticationContext() {
+        return authenticationContext;
     }
 
     @Override
