@@ -35,14 +35,15 @@ import org.jboss.remoting3.Channel;
 import org.jboss.remoting3.Endpoint;
 import org.jboss.remoting3.OpenListener;
 import org.jboss.remoting3.Registration;
+import org.jboss.remoting3.RemotingOptions;
 import org.jboss.remoting3.ServiceRegistrationException;
 import org.jboss.remoting3.remote.RemoteConnectionProviderFactory;
 import org.jboss.remoting3.spi.NetworkServerProvider;
 import org.wildfly.security.WildFlyElytronProvider;
 import org.wildfly.security.auth.provider.SimpleMapBackedSecurityRealm;
 import org.wildfly.security.auth.server.SecurityDomain;
-import org.wildfly.security.password.PasswordFactory;
-import org.wildfly.security.password.spec.ClearPasswordSpec;
+import org.wildfly.security.sasl.util.ProtocolSaslServerFactory;
+import org.wildfly.security.sasl.util.ServerNameSaslServerFactory;
 import org.wildfly.security.sasl.util.ServiceLoaderSaslServerFactory;
 import org.xnio.IoUtils;
 import org.xnio.OptionMap;
@@ -85,12 +86,23 @@ public class ChannelServer implements Closeable {
         Security.addProvider(new WildFlyElytronProvider());
         final SecurityDomain.Builder domainBuilder = SecurityDomain.builder();
         final SimpleMapBackedSecurityRealm mainRealm = new SimpleMapBackedSecurityRealm();
-        domainBuilder.addRealm("mainRealm", mainRealm);
-        domainBuilder.setDefaultRealmName("mainRealm");
-        final PasswordFactory passwordFactory = PasswordFactory.getInstance("clear");
-        mainRealm.setPasswordMap(RemoteChannelPairSetup.USER, passwordFactory.generatePassword(new ClearPasswordSpec(RemoteChannelPairSetup.PASSWORD.toCharArray())));
-        final SaslServerFactory saslServerFactory = new ServiceLoaderSaslServerFactory(ChannelServer.class.getClassLoader());
-        OptionMap options = OptionMap.create(Options.SASL_POLICY_NOANONYMOUS, Boolean.TRUE);
+        domainBuilder.addRealm(RemoteChannelPairSetup.REALM, mainRealm);
+        domainBuilder.setDefaultRealmName(RemoteChannelPairSetup.REALM);
+        mainRealm.setPasswordMap(RemoteChannelPairSetup.USER, RemoteChannelPairSetup.createPassword());
+        SaslServerFactory saslServerFactory = new ServiceLoaderSaslServerFactory(ChannelServer.class.getClassLoader());
+        if (configuration.getServerName() != null) {
+            saslServerFactory = new ServerNameSaslServerFactory(saslServerFactory, configuration.getServerName());
+        }
+        if (configuration.getUriScheme() != null) {
+            saslServerFactory = new ProtocolSaslServerFactory(saslServerFactory, configuration.getUriScheme());
+        }
+
+        OptionMap options = OptionMap.create(Options.SASL_POLICY_NOANONYMOUS, Boolean.TRUE, RemotingOptions.SASL_PROTOCOL, "remote");
+//        OptionMap options = OptionMap.builder()
+//                .set(Options.SASL_POLICY_NOANONYMOUS, Boolean.TRUE)
+//                .set(RemotingOptions.SASL_PROTOCOL, "remote")
+//                //.set(RemotingOptions.SERVER_NAME, "localhost")
+//                .getMap();
         AcceptingChannel<? extends ConnectedStreamChannel> streamServer = networkServerProvider.createServer(configuration.getBindAddress(), options, domainBuilder.build(), saslServerFactory);
         return new ChannelServer(endpoint, registration, streamServer);
     }
@@ -132,6 +144,7 @@ public class ChannelServer implements Closeable {
         private String uriScheme;
         private InetSocketAddress bindAddress;
         private Executor executor;
+        private String serverName;
 
         public Configuration() {
         }
@@ -189,6 +202,14 @@ public class ChannelServer implements Closeable {
 
         public void setExecutor(final Executor readExecutor) {
             this.executor = readExecutor;
+        }
+
+        public String getServerName() {
+            return serverName;
+        }
+
+        public void setServerName(String serverName) {
+            this.serverName = serverName;
         }
     }
 

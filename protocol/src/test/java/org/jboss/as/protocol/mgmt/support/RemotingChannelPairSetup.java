@@ -40,7 +40,7 @@ public interface RemotingChannelPairSetup {
     Channel getClientChannel();
     ExecutorService getExecutorService();
     void setupRemoting(ManagementMessageHandler serverChannelHandler) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException;
-    void startChannels() throws IOException, URISyntaxException;
+    void startChannels() throws IOException, URISyntaxException, InvalidKeySpecException, NoSuchAlgorithmException;
     void stopChannels();
     void shutdownRemoting() throws IOException, InterruptedException;
 }

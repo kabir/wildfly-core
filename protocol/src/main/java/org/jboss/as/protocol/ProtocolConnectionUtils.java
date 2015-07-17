@@ -131,7 +131,8 @@ public class ProtocolConnectionUtils {
         builder.set(Options.SASL_PROPERTIES, Sequence.of(tempProperties));
         builder.set(Options.SSL_ENABLED, configuration.isSslEnabled());
         builder.set(Options.SSL_STARTTLS, configuration.isUseStartTLS());
-        builder.set(RemotingOptions.SASL_PROTOCOL, "remote");
+        builder.set(RemotingOptions.SASL_PROTOCOL, configuration.getUri() != null ?
+                configuration.getUri().getScheme() : RemotingOptions.DEFAULT_SASL_PROTOCOL);
         return builder.getMap();
     }
 

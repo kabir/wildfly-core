@@ -43,6 +43,10 @@ import org.jboss.threads.QueueExecutor;
 import org.wildfly.security.auth.client.AuthenticationConfiguration;
 import org.wildfly.security.auth.client.AuthenticationContext;
 import org.wildfly.security.auth.client.MatchRule;
+import org.wildfly.security.password.Password;
+import org.wildfly.security.password.PasswordFactory;
+import org.wildfly.security.password.spec.DigestPasswordAlgorithmSpec;
+import org.wildfly.security.password.spec.EncryptablePasswordSpec;
 import org.xnio.IoUtils;
 import org.xnio.OptionMap;
 import org.xnio.Options;
@@ -60,6 +64,9 @@ public class RemoteChannelPairSetup implements RemotingChannelPairSetup {
     static final int PORT = 32123;
     static final int EXECUTOR_MAX_THREADS = 20;
     private static final long EXECUTOR_KEEP_ALIVE_TIME = 60000;
+
+    static final String ALGORITHM = "digest-md5";
+    static final String REALM = "localhost";
     static final String USER = "TestUser";
     static final String PASSWORD = "TestUserPassword";
 
@@ -71,6 +78,13 @@ public class RemoteChannelPairSetup implements RemotingChannelPairSetup {
     protected Connection connection;
 
     final CountDownLatch clientConnectedLatch = new CountDownLatch(1);
+
+    static Password createPassword() throws NoSuchAlgorithmException, InvalidKeySpecException {
+        PasswordFactory factory = PasswordFactory.getInstance(ALGORITHM);
+        DigestPasswordAlgorithmSpec dpas = new DigestPasswordAlgorithmSpec(USER, REALM);
+        EncryptablePasswordSpec encryptableSpec = new EncryptablePasswordSpec(PASSWORD.toCharArray(), dpas);
+        return factory.generatePassword(encryptableSpec);
+    }
 
     public Channel getServerChannel() {
         return serverChannel;
@@ -94,6 +108,7 @@ public class RemoteChannelPairSetup implements RemotingChannelPairSetup {
         configuration.setUriScheme(URI_SCHEME);
         configuration.setBindAddress(new InetSocketAddress("127.0.0.1", PORT));
         configuration.setExecutor(executorService);
+        configuration.setServerName("localhost");
         channelServer = ChannelServer.create(configuration);
 
         final Channel.Receiver receiver = ManagementChannelReceiver.createDelegating(handler);
@@ -113,12 +128,21 @@ public class RemoteChannelPairSetup implements RemotingChannelPairSetup {
         });
     }
 
-    public void startChannels() throws IOException, URISyntaxException {
+    public void startChannels() throws IOException, URISyntaxException, InvalidKeySpecException, NoSuchAlgorithmException {
         ProtocolChannelClient.Configuration configuration = new ProtocolChannelClient.Configuration();
         configuration.setEndpoint(channelServer.getEndpoint());
-        configuration.setUri(new URI("" + URI_SCHEME + "://127.0.0.1:" + PORT + ""));
+        configuration.setUri(new URI("" + URI_SCHEME + "://localhost:" + PORT + ""));
         configuration.setOptionMap(OptionMap.create(Options.SASL_POLICY_NOANONYMOUS, Boolean.TRUE));
-        configuration.setAuthenticationContext(AuthenticationContext.empty().with(MatchRule.ALL, AuthenticationConfiguration.EMPTY.useName(USER).usePassword(PASSWORD).allowSaslMechanisms("SCRAM-SHA-256")));
+        Password password = createPassword();
+        configuration.setAuthenticationContext(
+                AuthenticationContext.empty()
+                        .with(MatchRule.ALL,
+                                AuthenticationConfiguration.EMPTY
+                                        .useName(USER)
+                                        .usePassword(password)
+                                        .allowSaslMechanisms("DIGEST-MD5")
+                                        .useRealm(REALM)));
+        configuration.setConnectionTimeout(100000); //TODO remove this
         ProtocolChannelClient client = ProtocolChannelClient.create(configuration);
         connection = client.connectSync();
         clientChannel = connection.openChannel(TEST_CHANNEL, OptionMap.EMPTY).get();
