@@ -42,19 +42,36 @@ public class __Throwaway {
     public static void main(String[] args) throws Exception {
         Security.addProvider(new WildFlyElytronProvider());
 
+        ModelNode op = new ModelNode();
+        op.get("operation").set("read-resource");
+        op.get("address").setEmptyList();
+
+        //digestMd5(op);
+        anonymous(op);
+    }
+
+    private static void anonymous(ModelNode op) throws Exception {
+        AuthenticationContext authenticationContext =
+                AuthenticationContext.empty().with(MatchRule.ALL,
+                        AuthenticationConfiguration.EMPTY.useAnonymous());
+        OptionMap options = OptionMap.create(Options.SASL_MECHANISMS, Sequence.of("ANONYMOUS"), Options.SASL_POLICY_NOANONYMOUS, Boolean.FALSE);
+        ModelControllerClient client = ModelControllerClient.Factory.create("localhost", 9999, authenticationContext, null, 600000);
+
+        ModelNode result = client.execute(op);
+        System.out.println(result);
+        Assert.assertEquals("success", result.get("outcome").asString());
+
+    }
+
+    private static void digestMd5(ModelNode op) throws Exception {
         AuthenticationContext authenticationContext =
                 AuthenticationContext.empty().with(MatchRule.ALL,
                         AuthenticationConfiguration.EMPTY.useName("kabir").usePassword("kabir").allowSaslMechanisms("DIGEST-MD5"));
         OptionMap options = OptionMap.create(Options.SASL_MECHANISMS, Sequence.of("DIGEST-MD5"), Options.SASL_POLICY_NOANONYMOUS, Boolean.TRUE);
         ModelControllerClient client = ModelControllerClient.Factory.create("localhost", 9999, authenticationContext, null, 600000);
 
-        ModelNode op = new ModelNode();
-        op.get("operation").set("read-resource");
-        op.get("address").setEmptyList();
-
         ModelNode result = client.execute(op);
         System.out.println(result);
         Assert.assertEquals("success", result.get("outcome").asString());
-
     }
 }
