@@ -77,9 +77,9 @@ import org.jboss.as.controller.access.TargetResource;
 import org.jboss.as.controller.audit.AuditLogger;
 import org.jboss.as.controller.capability.CapabilityServiceSupport;
 import org.jboss.as.controller.capability.RuntimeCapability;
-import org.jboss.as.controller.capability.registry.CapabilityScope;
 import org.jboss.as.controller.capability.registry.CapabilityId;
 import org.jboss.as.controller.capability.registry.CapabilityResolutionContext;
+import org.jboss.as.controller.capability.registry.CapabilityScope;
 import org.jboss.as.controller.capability.registry.RegistrationPoint;
 import org.jboss.as.controller.capability.registry.RuntimeCapabilityRegistration;
 import org.jboss.as.controller.capability.registry.RuntimeCapabilityRegistry;
@@ -264,7 +264,12 @@ final class OperationContextImpl extends AbstractOperationContext {
 
     @Override
     boolean stageCompleted(Stage stage) {
-        return (stage != Stage.MODEL || validateCapabilities());
+        try {
+            return (stage != Stage.MODEL || validateCapabilities());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     ModelControllerImpl.ManagementModelImpl getManagementModel() {
