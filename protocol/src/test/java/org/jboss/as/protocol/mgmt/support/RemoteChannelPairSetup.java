@@ -81,7 +81,7 @@ public class RemoteChannelPairSetup implements RemotingChannelPairSetup {
 
     static Password createPassword() throws NoSuchAlgorithmException, InvalidKeySpecException {
         PasswordFactory factory = PasswordFactory.getInstance(ALGORITHM);
-        DigestPasswordAlgorithmSpec dpas = new DigestPasswordAlgorithmSpec(ALGORITHM, USER, REALM);
+        DigestPasswordAlgorithmSpec dpas = new DigestPasswordAlgorithmSpec(USER, REALM);
         EncryptablePasswordSpec encryptableSpec = new EncryptablePasswordSpec(PASSWORD.toCharArray(), dpas);
         return factory.generatePassword(encryptableSpec);
     }

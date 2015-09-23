@@ -122,7 +122,7 @@
         <version.org.jboss.staxmapper>1.2.0.Final</version.org.jboss.staxmapper>
         <version.org.jboss.stdio>1.0.2.GA</version.org.jboss.stdio>
         <version.org.jboss.threads>2.2.1.Final</version.org.jboss.threads>
-        <version.org.jboss.xnio>3.4.0.Beta1-SNAPSHOT</version.org.jboss.xnio>
+        <version.org.jboss.xnio>3.4.0.Beta2-SNAPSHOT</version.org.jboss.xnio>
         <version.org.jboss.xnio.xnio-api>${version.org.jboss.xnio}</version.org.jboss.xnio.xnio-api>
         <version.org.jboss.xnio.xnio-nio>${version.org.jboss.xnio}</version.org.jboss.xnio.xnio-nio>
         <version.org.mockito>1.9.5</version.org.mockito>
@@ -133,7 +133,7 @@
         <version.org.wildfly.build-tools>1.1.0.Beta2</version.org.wildfly.build-tools>
         <version.org.wildfly.common>1.0.0.Alpha4-SNAPSHOT</version.org.wildfly.common>
         <version.org.wildfly.legacy.test>1.0.0.Final</version.org.wildfly.legacy.test>
-        <version.org.wildfly.security.elytron>1.1.0.Alpha1-SNAPSHOT</version.org.wildfly.security.elytron>
+        <version.org.wildfly.security.elytron>1.0.0.Alpha3</version.org.wildfly.security.elytron>
         <version.org.wildfly.checkstyle-config>1.0.4.Final</version.org.wildfly.checkstyle-config>
         <version.org.wildfly.security.elytron-web.undertow-server>1.0.0.Alpha1-SNAPSHOT</version.org.wildfly.security.elytron-web.undertow-server>
         <version.xml-resolver>1.2</version.xml-resolver> <!-- Apache xml-resolver -->
