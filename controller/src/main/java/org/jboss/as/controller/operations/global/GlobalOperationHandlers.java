@@ -299,19 +299,16 @@ public class GlobalOperationHandlers {
         private final FilteredData filteredData;
         private final FilterPredicate predicate;
         private final OperationStepHandler handler; // handler bypassing further wildcard resolution
-        private final boolean checkResourceExists;
 
         public AbstractAddressResolver(final ModelNode operation, final ModelNode result,
                                     final OperationStepHandler delegate,
                                     final FilteredData filteredData,
-                                    final FilterPredicate predicate,
-                                    final boolean checkResourceExists) {
+                                    final FilterPredicate predicate) {
             this.operation = operation;
             this.result = result;
             this.handler = delegate;
             this.predicate = predicate == null ? DEFAULT_PREDICATE : predicate;
             this.filteredData = filteredData;
-            this.checkResourceExists = checkResourceExists;
         }
 
         /**
@@ -419,10 +416,10 @@ public class GlobalOperationHandlers {
                 return;
             }
 
-            if (checkResourceExists) {
-                // Require a resource, if it's not a remote target
-                context.readResource(base, false);
+            if (!authorize(context, base, operation)) {
+                return;
             }
+
             if (remaining.size() > 0) {
                 final PathElement currentElement = remaining.getElement(0);
                 final PathAddress newRemaining = remaining.subAddress(1);
@@ -475,6 +472,18 @@ public class GlobalOperationHandlers {
         protected abstract void executeSingleTargetChild(PathAddress base, PathElement currentElement, PathAddress newRemaining, OperationContext context, boolean ignoreMissing);
 
         protected abstract void executeMultiTargetChildren(PathAddress base, PathElement currentElement, PathAddress newRemaining, OperationContext context, ImmutableManagementResourceRegistration registration, boolean ignoreMissing);
+
+        /**
+         * If not authorized, this will throw an exception for {@link ModelAddressResolver} for use with the
+         * {@link ModelAddressResolver#safeExecute(PathAddress, PathAddress, OperationContext, ImmutableManagementResourceRegistration, boolean)}
+         * method. For {@link RegistrationAddressResolver} it will return {@code false}. Otherwise it returns {@code true}
+         *
+         * @param context the operation context
+         * @param base the path address
+         * @param operation the operation
+         * @return whether or not we were authorized
+         */
+        protected abstract boolean authorize(OperationContext context, PathAddress base, ModelNode operation);
 
         private boolean isWFCORE621Needed(ImmutableManagementResourceRegistration registration, PathAddress remaining) {
             if (remaining.size() > 0) {
@@ -708,7 +717,7 @@ public class GlobalOperationHandlers {
 
     private static final class ModelAddressResolver extends AbstractAddressResolver {
         public ModelAddressResolver(ModelNode operation, ModelNode result, FilteredData filteredData, OperationStepHandler delegate, FilterPredicate predicate) {
-            super(operation, result, delegate, filteredData, predicate, true);
+            super(operation, result, delegate, filteredData, predicate);
         }
 
         protected void executeMultiTargetChildren(PathAddress base, PathElement currentElement, PathAddress newRemaining, OperationContext context, ImmutableManagementResourceRegistration registration, boolean ignoreMissing) {
@@ -765,6 +774,13 @@ public class GlobalOperationHandlers {
                 safeExecute(next, newRemaining, context, nr, ignoreMissing);
             }
         }
+
+        @Override
+        protected boolean authorize(OperationContext context, PathAddress base, ModelNode operation) {
+            context.readResource(base, false);
+            //An exception will happen if not allowed
+            return true;
+        }
     }
 
     private static class FilterableRemoteOperationStepHandler implements OperationStepHandler {
@@ -805,14 +821,16 @@ public class GlobalOperationHandlers {
                 // it was due to any authorization denial
 
                 ModelNode toAuthorize = operation.clone();
-                operation.get(OP).set(READ_RESOURCE_DESCRIPTION_OPERATION);
-                operation.get(OP_ADDR).set(base.toModelNode());
+                toAuthorize.get(OP).set(READ_RESOURCE_DESCRIPTION_OPERATION);
+                toAuthorize.get(OP_ADDR).set(base.toModelNode());
                 AuthorizationResult.Decision decision = context.authorize(toAuthorize, EnumSet.of(Action.ActionEffect.ADDRESS)).getDecision();
                 ControllerLogger.MGMT_OP_LOGGER.tracef("Caught NoSuchResourceException in remote execution from %s. Authorization decision is %s", proxyHandler, decision);
                 if (decision == AuthorizationResult.Decision.DENY) {
                     // Just report the failure to the filter and complete normally
-                    filteredData.addAccessRestrictedResource(base);
                     filtered.set(true);
+                    if (filteredData != null) {
+                        filteredData.addAccessRestrictedResource(base);
+                    }
                 } else if (!ignoreMissing) {
                     throw e;
                 }
@@ -820,10 +838,11 @@ public class GlobalOperationHandlers {
         }
     }
 
+
     private static class RegistrationAddressResolver extends AbstractAddressResolver {
 
         RegistrationAddressResolver(final ModelNode operation, final ModelNode result, final OperationStepHandler delegate) {
-            super(operation, result, delegate, null, null, false);
+            super(operation, result, delegate, null, null);
         }
 
         @Override
@@ -859,6 +878,15 @@ public class GlobalOperationHandlers {
             final PathAddress next = base.append(currentElement);
             final ImmutableManagementResourceRegistration nr = context.getResourceRegistration().getSubModel(next);
             execute(next, newRemaining, context, nr, ignoreMissing);
+        }
+
+        @Override
+        protected boolean authorize(OperationContext context, PathAddress base, ModelNode operation) {
+            ModelNode toAuthorize = operation.clone();
+            toAuthorize.get(OP).set(READ_RESOURCE_DESCRIPTION_OPERATION);
+            toAuthorize.get(OP_ADDR).set(base.toModelNode());
+            AuthorizationResult.Decision decision = context.authorize(toAuthorize, EnumSet.of(Action.ActionEffect.ADDRESS)).getDecision();
+            return decision == AuthorizationResult.Decision.PERMIT;
         }
     }
 
