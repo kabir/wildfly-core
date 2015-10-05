@@ -86,13 +86,20 @@ public class RBACProviderHostScopedRolesTestCase extends AbstractHostScopedRoles
 
         static {
             Map<String, Set<String>> rolesToUsers = new HashMap<String, Set<String>>();
-            rolesToUsers.put(MONITOR_USER, Collections.singleton(MONITOR_USER));
-            rolesToUsers.put(OPERATOR_USER, Collections.singleton(OPERATOR_USER));
-            rolesToUsers.put(MAINTAINER_USER, Collections.singleton(MAINTAINER_USER));
-            rolesToUsers.put(DEPLOYER_USER, Collections.singleton(DEPLOYER_USER));
-            rolesToUsers.put(ADMINISTRATOR_USER, Collections.singleton(ADMINISTRATOR_USER));
-            rolesToUsers.put(AUDITOR_USER, Collections.singleton(AUDITOR_USER));
-            rolesToUsers.put(SUPERUSER_USER, Collections.singleton(SUPERUSER_USER));
+            rolesToUsers.put(MASTER_MONITOR_USER, Collections.singleton(MASTER_MONITOR_USER));
+            rolesToUsers.put(MASTER_OPERATOR_USER, Collections.singleton(MASTER_OPERATOR_USER));
+            rolesToUsers.put(MASTER_MAINTAINER_USER, Collections.singleton(MASTER_MAINTAINER_USER));
+            rolesToUsers.put(MASTER_DEPLOYER_USER, Collections.singleton(MASTER_DEPLOYER_USER));
+            rolesToUsers.put(MASTER_ADMINISTRATOR_USER, Collections.singleton(MASTER_ADMINISTRATOR_USER));
+            rolesToUsers.put(MASTER_AUDITOR_USER, Collections.singleton(MASTER_AUDITOR_USER));
+            rolesToUsers.put(MASTER_SUPERUSER_USER, Collections.singleton(MASTER_SUPERUSER_USER));
+            rolesToUsers.put(SLAVE_MONITOR_USER, Collections.singleton(SLAVE_MONITOR_USER));
+            rolesToUsers.put(SLAVE_OPERATOR_USER, Collections.singleton(SLAVE_OPERATOR_USER));
+            rolesToUsers.put(SLAVE_MAINTAINER_USER, Collections.singleton(SLAVE_MAINTAINER_USER));
+            rolesToUsers.put(SLAVE_DEPLOYER_USER, Collections.singleton(SLAVE_DEPLOYER_USER));
+            rolesToUsers.put(SLAVE_ADMINISTRATOR_USER, Collections.singleton(SLAVE_ADMINISTRATOR_USER));
+            rolesToUsers.put(SLAVE_AUDITOR_USER, Collections.singleton(SLAVE_AUDITOR_USER));
+            rolesToUsers.put(SLAVE_SUPERUSER_USER, Collections.singleton(SLAVE_SUPERUSER_USER));
             STANDARD_USERS = rolesToUsers;
         }
 

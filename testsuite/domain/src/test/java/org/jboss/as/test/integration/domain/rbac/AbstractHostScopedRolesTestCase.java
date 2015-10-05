@@ -54,16 +54,25 @@ import org.junit.Test;
  */
 public abstract class AbstractHostScopedRolesTestCase extends AbstractRbacTestCase implements RbacDomainRolesTests {
 
-    public static final String MONITOR_USER = "HostMasterMonitor";
-    public static final String OPERATOR_USER = "HostMasterOperator";
-    public static final String MAINTAINER_USER = "HostMasterMaintainer";
-    public static final String DEPLOYER_USER = "HostMasterDeployer";
-    public static final String ADMINISTRATOR_USER = "HostMasterAdministrator";
-    public static final String AUDITOR_USER = "HostMasterAuditor";
-    public static final String SUPERUSER_USER = "HostMasterSuperUser";
+    public static final String MASTER_MONITOR_USER = "HostMasterMonitor";
+    public static final String MASTER_OPERATOR_USER = "HostMasterOperator";
+    public static final String MASTER_MAINTAINER_USER = "HostMasterMaintainer";
+    public static final String MASTER_DEPLOYER_USER = "HostMasterDeployer";
+    public static final String MASTER_ADMINISTRATOR_USER = "HostMasterAdministrator";
+    public static final String MASTER_AUDITOR_USER = "HostMasterAuditor";
+    public static final String MASTER_SUPERUSER_USER = "HostMasterSuperUser";
+    public static final String SLAVE_MONITOR_USER = "HostSlaveMonitor";
+    public static final String SLAVE_OPERATOR_USER = "HostSlaveOperator";
+    public static final String SLAVE_MAINTAINER_USER = "HostSlaveMaintainer";
+    public static final String SLAVE_DEPLOYER_USER = "HostSlaveDeployer";
+    public static final String SLAVE_ADMINISTRATOR_USER = "HostSlaveAdministrator";
+    public static final String SLAVE_AUDITOR_USER = "HostSlaveAuditor";
+    public static final String SLAVE_SUPERUSER_USER = "HostSlaveSuperUser";
 
-    static final String[] USERS = { MONITOR_USER, OPERATOR_USER, MAINTAINER_USER, DEPLOYER_USER,
-            ADMINISTRATOR_USER, AUDITOR_USER, SUPERUSER_USER };
+    static final String[] MASTER_USERS = {MASTER_MONITOR_USER, MASTER_OPERATOR_USER, MASTER_MAINTAINER_USER, MASTER_DEPLOYER_USER,
+            MASTER_ADMINISTRATOR_USER, MASTER_AUDITOR_USER, MASTER_SUPERUSER_USER};
+    static final String[] SLAVE_USERS = {SLAVE_MONITOR_USER, SLAVE_OPERATOR_USER, SLAVE_MAINTAINER_USER, SLAVE_DEPLOYER_USER,
+            SLAVE_ADMINISTRATOR_USER, SLAVE_AUDITOR_USER, SLAVE_SUPERUSER_USER};
     private static final String[] BASES = { RbacUtil.MONITOR_USER, RbacUtil.OPERATOR_USER, RbacUtil.MAINTAINER_USER,
             RbacUtil.DEPLOYER_USER, RbacUtil.ADMINISTRATOR_USER, RbacUtil.AUDITOR_USER,
             RbacUtil.SUPERUSER_USER };
@@ -71,16 +80,26 @@ public abstract class AbstractHostScopedRolesTestCase extends AbstractRbacTestCa
     protected static final String SCOPED_ROLE = "core-service=management/access=authorization/host-scoped-role=";
 
     protected static void setupRoles(DomainClient domainClient) throws IOException {
-        for (int i = 0; i < USERS.length; i++) {
-            ModelNode op = createOpNode(SCOPED_ROLE + USERS[i], ADD);
+        for (int i = 0; i < MASTER_USERS.length; i++) {
+            ModelNode op = createOpNode(SCOPED_ROLE + MASTER_USERS[i], ADD);
             op.get(BASE_ROLE).set(BASES[i]);
             op.get(HOSTS).add(MASTER);
+            RbacUtil.executeOperation(domainClient, op, Outcome.SUCCESS);
+        }
+        for (int i = 0; i < SLAVE_USERS.length; i++) {
+            ModelNode op = createOpNode(SCOPED_ROLE + SLAVE_USERS[i], ADD);
+            op.get(BASE_ROLE).set(BASES[i]);
+            op.get(HOSTS).add(SLAVE);
             RbacUtil.executeOperation(domainClient, op, Outcome.SUCCESS);
         }
     }
 
     protected static void tearDownRoles(DomainClient domainClient) throws IOException {
-        for (String role : USERS) {
+        for (String role : MASTER_USERS) {
+            ModelNode op = createOpNode(SCOPED_ROLE + role, REMOVE);
+            RbacUtil.executeOperation(domainClient, op, Outcome.SUCCESS);
+        }
+        for (String role : SLAVE_USERS) {
             ModelNode op = createOpNode(SCOPED_ROLE + role, REMOVE);
             RbacUtil.executeOperation(domainClient, op, Outcome.SUCCESS);
         }
@@ -114,231 +133,374 @@ public abstract class AbstractHostScopedRolesTestCase extends AbstractRbacTestCa
     protected abstract void configureRoles(ModelNode op, String[] roles);
 
     @Test
-    public void testMonitor() throws Exception {
-        ModelControllerClient client = getClientForUser(MONITOR_USER, isAllowLocalAuth(), masterClientConfig);
-        readWholeConfig(client, Outcome.UNAUTHORIZED, MONITOR_USER);
-        checkStandardReads(client, null, null, MONITOR_USER);
-        checkRootRead(client, null, null, Outcome.SUCCESS, MONITOR_USER);
-        checkRootRead(client, MASTER, null, Outcome.SUCCESS, MONITOR_USER);
-        checkRootRead(client, MASTER, MASTER_A, Outcome.SUCCESS, MONITOR_USER);
-        checkRootRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, MONITOR_USER);
-        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, MONITOR_USER);
-        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.HIDDEN, MONITOR_USER);
-        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, MONITOR_USER);
-        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, MONITOR_USER);
-        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.HIDDEN, MONITOR_USER);
-        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, MONITOR_USER);
-        checkSensitiveAttribute(client, null, null, false, MONITOR_USER);
-        checkSensitiveAttribute(client, MASTER, MASTER_A, false, MONITOR_USER);
-        testHostScopedRoleCanReadHostChildResources(client, MONITOR_USER);
-
-        if (readOnly) return;
-
-        runGC(client, MASTER, null, Outcome.UNAUTHORIZED, MONITOR_USER);
-        runGC(client, MASTER, MASTER_A, Outcome.UNAUTHORIZED, MONITOR_USER);
-        runGC(client, SLAVE, SLAVE_B, Outcome.HIDDEN, MONITOR_USER);
-        addDeployment2(client, Outcome.UNAUTHORIZED, MONITOR_USER);
-        addPath(client, Outcome.UNAUTHORIZED, MONITOR_USER);
-        addJvm(client, HOST, MASTER, Outcome.UNAUTHORIZED, MONITOR_USER);
-        addJvm(client, HOST, SLAVE, Outcome.HIDDEN, MONITOR_USER);
-
-        testWLFY2299(client, Outcome.UNAUTHORIZED, MONITOR_USER);
-        restartServer(client, MASTER, MASTER_A, Outcome.UNAUTHORIZED, MONITOR_USER);
+    public void testMasterMonitor() throws Exception {
+        testMonitor(true);
     }
 
     @Test
-    public void testOperator() throws Exception {
-        ModelControllerClient client = getClientForUser(OPERATOR_USER, isAllowLocalAuth(), masterClientConfig);
-        readWholeConfig(client, Outcome.UNAUTHORIZED, OPERATOR_USER);
-        checkStandardReads(client, null, null, OPERATOR_USER);
-        checkRootRead(client, null, null, Outcome.SUCCESS, OPERATOR_USER);
-        checkRootRead(client, MASTER, null, Outcome.SUCCESS, OPERATOR_USER);
-        checkRootRead(client, MASTER, MASTER_A, Outcome.SUCCESS, OPERATOR_USER);
-        checkRootRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, OPERATOR_USER);
-        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, OPERATOR_USER);
-        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.HIDDEN, OPERATOR_USER);
-        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, OPERATOR_USER);
-        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, OPERATOR_USER);
-        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.HIDDEN, OPERATOR_USER);
-        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, OPERATOR_USER);
-        checkSensitiveAttribute(client, null, null, false, OPERATOR_USER);
-        checkSensitiveAttribute(client, MASTER, MASTER_A, false, OPERATOR_USER);
-        testHostScopedRoleCanReadHostChildResources(client, OPERATOR_USER);
+    public void testSlaveMonitor() throws Exception {
+        testMonitor(false);
+    }
+
+    private void testMonitor(boolean master) throws Exception {
+        final String user = master ? MASTER_MONITOR_USER : SLAVE_MONITOR_USER;
+
+        ModelControllerClient client = getClientForUser(user, isAllowLocalAuth(), masterClientConfig);
+        readWholeConfig(client, Outcome.UNAUTHORIZED, user);
+        checkStandardReads(client, null, null, user);
+        checkRootRead(client, null, null, Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, user);
+        checkSensitiveAttribute(client, null, null, false, user);
+        if (master) {
+            checkSensitiveAttribute(client, MASTER, MASTER_A, false, user);
+        } else {
+            checkSensitiveAttribute(client, SLAVE, SLAVE_B, false, user);
+        }
+        testHostScopedRoleCanReadHostChildResources(client, user);
 
         if (readOnly) return;
 
-        runGC(client, MASTER, null, Outcome.SUCCESS, OPERATOR_USER);
-        runGC(client, MASTER, MASTER_A, Outcome.SUCCESS, OPERATOR_USER);
-        runGC(client, SLAVE, SLAVE_B, Outcome.HIDDEN, OPERATOR_USER);
-        addDeployment2(client, Outcome.UNAUTHORIZED, OPERATOR_USER);
-        addPath(client, Outcome.UNAUTHORIZED, OPERATOR_USER);
-        addJvm(client, HOST, MASTER, Outcome.UNAUTHORIZED, OPERATOR_USER);
-        addJvm(client, HOST, SLAVE, Outcome.HIDDEN, OPERATOR_USER);
+        runGC(client, MASTER, null, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, null, master ? Outcome.HIDDEN: Outcome.UNAUTHORIZED, user);
+        runGC(client, MASTER, MASTER_A, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
+        addDeployment2(client, Outcome.UNAUTHORIZED, user);
+        addPath(client, Outcome.UNAUTHORIZED, user);
+        addJvm(client, HOST, MASTER, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        addJvm(client, HOST, SLAVE, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
 
-        testWLFY2299(client, Outcome.UNAUTHORIZED, OPERATOR_USER);
-        restartServer(client, MASTER, MASTER_A, Outcome.SUCCESS, OPERATOR_USER);
+        if (master) {
+            testWLFY2299(client, Outcome.UNAUTHORIZED, user);
+        }
+        restartServer(client, MASTER, MASTER_A, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        restartServer(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
     }
 
     @Test
-    public void testMaintainer() throws Exception {
-        ModelControllerClient client = getClientForUser(MAINTAINER_USER, isAllowLocalAuth(), masterClientConfig);
-        readWholeConfig(client, Outcome.UNAUTHORIZED, MAINTAINER_USER);
-        checkStandardReads(client, null, null, MAINTAINER_USER);
-        checkRootRead(client, null, null, Outcome.SUCCESS, MAINTAINER_USER);
-        checkRootRead(client, MASTER, null, Outcome.SUCCESS, MAINTAINER_USER);
-        checkRootRead(client, MASTER, MASTER_A, Outcome.SUCCESS, MAINTAINER_USER);
-        checkRootRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, MAINTAINER_USER);
-        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, MAINTAINER_USER);
-        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.HIDDEN, MAINTAINER_USER);
-        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, MAINTAINER_USER);
-        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, MAINTAINER_USER);
-        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.HIDDEN, MAINTAINER_USER);
-        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, MAINTAINER_USER);
-        checkSensitiveAttribute(client, null, null, false, MAINTAINER_USER);
-        checkSensitiveAttribute(client, MASTER, MASTER_A, false, MAINTAINER_USER);
-        testHostScopedRoleCanReadHostChildResources(client, MAINTAINER_USER);
-
-        if (readOnly) return;
-
-        runGC(client, MASTER, null, Outcome.SUCCESS, MAINTAINER_USER);
-        runGC(client, MASTER, MASTER_A, Outcome.SUCCESS, MAINTAINER_USER);
-        runGC(client, SLAVE, SLAVE_B, Outcome.HIDDEN, MAINTAINER_USER);
-        addDeployment2(client, Outcome.UNAUTHORIZED, MAINTAINER_USER);
-        addPath(client, Outcome.UNAUTHORIZED, MAINTAINER_USER);
-        addJvm(client, HOST, MASTER, Outcome.SUCCESS, MAINTAINER_USER);
-        addJvm(client, HOST, SLAVE, Outcome.HIDDEN, MAINTAINER_USER);
-
-        testWLFY2299(client, Outcome.SUCCESS, MAINTAINER_USER);
+    public void testMasterOperator() throws Exception {
+        testOperator(true);
     }
 
     @Test
-    public void testDeployer() throws Exception {
-        ModelControllerClient client = getClientForUser(DEPLOYER_USER, isAllowLocalAuth(), masterClientConfig);
-        readWholeConfig(client, Outcome.UNAUTHORIZED, DEPLOYER_USER);
-        checkStandardReads(client, null, null, DEPLOYER_USER);
-        checkRootRead(client, null, null, Outcome.SUCCESS, DEPLOYER_USER);
-        checkRootRead(client, MASTER, null, Outcome.SUCCESS, DEPLOYER_USER);
-        checkRootRead(client, MASTER, MASTER_A, Outcome.SUCCESS, DEPLOYER_USER);
-        checkRootRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, DEPLOYER_USER);
-        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, DEPLOYER_USER);
-        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.HIDDEN, DEPLOYER_USER);
-        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, DEPLOYER_USER);
-        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, DEPLOYER_USER);
-        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.HIDDEN, DEPLOYER_USER);
-        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, DEPLOYER_USER);
-        checkSensitiveAttribute(client, null, null, false, DEPLOYER_USER);
-        checkSensitiveAttribute(client, MASTER, MASTER_A, false, DEPLOYER_USER);
-        testHostScopedRoleCanReadHostChildResources(client, DEPLOYER_USER);
+    public void testSlaveOperator() throws Exception {
+        testOperator(false);
+    }
+
+    private void testOperator(boolean master) throws Exception {
+        final String user = master ? MASTER_OPERATOR_USER : SLAVE_OPERATOR_USER;
+
+        ModelControllerClient client = getClientForUser(user, isAllowLocalAuth(), masterClientConfig);
+        readWholeConfig(client, Outcome.UNAUTHORIZED, user);
+        checkStandardReads(client, null, null, user);
+        checkRootRead(client, null, null, Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, user);
+        checkSensitiveAttribute(client, null, null, false, user);
+        if (master) {
+            checkSensitiveAttribute(client, MASTER, MASTER_A, false, user);
+        } else {
+            checkSensitiveAttribute(client, SLAVE, SLAVE_B, false, user);
+        }
+        testHostScopedRoleCanReadHostChildResources(client, user);
 
         if (readOnly) return;
 
-        runGC(client, MASTER, null, Outcome.UNAUTHORIZED, DEPLOYER_USER);
-        runGC(client, MASTER, MASTER_A, Outcome.UNAUTHORIZED, DEPLOYER_USER);
-        runGC(client, SLAVE, SLAVE_B, Outcome.HIDDEN, DEPLOYER_USER);
-        addDeployment2(client, Outcome.UNAUTHORIZED, DEPLOYER_USER);
-        addPath(client, Outcome.UNAUTHORIZED, DEPLOYER_USER);
-        addJvm(client, HOST, MASTER, Outcome.UNAUTHORIZED, DEPLOYER_USER);
-        addJvm(client, HOST, SLAVE, Outcome.HIDDEN, DEPLOYER_USER);
+        runGC(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, null, master ? Outcome.HIDDEN: Outcome.SUCCESS, user);
+        runGC(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        addDeployment2(client, Outcome.UNAUTHORIZED, user);
+        addPath(client, Outcome.UNAUTHORIZED, user);
+        addJvm(client, HOST, MASTER, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        addJvm(client, HOST, SLAVE, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
 
-        testWLFY2299(client, Outcome.UNAUTHORIZED, DEPLOYER_USER);
-        restartServer(client, MASTER, MASTER_A, Outcome.UNAUTHORIZED, DEPLOYER_USER);
+        if (master) {
+            testWLFY2299(client, Outcome.UNAUTHORIZED, user);
+        }
+        restartServer(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        restartServer(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
     }
 
     @Test
-    public void testAdministrator() throws Exception {
-        ModelControllerClient client = getClientForUser(ADMINISTRATOR_USER, isAllowLocalAuth(), masterClientConfig);
-        readWholeConfig(client, Outcome.UNAUTHORIZED, ADMINISTRATOR_USER);
-        checkStandardReads(client, null, null, ADMINISTRATOR_USER);
-        checkRootRead(client, null, null, Outcome.SUCCESS, ADMINISTRATOR_USER);
-        checkRootRead(client, MASTER, null, Outcome.SUCCESS, ADMINISTRATOR_USER);
-        checkRootRead(client, MASTER, MASTER_A, Outcome.SUCCESS, ADMINISTRATOR_USER);
-        checkRootRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, ADMINISTRATOR_USER);
-        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, ADMINISTRATOR_USER);
-        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.SUCCESS, ADMINISTRATOR_USER);
-        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, ADMINISTRATOR_USER);
-        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, ADMINISTRATOR_USER);
-        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.SUCCESS, ADMINISTRATOR_USER);
-        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, ADMINISTRATOR_USER);
-        checkSensitiveAttribute(client, null, null, false, ADMINISTRATOR_USER);
-        checkSensitiveAttribute(client, MASTER, MASTER_A, true, ADMINISTRATOR_USER);
-        testHostScopedRoleCanReadHostChildResources(client, ADMINISTRATOR_USER);
-
-        if (readOnly) return;
-
-        runGC(client, MASTER, null, Outcome.SUCCESS, ADMINISTRATOR_USER);
-        runGC(client, MASTER, MASTER_A, Outcome.SUCCESS, ADMINISTRATOR_USER);
-        runGC(client, SLAVE, SLAVE_B, Outcome.HIDDEN, ADMINISTRATOR_USER);
-        addDeployment2(client, Outcome.UNAUTHORIZED, ADMINISTRATOR_USER);
-        addPath(client, Outcome.UNAUTHORIZED, ADMINISTRATOR_USER);
-        addJvm(client, HOST, MASTER, Outcome.SUCCESS, ADMINISTRATOR_USER);
-        addJvm(client, HOST, SLAVE, Outcome.HIDDEN, ADMINISTRATOR_USER);
-
-        testWLFY2299(client, Outcome.SUCCESS, ADMINISTRATOR_USER);
+    public void testMasterMaintainer() throws Exception {
+        testMaintainer(true);
     }
 
     @Test
-    public void testAuditor() throws Exception {
-        ModelControllerClient client = getClientForUser(AUDITOR_USER, isAllowLocalAuth(), masterClientConfig);
-        readWholeConfig(client, Outcome.UNAUTHORIZED, AUDITOR_USER);
-        checkStandardReads(client, null, null, AUDITOR_USER);
-        checkRootRead(client, null, null, Outcome.SUCCESS, AUDITOR_USER);
-        checkRootRead(client, MASTER, null, Outcome.SUCCESS, AUDITOR_USER);
-        checkRootRead(client, MASTER, MASTER_A, Outcome.SUCCESS, AUDITOR_USER);
-        checkRootRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, AUDITOR_USER);
-        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, AUDITOR_USER);
-        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.SUCCESS, AUDITOR_USER);
-        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, AUDITOR_USER);
-        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, AUDITOR_USER);
-        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.SUCCESS, AUDITOR_USER);
-        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, AUDITOR_USER);
-        checkSensitiveAttribute(client, null, null, false, AUDITOR_USER);
-        checkSensitiveAttribute(client, MASTER, MASTER_A, true, AUDITOR_USER);
-        testHostScopedRoleCanReadHostChildResources(client, AUDITOR_USER);
+    public void testSlaveMaintainer() throws Exception {
+        testMaintainer(false);
+    }
+
+    public void testMaintainer(boolean master) throws Exception {
+        final String user = master ? MASTER_MAINTAINER_USER : SLAVE_MAINTAINER_USER;
+
+        ModelControllerClient client = getClientForUser(user, isAllowLocalAuth(), masterClientConfig);
+        readWholeConfig(client, Outcome.UNAUTHORIZED, user);
+        checkStandardReads(client, null, null, user);
+        checkRootRead(client, null, null, Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, user);
+        checkSensitiveAttribute(client, null, null, false, user);
+        if (master) {
+            checkSensitiveAttribute(client, MASTER, MASTER_A, false, user);
+        } else {
+            checkSensitiveAttribute(client, SLAVE, SLAVE_B, false, user);
+        }
+        testHostScopedRoleCanReadHostChildResources(client, user);
 
         if (readOnly) return;
 
-        runGC(client, MASTER, null, Outcome.UNAUTHORIZED, AUDITOR_USER);
-        runGC(client, MASTER, MASTER_A, Outcome.UNAUTHORIZED, AUDITOR_USER);
-        runGC(client, SLAVE, SLAVE_B, Outcome.HIDDEN, AUDITOR_USER);
-        addDeployment2(client, Outcome.UNAUTHORIZED, AUDITOR_USER);
-        addPath(client, Outcome.UNAUTHORIZED, AUDITOR_USER);
-        addJvm(client, HOST, MASTER, Outcome.UNAUTHORIZED, AUDITOR_USER);
-        addJvm(client, HOST, SLAVE, Outcome.HIDDEN, AUDITOR_USER);
+        runGC(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        runGC(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        addDeployment2(client, Outcome.UNAUTHORIZED, user);
+        addPath(client, Outcome.UNAUTHORIZED, user);
+        addJvm(client, HOST, MASTER, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        addJvm(client, HOST, SLAVE, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
 
-        testWLFY2299(client, Outcome.UNAUTHORIZED, AUDITOR_USER);
-        restartServer(client, MASTER, MASTER_A, Outcome.UNAUTHORIZED, AUDITOR_USER);
+        if (master) {
+            testWLFY2299(client, Outcome.SUCCESS, user);
+        }
+        restartServer(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        restartServer(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
     }
 
     @Test
-    public void testSuperUser() throws Exception {
-        ModelControllerClient client = getClientForUser(SUPERUSER_USER, isAllowLocalAuth(), masterClientConfig);
-        readWholeConfig(client, Outcome.UNAUTHORIZED, SUPERUSER_USER);
-        checkStandardReads(client, null, null, SUPERUSER_USER);
-        checkRootRead(client, null, null, Outcome.SUCCESS, SUPERUSER_USER);
-        checkRootRead(client, MASTER, null, Outcome.SUCCESS, SUPERUSER_USER);
-        checkRootRead(client, MASTER, MASTER_A, Outcome.SUCCESS, SUPERUSER_USER);
-        checkRootRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, SUPERUSER_USER);
-        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, SUPERUSER_USER);
-        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.SUCCESS, SUPERUSER_USER);
-        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, SUPERUSER_USER);
-        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, SUPERUSER_USER);
-        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.SUCCESS, SUPERUSER_USER);
-        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, SUPERUSER_USER);
-        checkSensitiveAttribute(client, null, null, false, SUPERUSER_USER);
-        checkSensitiveAttribute(client, MASTER, MASTER_A, true, SUPERUSER_USER);
-        testHostScopedRoleCanReadHostChildResources(client, SUPERUSER_USER);
+    public void testMasterDeployer() throws Exception {
+        testDeployer(true);
+    }
+
+    @Test
+    public void testSlaveDeployer() throws Exception {
+        testDeployer(false);
+    }
+
+    private void testDeployer(boolean master) throws Exception {
+        final String user = master ? MASTER_DEPLOYER_USER : SLAVE_DEPLOYER_USER;
+
+        ModelControllerClient client = getClientForUser(user, isAllowLocalAuth(), masterClientConfig);
+        readWholeConfig(client, Outcome.UNAUTHORIZED, user);
+        checkStandardReads(client, null, null, user);
+        checkRootRead(client, null, null, Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, MASTER, MASTER_A, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, MASTER, MASTER_A, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, SLAVE, SLAVE_B, Outcome.HIDDEN, user);
+        checkSensitiveAttribute(client, null, null, false, user);
+        if (master) {
+            checkSensitiveAttribute(client, MASTER, MASTER_A, false, user);
+        } else {
+            checkSensitiveAttribute(client, SLAVE, SLAVE_B, false, user);
+        }
+        testHostScopedRoleCanReadHostChildResources(client, user);
 
         if (readOnly) return;
 
-        runGC(client, MASTER, null, Outcome.SUCCESS, SUPERUSER_USER);
-        runGC(client, MASTER, MASTER_A, Outcome.SUCCESS, SUPERUSER_USER);
-        runGC(client, SLAVE, SLAVE_B, Outcome.HIDDEN, SUPERUSER_USER);
-        addDeployment2(client, Outcome.UNAUTHORIZED, SUPERUSER_USER);
-        addPath(client, Outcome.UNAUTHORIZED, SUPERUSER_USER);
-        addJvm(client, HOST, MASTER, Outcome.SUCCESS, SUPERUSER_USER);
-        addJvm(client, HOST, SLAVE, Outcome.HIDDEN, SUPERUSER_USER);
+        runGC(client, MASTER, null, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
+        runGC(client, MASTER, MASTER_A, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
+        addDeployment2(client, Outcome.UNAUTHORIZED, user);
+        addPath(client, Outcome.UNAUTHORIZED, user);
+        addJvm(client, HOST, MASTER, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        addJvm(client, HOST, SLAVE, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
 
-        testWLFY2299(client, Outcome.SUCCESS, SUPERUSER_USER);
+        if (master) {
+            testWLFY2299(client, Outcome.UNAUTHORIZED, user);
+        }
+        restartServer(client, MASTER, MASTER_A, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        restartServer(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
+    }
+
+    @Test
+    public void testMasterAdministrator() throws Exception {
+        testAdministrator(true);
+    }
+
+    @Test
+    public void testSlaveAdministrator() throws Exception {
+        testAdministrator(false);
+    }
+
+    private void testAdministrator(boolean master) throws Exception {
+        final String user = master ? MASTER_ADMINISTRATOR_USER : SLAVE_ADMINISTRATOR_USER;
+
+        ModelControllerClient client = getClientForUser(user, isAllowLocalAuth(), masterClientConfig);
+        readWholeConfig(client, Outcome.UNAUTHORIZED, user);
+        checkStandardReads(client, null, null, user);
+        checkRootRead(client, null, null, Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkSensitiveAttribute(client, null, null, false, user);
+        if (master) {
+            checkSensitiveAttribute(client, MASTER, MASTER_A, true, user);
+        } else {
+            checkSensitiveAttribute(client, SLAVE, SLAVE_B, true, user);
+        }
+        testHostScopedRoleCanReadHostChildResources(client, user);
+
+        if (readOnly) return;
+
+        runGC(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        runGC(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        addDeployment2(client, Outcome.UNAUTHORIZED, user);
+        addPath(client, Outcome.UNAUTHORIZED, user);
+        addJvm(client, HOST, MASTER, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        addJvm(client, HOST, SLAVE, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+
+        if (master) {
+            testWLFY2299(client, Outcome.SUCCESS, user);
+        }
+        restartServer(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        restartServer(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+    }
+
+    @Test
+    public void testMasterAuditor() throws Exception {
+        testAuditor(true);
+    }
+
+    @Test
+    public void testSlaveAuditor() throws Exception {
+        testAuditor(false);
+    }
+
+    private void testAuditor(boolean master) throws Exception {
+        final String user = master ? MASTER_AUDITOR_USER: SLAVE_AUDITOR_USER;
+
+        ModelControllerClient client = getClientForUser(user, isAllowLocalAuth(), masterClientConfig);
+        readWholeConfig(client, Outcome.UNAUTHORIZED, user);
+        checkStandardReads(client, null, null, user);
+        checkRootRead(client, null, null, Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkSensitiveAttribute(client, null, null, false, user);
+        if (master) {
+            checkSensitiveAttribute(client, MASTER, MASTER_A, true, user);
+        } else {
+            checkSensitiveAttribute(client, SLAVE, SLAVE_B, true, user);
+        }
+        testHostScopedRoleCanReadHostChildResources(client, user);
+
+        if (readOnly) return;
+
+        runGC(client, MASTER, null, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
+        runGC(client, MASTER, MASTER_A, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
+        addDeployment2(client, Outcome.UNAUTHORIZED, user);
+        addPath(client, Outcome.UNAUTHORIZED, user);
+        addJvm(client, HOST, MASTER, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        addJvm(client, HOST, SLAVE, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
+
+        if (master) {
+            testWLFY2299(client, Outcome.UNAUTHORIZED, user);
+        }
+        restartServer(client, MASTER, MASTER_A, master ? Outcome.UNAUTHORIZED : Outcome.HIDDEN, user);
+        restartServer(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.UNAUTHORIZED, user);
+    }
+
+    @Test
+    public void testMasterSuperUser() throws Exception {
+        testSuperUser(true);
+    }
+
+    @Test
+    public void testSlaveSuperUser() throws Exception {
+        testSuperUser(false);
+    }
+
+    private void testSuperUser(boolean master) throws Exception {
+        final String user = master ? MASTER_SUPERUSER_USER: SLAVE_SUPERUSER_USER;
+
+        ModelControllerClient client = getClientForUser(user, isAllowLocalAuth(), masterClientConfig);
+        readWholeConfig(client, Outcome.UNAUTHORIZED, user);
+        checkStandardReads(client, null, null, user);
+        checkRootRead(client, null, null, Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkRootRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkRootRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        readResource(client, AUTHORIZATION, null, null, Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        readResource(client, AUTHORIZATION, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkSecurityDomainRead(client, null, null, Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        checkSecurityDomainRead(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        checkSensitiveAttribute(client, null, null, false, user);
+        if (master) {
+            checkSensitiveAttribute(client, MASTER, MASTER_A, true, user);
+        } else {
+            checkSensitiveAttribute(client, SLAVE, SLAVE_B, true, user);
+        }
+        testHostScopedRoleCanReadHostChildResources(client, user);
+
+        if (readOnly) return;
+
+        runGC(client, MASTER, null, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, null, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        runGC(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        runGC(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+        addDeployment2(client, Outcome.UNAUTHORIZED, user);
+        addPath(client, Outcome.UNAUTHORIZED, user);
+        addJvm(client, HOST, MASTER, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        addJvm(client, HOST, SLAVE, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
+
+        if (master) {
+            testWLFY2299(client, Outcome.SUCCESS, user);
+        }
+        restartServer(client, MASTER, MASTER_A, master ? Outcome.SUCCESS : Outcome.HIDDEN, user);
+        restartServer(client, SLAVE, SLAVE_B, master ? Outcome.HIDDEN : Outcome.SUCCESS, user);
     }
 
     private void testHostScopedRoleCanReadHostChildResources(ModelControllerClient client, String... roles) throws Exception {

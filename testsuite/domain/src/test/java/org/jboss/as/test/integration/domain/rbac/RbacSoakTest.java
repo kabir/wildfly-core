@@ -184,13 +184,13 @@ public class RbacSoakTest extends AbstractRbacTestCase {
 
             try {
                 switch (role) {
-                    case MONITOR: test.testMonitor(); break;
-                    case OPERATOR: test.testOperator(); break;
-                    case MAINTAINER: test.testMaintainer(); break;
-                    case DEPLOYER: test.testDeployer(); break;
-                    case ADMINISTRATOR: test.testAdministrator(); break;
-                    case AUDITOR: test.testAuditor(); break;
-                    case SUPERUSER: test.testSuperUser(); break;
+                    case MONITOR: test.testMasterMonitor(); break;
+                    case OPERATOR: test.testMasterOperator(); break;
+                    case MAINTAINER: test.testMasterMaintainer(); break;
+                    case DEPLOYER: test.testMasterDeployer(); break;
+                    case ADMINISTRATOR: test.testMasterAdministrator(); break;
+                    case AUDITOR: test.testMasterAuditor(); break;
+                    case SUPERUSER: test.testMasterSuperUser(); break;
                     default: throw new AssertionError();
                 }
             } finally {

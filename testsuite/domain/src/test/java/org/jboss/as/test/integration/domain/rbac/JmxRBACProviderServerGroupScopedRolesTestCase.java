@@ -28,7 +28,6 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PRO
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REMOVE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVER_GROUPS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
-import static org.jboss.as.test.integration.domain.rbac.AbstractServerGroupScopedRolesTestCase.USERS;
 import static org.jboss.as.test.integration.management.util.ModelUtil.createOpNode;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -44,11 +43,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.management.Attribute;
 import javax.management.JMRuntimeException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.remote.JMXServiceURL;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -163,43 +164,43 @@ public class JmxRBACProviderServerGroupScopedRolesTestCase extends AbstractServe
 
     @Test
     @Override
-    public void testMonitor() throws Exception {
+    public void testMasterMonitor() throws Exception {
         test(MONITOR_USER);
     }
 
     @Test
     @Override
-    public void testOperator() throws Exception {
+    public void testMasterOperator() throws Exception {
         test(OPERATOR_USER);
     }
 
     @Test
     @Override
-    public void testMaintainer() throws Exception {
+    public void testMasterMaintainer() throws Exception {
         test(MAINTAINER_USER);
     }
 
     @Test
     @Override
-    public void testDeployer() throws Exception {
+    public void testMasterDeployer() throws Exception {
         test(DEPLOYER_USER);
     }
 
     @Test
     @Override
-    public void testAdministrator() throws Exception {
+    public void testMasterAdministrator() throws Exception {
         test(ADMINISTRATOR_USER);
     }
 
     @Test
     @Override
-    public void testAuditor() throws Exception {
+    public void testMasterAuditor() throws Exception {
         test(AUDITOR_USER);
     }
 
     @Test
     @Override
-    public void testSuperUser() throws Exception {
+    public void testMasterSuperUser() throws Exception {
         test(SUPERUSER_USER);
     }
 

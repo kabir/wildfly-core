@@ -43,11 +43,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import javax.management.Attribute;
 import javax.management.JMRuntimeException;
 import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 import javax.management.remote.JMXServiceURL;
+
 import org.apache.commons.lang.ArrayUtils;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -90,9 +92,9 @@ public class JmxRBACProviderHostScopedRolesTestCase extends AbstractHostScopedRo
         ServerGroupRolesMappingSetup.INSTANCE.setup(domainClient);
         deployDeployment1(domainClient);
         jmxTask.setup(domainClient, SERVER_GROUP_A);
-        List<String> users = new ArrayList<String>(USERS.length);
-        for (int i = 0; i < USERS.length; i++) {
-            users.add(USERS[i] + "=" + new UsernamePasswordHashUtil().generateHashedHexURP(USERS[i], "ApplicationRealm", RbacAdminCallbackHandler.STD_PASSWORD.toCharArray()));
+        List<String> users = new ArrayList<String>(MASTER_USERS.length);
+        for (int i = 0; i < MASTER_USERS.length; i++) {
+            users.add(MASTER_USERS[i] + "=" + new UsernamePasswordHashUtil().generateHashedHexURP(MASTER_USERS[i], "ApplicationRealm", RbacAdminCallbackHandler.STD_PASSWORD.toCharArray()));
         }
         users.add(SLAVE_HOST_USER + "=" + new UsernamePasswordHashUtil().generateHashedHexURP(SLAVE_HOST_USER, "ApplicationRealm", RbacAdminCallbackHandler.STD_PASSWORD.toCharArray()));
         Files.write((new File(masterClientConfig.getJbossHome()).toPath().resolve("domain").resolve("configuration").resolve("application-users.properties")), users, Charset.forName("UTF-8"));
@@ -162,44 +164,50 @@ public class JmxRBACProviderHostScopedRolesTestCase extends AbstractHostScopedRo
 
     @Test
     @Override
-    public void testMonitor() throws Exception {
-        test(MONITOR_USER);
+    public void testMasterMonitor() throws Exception {
+        test(MASTER_MONITOR_USER);
     }
 
     @Test
     @Override
-    public void testOperator() throws Exception {
-        test(OPERATOR_USER);
+    public void testSlaveMonitor() throws Exception {
+        test(SLAVE_MONITOR_USER);
     }
 
     @Test
     @Override
-    public void testMaintainer() throws Exception {
-        test(MAINTAINER_USER);
+    public void testMasterOperator() throws Exception {
+        test(MASTER_OPERATOR_USER);
     }
 
     @Test
     @Override
-    public void testDeployer() throws Exception {
-        test(DEPLOYER_USER);
+    public void testMasterMaintainer() throws Exception {
+        test(MASTER_MAINTAINER_USER);
     }
 
     @Test
     @Override
-    public void testAdministrator() throws Exception {
-        test(ADMINISTRATOR_USER);
+    public void testMasterDeployer() throws Exception {
+        test(MASTER_DEPLOYER_USER);
     }
 
     @Test
     @Override
-    public void testAuditor() throws Exception {
-        test(AUDITOR_USER);
+    public void testMasterAdministrator() throws Exception {
+        test(MASTER_ADMINISTRATOR_USER);
     }
 
     @Test
     @Override
-    public void testSuperUser() throws Exception {
-        test(SUPERUSER_USER);
+    public void testMasterAuditor() throws Exception {
+        test(MASTER_AUDITOR_USER);
+    }
+
+    @Test
+    @Override
+    public void testMasterSuperUser() throws Exception {
+        test(MASTER_SUPERUSER_USER);
     }
 
 
@@ -210,14 +218,14 @@ public class JmxRBACProviderHostScopedRolesTestCase extends AbstractHostScopedRo
 
     protected boolean isReadAllowed(String userName) {
         switch(userName) {
-            case MONITOR_USER:
-            case DEPLOYER_USER:
-            case MAINTAINER_USER:
-            case OPERATOR_USER:
+            case MASTER_MONITOR_USER:
+            case MASTER_DEPLOYER_USER:
+            case MASTER_MAINTAINER_USER:
+            case MASTER_OPERATOR_USER:
                 return !mbeanSensitivity;
-            case ADMINISTRATOR_USER:
-            case AUDITOR_USER:
-            case SUPERUSER_USER:
+            case MASTER_ADMINISTRATOR_USER:
+            case MASTER_AUDITOR_USER:
+            case MASTER_SUPERUSER_USER:
                 return true;
             default:
                 return false;
@@ -226,15 +234,15 @@ public class JmxRBACProviderHostScopedRolesTestCase extends AbstractHostScopedRo
 
     protected boolean isWriteAllowed(String userName) {
         switch(userName) {
-            case MAINTAINER_USER:
-            case OPERATOR_USER:
+            case MASTER_MAINTAINER_USER:
+            case MASTER_OPERATOR_USER:
                 return !mbeanSensitivity;
-            case ADMINISTRATOR_USER:
-            case SUPERUSER_USER:
+            case MASTER_ADMINISTRATOR_USER:
+            case MASTER_SUPERUSER_USER:
                 return true;
-            case MONITOR_USER:
-            case AUDITOR_USER:
-            case DEPLOYER_USER:
+            case MASTER_MONITOR_USER:
+            case MASTER_AUDITOR_USER:
+            case MASTER_DEPLOYER_USER:
             default:
                 return false;
         }
@@ -361,13 +369,20 @@ public class JmxRBACProviderHostScopedRolesTestCase extends AbstractHostScopedRo
 
         static {
             Map<String, Set<String>> rolesToUsers = new HashMap<String, Set<String>>();
-            rolesToUsers.put(MONITOR_USER, Collections.singleton(MONITOR_USER));
-            rolesToUsers.put(OPERATOR_USER, Collections.singleton(OPERATOR_USER));
-            rolesToUsers.put(MAINTAINER_USER, Collections.singleton(MAINTAINER_USER));
-            rolesToUsers.put(DEPLOYER_USER, Collections.singleton(DEPLOYER_USER));
-            rolesToUsers.put(ADMINISTRATOR_USER, Collections.singleton(ADMINISTRATOR_USER));
-            rolesToUsers.put(AUDITOR_USER, Collections.singleton(AUDITOR_USER));
-            rolesToUsers.put(SUPERUSER_USER, Collections.singleton(SUPERUSER_USER));
+            rolesToUsers.put(MASTER_MONITOR_USER, Collections.singleton(MASTER_MONITOR_USER));
+            rolesToUsers.put(MASTER_OPERATOR_USER, Collections.singleton(MASTER_OPERATOR_USER));
+            rolesToUsers.put(MASTER_MAINTAINER_USER, Collections.singleton(MASTER_MAINTAINER_USER));
+            rolesToUsers.put(MASTER_DEPLOYER_USER, Collections.singleton(MASTER_DEPLOYER_USER));
+            rolesToUsers.put(MASTER_ADMINISTRATOR_USER, Collections.singleton(MASTER_ADMINISTRATOR_USER));
+            rolesToUsers.put(MASTER_AUDITOR_USER, Collections.singleton(MASTER_AUDITOR_USER));
+            rolesToUsers.put(MASTER_SUPERUSER_USER, Collections.singleton(MASTER_SUPERUSER_USER));
+            rolesToUsers.put(SLAVE_MONITOR_USER, Collections.singleton(SLAVE_MONITOR_USER));
+            rolesToUsers.put(SLAVE_OPERATOR_USER, Collections.singleton(SLAVE_OPERATOR_USER));
+            rolesToUsers.put(SLAVE_MAINTAINER_USER, Collections.singleton(SLAVE_MAINTAINER_USER));
+            rolesToUsers.put(SLAVE_DEPLOYER_USER, Collections.singleton(SLAVE_DEPLOYER_USER));
+            rolesToUsers.put(SLAVE_ADMINISTRATOR_USER, Collections.singleton(SLAVE_ADMINISTRATOR_USER));
+            rolesToUsers.put(SLAVE_AUDITOR_USER, Collections.singleton(SLAVE_AUDITOR_USER));
+            rolesToUsers.put(SLAVE_SUPERUSER_USER, Collections.singleton(SLAVE_SUPERUSER_USER));
             rolesToUsers.put(SLAVE_HOST_ROLE, Collections.singleton(SLAVE_HOST_USER));
             STANDARD_USERS = rolesToUsers;
         }

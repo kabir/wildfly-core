@@ -150,10 +150,10 @@ public class WildcardReadsTestCase extends AbstractRbacTestCase {
 
     @Test
     public void testHostScopedRole() throws IOException {
-        ModelControllerClient client = getClientForUser(AbstractHostScopedRolesTestCase.MAINTAINER_USER, false, masterClientConfig);
+        ModelControllerClient client = getClientForUser(AbstractHostScopedRolesTestCase.MASTER_MAINTAINER_USER, false, masterClientConfig);
 
         ModelNode op = createOpNode("host=*/server=*/subsystem=1/rbac-constrained=*", READ_RESOURCE_OPERATION);
-        configureRoles(op, new String[]{AbstractHostScopedRolesTestCase.MAINTAINER_USER});
+        configureRoles(op, new String[]{AbstractHostScopedRolesTestCase.MASTER_MAINTAINER_USER});
         ModelNode response = RbacUtil.executeOperation(client, op, Outcome.SUCCESS);
 
         ModelNode result = response.get(RESULT);
@@ -166,7 +166,7 @@ public class WildcardReadsTestCase extends AbstractRbacTestCase {
         validateConstrainedResponse(response, "master", "master-a");
 
         op = createOpNode("host=*/server=*/subsystem=1/rbac-sensitive=*", READ_RESOURCE_OPERATION);
-        configureRoles(op, new String[]{AbstractHostScopedRolesTestCase.MAINTAINER_USER});
+        configureRoles(op, new String[]{AbstractHostScopedRolesTestCase.MASTER_MAINTAINER_USER});
         response = RbacUtil.executeOperation(client, op, Outcome.SUCCESS);
 
         // Result should be an empty list as we can't read any of these.

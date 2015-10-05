@@ -166,7 +166,7 @@ public class IncludeAllRoleTestCase extends AbstractRbacTestCase {
         addRoleUser(NEW_ROLE, NEW_USER, client);
 
         try {
-            test(AbstractHostScopedRolesTestCase.MAINTAINER_USER);
+            test(AbstractHostScopedRolesTestCase.MASTER_MAINTAINER_USER);
         } finally {
             removeRoleUser(NEW_ROLE, NEW_USER, client);
             removeRoleMapping(NEW_ROLE, client);

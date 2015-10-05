@@ -28,13 +28,13 @@ import java.io.IOException;
  * @author Ladislav Thon <lthon@redhat.com>
  */
 interface RbacDomainRolesTests {
-    void testMonitor() throws Exception;
-    void testOperator() throws Exception;
-    void testMaintainer() throws Exception;
-    void testDeployer() throws Exception;
-    void testAdministrator() throws Exception;
-    void testAuditor() throws Exception;
-    void testSuperUser() throws Exception;
+    void testMasterMonitor() throws Exception;
+    void testMasterOperator() throws Exception;
+    void testMasterMaintainer() throws Exception;
+    void testMasterDeployer() throws Exception;
+    void testMasterAdministrator() throws Exception;
+    void testMasterAuditor() throws Exception;
+    void testMasterSuperUser() throws Exception;
 
     void tearDown() throws IOException;
 }

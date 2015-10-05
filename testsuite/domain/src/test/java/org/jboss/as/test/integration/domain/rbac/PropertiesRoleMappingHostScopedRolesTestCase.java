@@ -85,13 +85,20 @@ public class PropertiesRoleMappingHostScopedRolesTestCase extends AbstractHostSc
 
         static {
             Map<String, Set<String>> rolesToGroups = new HashMap<String, Set<String>>();
-            rolesToGroups.put(MONITOR_USER, Collections.singleton(MONITOR_USER));
-            rolesToGroups.put(OPERATOR_USER, Collections.singleton(OPERATOR_USER));
-            rolesToGroups.put(MAINTAINER_USER, Collections.singleton(MAINTAINER_USER));
-            rolesToGroups.put(DEPLOYER_USER, Collections.singleton(DEPLOYER_USER));
-            rolesToGroups.put(ADMINISTRATOR_USER, Collections.singleton(ADMINISTRATOR_USER));
-            rolesToGroups.put(AUDITOR_USER, Collections.singleton(AUDITOR_USER));
-            rolesToGroups.put(SUPERUSER_USER, Collections.singleton(SUPERUSER_USER));
+            rolesToGroups.put(MASTER_MONITOR_USER, Collections.singleton(MASTER_MONITOR_USER));
+            rolesToGroups.put(MASTER_OPERATOR_USER, Collections.singleton(MASTER_OPERATOR_USER));
+            rolesToGroups.put(MASTER_MAINTAINER_USER, Collections.singleton(MASTER_MAINTAINER_USER));
+            rolesToGroups.put(MASTER_DEPLOYER_USER, Collections.singleton(MASTER_DEPLOYER_USER));
+            rolesToGroups.put(MASTER_ADMINISTRATOR_USER, Collections.singleton(MASTER_ADMINISTRATOR_USER));
+            rolesToGroups.put(MASTER_AUDITOR_USER, Collections.singleton(MASTER_AUDITOR_USER));
+            rolesToGroups.put(MASTER_SUPERUSER_USER, Collections.singleton(MASTER_SUPERUSER_USER));
+            rolesToGroups.put(SLAVE_MONITOR_USER, Collections.singleton(SLAVE_MONITOR_USER));
+            rolesToGroups.put(SLAVE_OPERATOR_USER, Collections.singleton(SLAVE_OPERATOR_USER));
+            rolesToGroups.put(SLAVE_MAINTAINER_USER, Collections.singleton(SLAVE_MAINTAINER_USER));
+            rolesToGroups.put(SLAVE_DEPLOYER_USER, Collections.singleton(SLAVE_DEPLOYER_USER));
+            rolesToGroups.put(SLAVE_ADMINISTRATOR_USER, Collections.singleton(SLAVE_ADMINISTRATOR_USER));
+            rolesToGroups.put(SLAVE_AUDITOR_USER, Collections.singleton(SLAVE_AUDITOR_USER));
+            rolesToGroups.put(SLAVE_SUPERUSER_USER, Collections.singleton(SLAVE_SUPERUSER_USER));
             HOST_SCOPED_ROLES_TO_GROUPS = rolesToGroups;
         }
 
