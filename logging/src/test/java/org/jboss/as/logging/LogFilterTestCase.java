@@ -21,14 +21,16 @@
  */
 package org.jboss.as.logging;
 
-import java.io.IOException;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.jboss.as.controller.client.helpers.ClientConstants.RESULT;
-import static org.junit.Assert.*;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
 
 import org.jboss.as.controller.client.helpers.Operations;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import org.jboss.as.subsystem.test.KernelServices;
 import org.jboss.dmr.ModelNode;
 import org.junit.Before;
@@ -55,6 +57,11 @@ public class LogFilterTestCase extends AbstractOperationsTestCase {
     @Override
     protected String getSubsystemXml() throws IOException {
         return readResource("/default-subsystem.xml");
+    }
+
+    @Override
+    public void testSchema() throws Exception {
+        //This test case is testing the legacy schemas, for which this test is not relevant.
     }
 
     @Test
