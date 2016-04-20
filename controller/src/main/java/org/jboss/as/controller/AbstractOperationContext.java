@@ -81,6 +81,8 @@ import org.jboss.as.controller.client.MessageSeverity;
 import org.jboss.as.controller.client.OperationResponse;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.notification.Notification;
+import org.jboss.as.controller.notification.NotificationFilter;
+import org.jboss.as.controller.notification.NotificationHandler;
 import org.jboss.as.controller.notification.NotificationSupport;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
@@ -855,6 +857,7 @@ abstract class AbstractOperationContext implements OperationContext {
         }
     }
 
+
     /**
      * Check that each emitted notification is properly described by its source.
      */
@@ -865,6 +868,16 @@ abstract class AbstractOperationContext implements OperationContext {
         if (!descriptions.keySet().contains(type)) {
             missingNotificationDescriptionWarnings.add(ControllerLogger.ROOT_LOGGER.notificationIsNotDescribed(type, source));
         }
+    }
+
+    @Override
+    public void registerNotificationHandler(PathAddress source, NotificationHandler handler, NotificationFilter filter) {
+        controller.getNotificationRegistry().registerNotificationHandler(source, handler, filter);
+    }
+
+    @Override
+    public void unregisterNotificationHandler(PathAddress source, NotificationHandler handler, NotificationFilter filter) {
+        controller.getNotificationRegistry().unregisterNotificationHandler(source, handler, filter);
     }
 
     private void addBootFailureDescription() {
