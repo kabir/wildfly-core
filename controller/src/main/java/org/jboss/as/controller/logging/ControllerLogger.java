@@ -3408,6 +3408,7 @@ public interface ControllerLogger extends BasicLogger {
     @Message(id = 416, value = "Modification of the runtime service container by a management operation has completed")
     String runtimeModificationComplete();
 
+
     @Message(id = 417, value = "Cannot add more than one jvm. Add of '%s' attempted, but '%s' already exists")
     OperationFailedException cannotAddMoreThanOneJvmForServerOrHost(PathAddress requested, PathAddress existing);
 
@@ -3481,4 +3482,12 @@ public interface ControllerLogger extends BasicLogger {
 
     @Message(id = 433, value = "'%s' is not a valid representation of a resource address")
     OperationFailedException invalidAddressFormat(ModelNode address);
+
+    ////////////////////////////////////////////////
+    //Messages without IDs
+    @Message(id = Message.NONE, value = "Notification emitted when the process state changes")
+    String processStateChangeNotificationDescription();
+
+    @Message(id = Message.NONE, value = "The attribute '%s' has changed from '%s' to '%s'")
+    String jmxAttributeChange(String name, String oldState, String stateString);
 }
