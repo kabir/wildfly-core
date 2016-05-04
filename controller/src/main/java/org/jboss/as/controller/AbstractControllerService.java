@@ -299,9 +299,6 @@ public abstract class AbstractControllerService implements Service<ModelControll
         final ExecutorService executorService = injectedExecutorService.getOptionalValue();
 
         final NotificationSupport notificationSupport = NotificationSupport.Factory.create(executorService);
-        propertyChangeListener = new EmitControlledProcessStateNotificationListener(notificationSupport);
-        processState.getService().addPropertyChangeListener(propertyChangeListener);
-        processState.setStarting();
 
         WritableAuthorizerConfiguration authorizerConfig = authorizer.getWritableAuthorizerConfiguration();
         authorizerConfig.reset();
@@ -316,6 +313,11 @@ public abstract class AbstractControllerService implements Service<ModelControll
         // Initialize the model
         initModel(controller.getManagementModel(), controller.getModelControllerResource());
         this.controller = controller;
+
+        //Signal that we are starting
+        propertyChangeListener = new EmitControlledProcessStateNotificationListener(notificationSupport);
+        processState.getService().addPropertyChangeListener(propertyChangeListener);
+        processState.setStarting();
 
         final long bootStackSize = getBootStackSize();
         final Thread bootThread = new Thread(null, new Runnable() {
