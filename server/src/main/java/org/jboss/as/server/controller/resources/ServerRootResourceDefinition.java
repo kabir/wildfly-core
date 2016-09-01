@@ -62,6 +62,7 @@ import org.jboss.as.controller.operations.global.GlobalNotifications;
 import org.jboss.as.controller.operations.global.GlobalOperationHandlers;
 import org.jboss.as.controller.operations.global.ReadConfigAsFeaturesOperationHandler;
 import org.jboss.as.controller.operations.global.ReadFeatureDescriptionHandler;
+import org.jboss.as.controller.operations.sync.GenericModelDescribeOperationHandler;
 import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.operations.validation.IntRangeValidator;
 import org.jboss.as.controller.operations.validation.ParameterValidator;
@@ -79,6 +80,7 @@ import org.jboss.as.platform.mbean.PlatformMBeanResourceRegistrar;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.server.DeployerChainAddHandler;
 import org.jboss.as.server.DomainServerCommunicationServices;
+import org.jboss.as.server.RuntimeExpressionResolver;
 import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.ServerEnvironment.LaunchType;
 import org.jboss.as.server.ServerEnvironmentResourceDescription;
@@ -99,6 +101,7 @@ import org.jboss.as.server.operations.InstallationReportHandler;
 import org.jboss.as.server.operations.InstanceUuidReadHandler;
 import org.jboss.as.server.operations.LaunchTypeHandler;
 import org.jboss.as.server.operations.ProcessTypeHandler;
+import org.jboss.as.server.operations.sync.ReadServerModelOperationHandler;
 import org.jboss.as.server.operations.RunningModeReadHandler;
 import org.jboss.as.server.operations.ServerDomainProcessReloadHandler;
 import org.jboss.as.server.operations.ServerDomainProcessShutdownHandler;
@@ -111,6 +114,7 @@ import org.jboss.as.server.operations.ServerVersionOperations.DefaultEmptyListAt
 import org.jboss.as.server.operations.SetServerGroupHostHandler;
 import org.jboss.as.server.operations.SuspendStateReadHandler;
 import org.jboss.as.server.operations.WriteConfigHandler;
+import org.jboss.as.server.operations.sync.ReadServerOperationsHandler;
 import org.jboss.as.server.services.net.InterfaceResourceDefinition;
 import org.jboss.as.server.services.net.NetworkInterfaceRuntimeHandler;
 import org.jboss.as.server.services.net.SocketBindingGroupResourceDefinition;
@@ -366,6 +370,9 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
             SnapshotTakeHandler snapshotTake = new SnapshotTakeHandler(extensibleConfigurationPersister);
             resourceRegistration.registerOperationHandler(SnapshotTakeHandler.DEFINITION, snapshotTake);
             resourceRegistration.registerOperationHandler(WriteConfigHandler.DEFINITION, WriteConfigHandler.INSTANCE);
+            resourceRegistration.registerOperationHandler(GenericModelDescribeOperationHandler.DEFINITION, GenericModelDescribeOperationHandler.INSTANCE, true);
+            resourceRegistration.registerOperationHandler(ReadServerModelOperationHandler.DEFINITION, new ReadServerModelOperationHandler(false));
+            resourceRegistration.registerOperationHandler(ReadServerOperationsHandler.DEFINITION, new ReadServerOperationsHandler());
         }
 
         // Ops for internal control of the server by the HC
@@ -422,10 +429,16 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
             resourceRegistration.registerOperationHandler(ServerResumeHandler.DEFINITION, ServerResumeHandler.INSTANCE);
         }
 
-        // The System.exit() based shutdown command is only valid for a server process directly launched from the command line
-        if (serverEnvironment.getLaunchType() == ServerEnvironment.LaunchType.STANDALONE) {
-            ServerShutdownHandler serverShutdownHandler = new ServerShutdownHandler(processState, serverEnvironment);
-            resourceRegistration.registerOperationHandler(ServerShutdownHandler.DEFINITION, serverShutdownHandler);
+        // Runtime operations
+        if (serverEnvironment != null) {
+            // The System.exit() based shutdown command is only valid for a server process directly launched from the command line
+            if (serverEnvironment.getLaunchType() == ServerEnvironment.LaunchType.STANDALONE) {
+                ServerShutdownHandler serverShutdownHandler = new ServerShutdownHandler(processState, serverEnvironment);
+                resourceRegistration.registerOperationHandler(ServerShutdownHandler.DEFINITION, serverShutdownHandler);
+
+            }
+            resourceRegistration.registerSubModel(ServerEnvironmentResourceDescription.of(serverEnvironment));
+            resourceRegistration.registerSubModel(new SynchronizationResourceDefinition(extensionRegistry, new RuntimeExpressionResolver(vaultReader)));
         }
 
     }
