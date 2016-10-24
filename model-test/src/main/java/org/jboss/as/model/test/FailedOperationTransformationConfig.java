@@ -367,7 +367,9 @@ public class FailedOperationTransformationConfig {
             ModelNode op = operation.clone();
             for (String attr : attributes) {
                 ModelNode value = op.get(attr);
-                if (checkValue(attr, value, false)) {
+                ModelNode checkOp = op.clone();
+                checkOp.protect();
+                if (checkValue(checkOp, attr, value, false)) {
                     AttributesPathAddressConfig<?> complexChildConfig = complexAttributes.get(attr);
                     if (complexChildConfig == null) {
                         ModelNode resolved = correctValue(op.get(attr), false);
@@ -401,7 +403,11 @@ public class FailedOperationTransformationConfig {
             return false;
         }
 
-        protected abstract boolean checkValue(String attrName, ModelNode attribute, boolean isWriteAttribute);
+        protected boolean checkValue(ModelNode operation, String attrName, ModelNode attribute, boolean isGeneratedWriteAttribute) {
+            return checkValue(attrName, attribute, isGeneratedWriteAttribute);
+        }
+
+        protected abstract boolean checkValue(String attrName, ModelNode attribute, boolean isGeneratedWriteAttribute);
 
         protected abstract ModelNode correctValue(ModelNode toResolve, boolean isWriteAttribute);
     }
