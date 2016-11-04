@@ -549,7 +549,6 @@ public class ModelTestUtils {
     private static void checkFailedTransformedAddOperation(
             ModelTestKernelServices<?> mainServices, ModelVersion modelVersion,
             ModelNode operation, FailedOperationTransformationConfig config, ModelNode legacySteps) throws OperationFailedException {
-        ModelNode originalOperation = operation.clone();
         TransformedOperation transformedOperation = mainServices.transformOperation(modelVersion, operation.clone());
         if (config.expectFailed(operation)) {
             Assert.assertTrue("Expected transformation to get rejected " + operation + " for version " + modelVersion, transformedOperation.rejectOperation(successResult()));
@@ -579,7 +578,7 @@ public class ModelTestUtils {
         }
     }
 
-§    private static ModelNode successResult() {
+    private static ModelNode successResult() {
         final ModelNode result = new ModelNode();
         result.get(ModelDescriptionConstants.OUTCOME).set(ModelDescriptionConstants.SUCCESS);
         result.get(ModelDescriptionConstants.RESULT);
