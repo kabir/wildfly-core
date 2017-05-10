@@ -56,7 +56,6 @@ public enum Element {
     CONFIGURATION_CHANGES("configuration-changes"),
     CONSTRAINTS("constraints"),
     CONTENT("content"),
-    CREDENTIAL_REFERENCE("credential-reference"),
 
     DISCOVERY_OPTION("discovery-option"),
     DISCOVERY_OPTIONS("discovery-options"),
@@ -117,9 +116,7 @@ public enum Element {
     JVM_OPTIONS("jvm-options"),
 
     KERBEROS("kerberos"),
-    KEY_PASSWORD_CREDENTIAL_REFERENCE("key-password-credential-reference"),
     KEYSTORE("keystore"),
-    KEYSTORE_PASSWORD_CREDENTIAL_REFERENCE("keystore-password-credential-reference"),
     KEYTAB("keytab"),
 
     LAUNCH_COMMAND("launch-command"),
@@ -169,7 +166,6 @@ public enum Element {
     ROLE_MAPPING("role-mapping"),
     ROLLOUT_PLANS("rollout-plans"),
 
-    SEARCH_CREDENTIAL_REFERENCE("search-credential-reference"),
     SECRET("secret"),
     SECURITY_REALM("security-realm"),
     SECURITY_REALMS("security-realms"),

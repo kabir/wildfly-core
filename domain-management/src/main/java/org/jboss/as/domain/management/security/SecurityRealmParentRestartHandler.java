@@ -24,15 +24,10 @@ package org.jboss.as.domain.management.security;
 
 import static org.jboss.as.domain.management.ModelDescriptionConstants.SECURITY_REALM;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.RestartParentResourceHandlerBase;
-import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.domain.management.SecurityRealm;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
@@ -44,13 +39,9 @@ import org.jboss.msc.service.ServiceName;
  * @author Brian Stansberry (c) 2011 Red Hat Inc.
  */
 abstract class SecurityRealmParentRestartHandler extends RestartParentResourceHandlerBase {
-    static final Set<RuntimeCapability> NULL_CAPABILITIES = Collections.emptySet();
 
-    protected final Set<RuntimeCapability> capabilities;
-
-    SecurityRealmParentRestartHandler(RuntimeCapability ... capabilities) {
+    SecurityRealmParentRestartHandler() {
         super(SECURITY_REALM);
-        this.capabilities = capabilities == null || capabilities.length == 0 ? NULL_CAPABILITIES : Arrays.stream(capabilities).collect(Collectors.toSet());
     }
 
     @Override

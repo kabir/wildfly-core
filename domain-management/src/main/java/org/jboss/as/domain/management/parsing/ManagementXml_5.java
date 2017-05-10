@@ -389,10 +389,6 @@ class ManagementXml_5 extends ManagementXml {
                     parseLdapConnectionProperties(reader, connectionAddress, list);
                     break;
                 }
-                case SEARCH_CREDENTIAL_REFERENCE: {
-                    LdapConnectionResourceDefinition.SEARCH_CREDENTIAL_REFERENCE.getParser().parseElement(LdapConnectionResourceDefinition.SEARCH_CREDENTIAL_REFERENCE, reader, add);
-                    break;
-                }
                 default: {
                     throw unexpectedElement(reader);
                 }
@@ -706,34 +702,15 @@ class ManagementXml_5 extends ManagementXml {
                 }
             }
         }
-        while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
-            requireNamespace(reader, namespace);
-            final Element element = Element.forName(reader.getLocalName());
-            switch (element) {
-                case KEYSTORE_PASSWORD_CREDENTIAL_REFERENCE: {
-                    KeystoreAttributes.KEYSTORE_PASSWORD_CREDENTIAL_REFERENCE.getParser().parseElement(KeystoreAttributes.KEYSTORE_PASSWORD_CREDENTIAL_REFERENCE, reader, addOperation);
-                    keystorePasswordSet = true;
-                    break;
-                }
-                case KEY_PASSWORD_CREDENTIAL_REFERENCE: {
-                    if (extended) {
-                        KeystoreAttributes.KEY_PASSWORD_CREDENTIAL_REFERENCE.getParser().parseElement(KeystoreAttributes.KEY_PASSWORD_CREDENTIAL_REFERENCE, reader, addOperation);
-                    } else {
-                        throw unexpectedElement(reader);
-                    }
-                    break;
-                }
-                default: {
-                    throw unexpectedElement(reader);
-                }
-            }
-        }
+
         /*
          * The only mandatory attribute now is the KEYSTORE_PASSWORD.
          */
         if (keystorePasswordSet == false) {
             throw missingRequired(reader, EnumSet.of(Attribute.KEYSTORE_PASSWORD));
         }
+
+        requireNoContent(reader);
     }
 
     private void parseKerberosIdentity(final XMLExtendedStreamReader reader,
@@ -1235,20 +1212,14 @@ class ManagementXml_5 extends ManagementXml {
 
         list.add(user);
 
-        boolean hasPassword = false;
+        String password = null;
         while (reader.hasNext() && reader.nextTag() != END_ELEMENT) {
             requireNamespace(reader, namespace);
             final Element element = Element.forName(reader.getLocalName());
             switch (element) {
                 case PASSWORD: {
-                    String password = reader.getElementText();
+                    password = reader.getElementText();
                     UserResourceDefinition.PASSWORD.parseAndSetParameter(password, user, reader);
-                    hasPassword = true;
-                    break;
-                }
-                case CREDENTIAL_REFERENCE: {
-                    UserResourceDefinition.CREDENTIAL_REFERENCE.getParser().parseElement(UserResourceDefinition.CREDENTIAL_REFERENCE, reader, user);
-                    hasPassword = true;
                     break;
                 }
                 default: {
@@ -1257,7 +1228,7 @@ class ManagementXml_5 extends ManagementXml {
             }
         }
 
-        if (!hasPassword) {
+        if (password == null) {
             throw missingRequiredElement(reader, EnumSet.of(Element.PASSWORD));
         }
     }
@@ -2075,13 +2046,8 @@ class ManagementXml_5 extends ManagementXml {
             }
 
             boolean hasProvider = ssl.hasDefined(KEYSTORE_PROVIDER) && !JKS.equalsIgnoreCase(ssl.require(KEYSTORE_PROVIDER).asString());
-            boolean hasCredential = ssl.hasDefined(KeystoreAttributes.KEYSTORE_PASSWORD_CREDENTIAL_REFERENCE.getName()) || ssl.hasDefined(KeystoreAttributes.KEY_PASSWORD_CREDENTIAL_REFERENCE.getName());
             if (hasProvider || ssl.hasDefined(KeystoreAttributes.KEYSTORE_PATH.getName())) {
-                if(hasCredential) {
-                    writer.writeStartElement(Element.KEYSTORE.getLocalName());
-                } else {
-                    writer.writeEmptyElement(Element.KEYSTORE.getLocalName());
-                }
+                writer.writeEmptyElement(Element.KEYSTORE.getLocalName());
                 KeystoreAttributes.KEYSTORE_PROVIDER.marshallAsAttribute(ssl, writer);
                 KeystoreAttributes.KEYSTORE_PATH.marshallAsAttribute(ssl, writer);
                 KeystoreAttributes.KEYSTORE_RELATIVE_TO.marshallAsAttribute(ssl, writer);
@@ -2089,11 +2055,6 @@ class ManagementXml_5 extends ManagementXml {
                 KeystoreAttributes.ALIAS.marshallAsAttribute(ssl, writer);
                 KeystoreAttributes.KEY_PASSWORD.marshallAsAttribute(ssl, writer);
                 KeystoreAttributes.GENERATE_SELF_SIGNED_CERTIFICATE_HOST.marshallAsAttribute(ssl, writer);
-                KeystoreAttributes.KEYSTORE_PASSWORD_CREDENTIAL_REFERENCE.marshallAsElement(ssl, writer);
-                KeystoreAttributes.KEY_PASSWORD_CREDENTIAL_REFERENCE.marshallAsElement(ssl, writer);
-                if(hasCredential) {
-                    writer.writeEndElement();
-                }
             }
             writer.writeEndElement();
         }
@@ -2101,7 +2062,6 @@ class ManagementXml_5 extends ManagementXml {
             ModelNode secret = serverIdentities.get(SECRET);
             writer.writeEmptyElement(Element.SECRET.getLocalName());
             SecretServerIdentityResourceDefinition.VALUE.marshallAsAttribute(secret, writer);
-            SecretServerIdentityResourceDefinition.CREDENTIAL_REFERENCE.marshallAsElement(secret, writer);
         }
 
         writer.writeEndElement();
@@ -2140,20 +2100,11 @@ class ManagementXml_5 extends ManagementXml {
 
         if (authentication.hasDefined(TRUSTSTORE)) {
             ModelNode truststore = authentication.require(TRUSTSTORE);
-            boolean hasCredential = truststore.hasDefined(KeystoreAttributes.KEYSTORE_PASSWORD_CREDENTIAL_REFERENCE.getName());
-            if(hasCredential) {
-                    writer.writeStartElement(Element.TRUSTSTORE.getLocalName());
-                } else {
-                    writer.writeEmptyElement(Element.TRUSTSTORE.getLocalName());
-                }
+            writer.writeEmptyElement(Element.TRUSTSTORE.getLocalName());
             KeystoreAttributes.KEYSTORE_PROVIDER.marshallAsAttribute(truststore, writer);
             KeystoreAttributes.KEYSTORE_PATH.marshallAsAttribute(truststore, writer);
             KeystoreAttributes.KEYSTORE_RELATIVE_TO.marshallAsAttribute(truststore, writer);
             KeystoreAttributes.KEYSTORE_PASSWORD.marshallAsAttribute(truststore, writer);
-            KeystoreAttributes.KEYSTORE_PASSWORD_CREDENTIAL_REFERENCE.marshallAsElement(truststore, writer);
-            if (hasCredential) {
-                writer.writeEndElement();
-            }
         }
 
         if (authentication.hasDefined(LOCAL)) {
@@ -2212,7 +2163,6 @@ class ManagementXml_5 extends ManagementXml {
                 writer.writeStartElement(Element.USER.getLocalName());
                 writer.writeAttribute(Attribute.USERNAME.getLocalName(), userName);
                 UserResourceDefinition.PASSWORD.marshallAsElement(currentUser, writer);
-                UserResourceDefinition.CREDENTIAL_REFERENCE.marshallAsElement(currentUser, writer);
                 writer.writeEndElement();
             }
             writer.writeEndElement();
@@ -2379,9 +2329,6 @@ class ManagementXml_5 extends ManagementXml {
             LdapConnectionResourceDefinition.HANDLES_REFERRALS_FOR.getAttributeMarshaller()
                     .marshallAsAttribute(LdapConnectionResourceDefinition.HANDLES_REFERRALS_FOR, connection, true, writer);
             LdapConnectionResourceDefinition.ALWAYS_SEND_CLIENT_CERT.marshallAsAttribute(connection, writer);
-            if(connection.hasDefined(LdapConnectionResourceDefinition.SEARCH_CREDENTIAL_REFERENCE.getName())) {
-                LdapConnectionResourceDefinition.SEARCH_CREDENTIAL_REFERENCE.marshallAsElement(connection, writer);
-            }
 
             if (connection.hasDefined(PROPERTY)) {
                 ModelNode properties = connection.get(PROPERTY);

@@ -59,15 +59,16 @@ class FileTrustManagerService extends AbstractTrustManagerService {
     private volatile String provider;
     private volatile String path;
     private volatile String relativeTo;
+    private volatile char[] keystorePassword;
 
     private volatile TrustManagerFactory trustManagerFactory;
     private volatile FileKeystore keyStore;
 
     FileTrustManagerService(final String provider, final String path, final String relativeTo, final char[] keystorePassword) {
-        super(keystorePassword);
         this.provider = provider;
         this.path = path;
         this.relativeTo = relativeTo;
+        this.keystorePassword = keystorePassword;
     }
 
     public String getProvider() {
@@ -92,6 +93,14 @@ class FileTrustManagerService extends AbstractTrustManagerService {
 
     public void setRelativeTo(final String relativeTo) {
         this.relativeTo = relativeTo;
+    }
+
+    public char[] getKeystorePassword() {
+        return keystorePassword;
+    }
+
+    public void setKeystorePassword(char[] keystorePassword) {
+        this.keystorePassword = keystorePassword;
     }
 
     /*
@@ -127,7 +136,7 @@ class FileTrustManagerService extends AbstractTrustManagerService {
                 }
             }, Event.REMOVED, Event.UPDATED);
         }
-        keyStore = FileKeystore.newTrustStore(provider, file, resolvePassword());
+        keyStore = FileKeystore.newTrustStore(provider, file, keystorePassword);
         keyStore.load();
 
         super.start(context);

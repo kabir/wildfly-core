@@ -53,26 +53,21 @@ import org.jboss.as.domain.management.AuthMechanism;
 import org.jboss.as.domain.management.SecurityRealm;
 import org.jboss.as.domain.management.logging.DomainManagementLogger;
 import org.jboss.dmr.ModelNode;
-import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
-import org.jboss.msc.value.InjectedValue;
 import org.wildfly.common.Assert;
-import org.wildfly.common.function.ExceptionSupplier;
 import org.wildfly.security.auth.SupportLevel;
 import org.wildfly.security.auth.server.RealmIdentity;
 import org.wildfly.security.auth.server.RealmUnavailableException;
 import org.wildfly.security.credential.Credential;
 import org.wildfly.security.credential.PasswordCredential;
-import org.wildfly.security.credential.source.CredentialSource;
 import org.wildfly.security.evidence.Evidence;
 import org.wildfly.security.evidence.PasswordGuessEvidence;
 import org.wildfly.security.password.Password;
 import org.wildfly.security.password.PasswordFactory;
-import org.wildfly.security.password.interfaces.ClearPassword;
 import org.wildfly.security.password.spec.ClearPasswordSpec;
 import org.wildfly.security.password.spec.DigestPasswordAlgorithmSpec;
 import org.wildfly.security.password.spec.EncryptablePasswordSpec;
@@ -90,7 +85,6 @@ public class UserDomainCallbackHandler implements Service<CallbackHandlerService
     private final String realm;
 
     private volatile ModelNode userDomain;
-    private final InjectedValue<Map<String, ExceptionSupplier<CredentialSource, Exception>>> credentialSourceSupplier = new InjectedValue<>();
 
     public UserDomainCallbackHandler(String realm, ModelNode userDomain) {
         this.realm = realm;
@@ -99,10 +93,6 @@ public class UserDomainCallbackHandler implements Service<CallbackHandlerService
 
     void setUserDomain(final ModelNode userDomain) {
         this.userDomain = userDomain == null || !userDomain.isDefined() ? new ModelNode().setEmptyObject() : userDomain.clone();
-    }
-
-    Injector<Map<String, ExceptionSupplier<CredentialSource, Exception>>> getCredentialSourceSupplierInjector() {
-        return credentialSourceSupplier;
     }
 
     /*
@@ -161,7 +151,6 @@ public class UserDomainCallbackHandler implements Service<CallbackHandlerService
 
         String userName = null;
         ModelNode user = null;
-        ExceptionSupplier<CredentialSource, Exception> userCredentialSourceSupplier = null;
 
         // A single pass may be sufficient but by using a two pass approach the Callbackhandler will not
         // fail if an unexpected order is encountered.
@@ -177,9 +166,6 @@ public class UserDomainCallbackHandler implements Service<CallbackHandlerService
                 userName = nameCallback.getDefaultName();
                 if (userMap.get(USER).hasDefined(userName)) {
                     user = userMap.get(USER, userName);
-                }
-                if(credentialSourceSupplier.getOptionalValue() != null && credentialSourceSupplier.getValue().containsKey(userName)) {
-                    userCredentialSourceSupplier = credentialSourceSupplier.getValue().get(userName);
                 }
             } else if (current instanceof PasswordCallback) {
                 toRespondTo.add(current);
@@ -210,34 +196,11 @@ public class UserDomainCallbackHandler implements Service<CallbackHandlerService
                     SECURITY_LOGGER.tracef("User '%s' not found.", userName);
                     throw new UserNotFoundException(userName);
                 }
-                char[] password = new char[0];
-                if (user.hasDefined(PASSWORD)) {
-                    password = user.require(PASSWORD).asString().toCharArray();
-                }
-                ((PasswordCallback) current).setPassword(resolvePassword(userCredentialSourceSupplier, password));
+                String password = user.require(PASSWORD).asString();
+                ((PasswordCallback) current).setPassword(password.toCharArray());
             }
-
         }
-    }
 
-    private char[] resolvePassword(ExceptionSupplier<CredentialSource, Exception> userCredentialSourceSupplier, char[] password) {
-        try {
-            if (userCredentialSourceSupplier != null) {
-                CredentialSource cs = userCredentialSourceSupplier.get();
-                if (cs != null) {
-                    org.wildfly.security.credential.PasswordCredential credential = cs.getCredential(org.wildfly.security.credential.PasswordCredential.class);
-                    if (credential != null) {
-                        ClearPassword clearPassword = credential.getPassword(ClearPassword.class);
-                        if (clearPassword != null) {
-                            return clearPassword.getPassword();
-                        }
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            return password;
-        }
-        return password;
     }
 
     private class SecurityRealmImpl implements org.wildfly.security.auth.server.SecurityRealm {

@@ -21,7 +21,6 @@
  */
 package org.jboss.as.domain.management.security;
 
-
 import java.io.IOException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -41,12 +40,14 @@ import org.jboss.msc.service.StopContext;
 public class ProviderTrustManagerService extends AbstractTrustManagerService {
 
     private volatile String provider;
+    private volatile char[] storePassword;
 
     private volatile KeyStore theKeyStore;
 
     ProviderTrustManagerService(final String provider, final char[] storePassword) {
-        super(storePassword);
+        super();
         this.provider = provider;
+        this.storePassword = storePassword;
     }
 
     @Override
@@ -54,7 +55,8 @@ public class ProviderTrustManagerService extends AbstractTrustManagerService {
 
         try {
             KeyStore theKeyStore = KeyStore.getInstance(provider);
-            theKeyStore.load(null, resolvePassword());
+            theKeyStore.load(null, storePassword);
+
             this.theKeyStore = theKeyStore;
         } catch (KeyStoreException e) {
             throw DomainManagementLogger.ROOT_LOGGER.unableToStart(e);
@@ -63,8 +65,6 @@ public class ProviderTrustManagerService extends AbstractTrustManagerService {
         } catch (CertificateException e) {
             throw DomainManagementLogger.ROOT_LOGGER.unableToStart(e);
         } catch (IOException e) {
-            throw DomainManagementLogger.ROOT_LOGGER.unableToStart(e);
-        }catch (Exception e) {
             throw DomainManagementLogger.ROOT_LOGGER.unableToStart(e);
         }
 
@@ -81,4 +81,5 @@ public class ProviderTrustManagerService extends AbstractTrustManagerService {
     protected KeyStore loadTrustStore() {
         return theKeyStore;
     }
+
 }

@@ -42,10 +42,7 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
-import org.wildfly.common.function.ExceptionSupplier;
-import org.wildfly.security.credential.source.CredentialSource;
 import org.wildfly.security.manager.WildFlySecurityManager;
-import org.wildfly.security.password.interfaces.ClearPassword;
 
 /**
  * The LDAP connection manager to maintain the LDAP connections.
@@ -61,7 +58,6 @@ public class LdapConnectionManagerService implements Service<LdapConnectionManag
 
     private final InjectedValue<SSLContext> fullSSLContext = new InjectedValue<SSLContext>();
     private final InjectedValue<SSLContext> trustSSLContext = new InjectedValue<SSLContext>();
-    private final InjectedValue<ExceptionSupplier<CredentialSource, Exception>> credentialSourceSupplier = new InjectedValue<>();
 
     private volatile Config configuration;
     private volatile Hashtable<String, String> properties = new Hashtable<String, String>();
@@ -130,10 +126,6 @@ public class LdapConnectionManagerService implements Service<LdapConnectionManag
 
     public InjectedValue<SSLContext> getTrustOnlySSLContextInjector() {
         return trustSSLContext;
-    }
-
-    Injector<ExceptionSupplier<CredentialSource, Exception>> getCredentialSourceSupplierInjector() {
-        return credentialSourceSupplier;
     }
 
     /*
@@ -309,33 +301,11 @@ public class LdapConnectionManagerService implements Service<LdapConnectionManag
         if (configuration.searchDn != null) {
             result.put(Context.SECURITY_PRINCIPAL, configuration.searchDn);
         }
-        String resolvedSearchCredential = resolveSearchCredential();
-        if (resolvedSearchCredential != null) {
-            result.put(Context.SECURITY_CREDENTIALS, resolvedSearchCredential);
+        if (configuration.searchCredential != null) {
+            result.put(Context.SECURITY_CREDENTIALS, configuration.searchCredential);
         }
 
         return result;
-    }
-
-    private String resolveSearchCredential() {
-        try {
-            ExceptionSupplier<CredentialSource, Exception> sourceSupplier = credentialSourceSupplier.getOptionalValue();
-            if (sourceSupplier != null) {
-                CredentialSource cs = sourceSupplier.get();
-                if (cs != null) {
-                    org.wildfly.security.credential.PasswordCredential credential = cs.getCredential(org.wildfly.security.credential.PasswordCredential.class);
-                    if (credential != null) {
-                        ClearPassword password = credential.getPassword(ClearPassword.class);
-                        if (password != null) {
-                            return new String(password.getPassword());
-                        }
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            return configuration.searchCredential;
-        }
-        return configuration.searchCredential;
     }
 
     public static final class ServiceUtil {

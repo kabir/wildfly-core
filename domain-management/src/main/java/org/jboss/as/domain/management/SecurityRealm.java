@@ -27,7 +27,6 @@ import java.util.Set;
 
 import javax.net.ssl.SSLContext;
 import javax.security.auth.Subject;
-import org.jboss.as.domain.management.security.SecurityRealmResourceDefinition;
 
 import org.jboss.msc.inject.Injector;
 import org.jboss.msc.service.ServiceBuilder;
@@ -115,12 +114,8 @@ public interface SecurityRealm {
         private ServiceUtil() {
         }
 
-        public static ServiceName createLegacyServiceName(final String realmName) {
-            return BASE_SERVICE_NAME.append(realmName);
-        }
-
         public static ServiceName createServiceName(final String realmName) {
-            return SecurityRealmResourceDefinition.MANAGEMENT_SECURITY_REALM_CAPABILITY.getCapabilityServiceName(realmName);
+            return BASE_SERVICE_NAME.append(realmName);
         }
 
         @Deprecated
@@ -128,6 +123,7 @@ public interface SecurityRealm {
                 String realmName, boolean optional) {
             ServiceBuilder.DependencyType type = optional ? ServiceBuilder.DependencyType.OPTIONAL : ServiceBuilder.DependencyType.REQUIRED;
             sb.addDependency(type, createServiceName(realmName), SecurityRealm.class, injector);
+
             return sb;
         }
 
