@@ -767,7 +767,9 @@ final class OperationContextImpl extends AbstractOperationContext {
         ServiceTarget delegate = targetActiveStep.getScopedServiceTarget(modelController.getServiceTarget());
         ContextServiceTarget cst = new ContextServiceTarget(delegate, supplier, targetActiveStep.address);
         serviceTargets.add(cst);
-        return cst;
+
+        //TODO only do this if we use some system property or something
+        return MscWrappers.wrapTarget(cst);
     }
 
 
@@ -2178,6 +2180,11 @@ final class OperationContextImpl extends AbstractOperationContext {
             checkNotInManagementOperation();
             return delegate.batchTarget();
         }
+
+        @Override
+        public PathAddress getTargetAddress() {
+            return targetAddress;
+        }
     }
 
     /** Integration between ContextServiceBuilder and the OperationContext that created it*/
@@ -2729,5 +2736,4 @@ final class OperationContextImpl extends AbstractOperationContext {
             return ((ContextServiceBuilder<T>)getDelegate()).getCapabilityServiceName(capabilityName, serviceType, address);
         }
     }
-
 }

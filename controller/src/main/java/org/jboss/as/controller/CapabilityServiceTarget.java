@@ -32,4 +32,6 @@ import org.jboss.msc.service.ServiceTarget;
 public interface CapabilityServiceTarget extends ServiceTarget {
 
     <T> CapabilityServiceBuilder<T> addCapability(final RuntimeCapability<?> capability, final Service<T> service) throws IllegalArgumentException;
+
+    PathAddress getTargetAddress();
 }

@@ -55,13 +55,13 @@ import org.wildfly.security.manager.WildFlySecurityManager;
  *
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
  */
-final class BootstrapImpl implements Bootstrap {
+final class ServiceDumpBootstrapImpl implements Bootstrap {
 
     private static final int MAX_THREADS = ServerEnvironment.getBootstrapMaxThreads();
     private final ShutdownHook shutdownHook;
     private final ServiceContainer container;
 
-    public BootstrapImpl() {
+    public ServiceDumpBootstrapImpl() {
         this.shutdownHook = new ShutdownHook();
         this.container = shutdownHook.register();
     }
@@ -96,7 +96,7 @@ final class BootstrapImpl implements Bootstrap {
         }
 
         final ModuleLoader moduleLoader = configuration.getModuleLoader();
-        final Bootstrap.ConfigurationPersisterFactory configurationPersisterFactory = configuration.getConfigurationPersisterFactory();
+        final ConfigurationPersisterFactory configurationPersisterFactory = configuration.getConfigurationPersisterFactory();
         assert configurationPersisterFactory != null : "configurationPersisterFactory is null";
 
         try {
@@ -109,7 +109,6 @@ final class BootstrapImpl implements Bootstrap {
         final ServiceTarget tracker = container.subTarget();
         final ControlledProcessState processState = new ControlledProcessState(true);
         shutdownHook.setControlledProcessState(processState);
-        System.out.println("---> Adding ControlledProcessState service (non wrapped)");
         ControlledProcessStateService controlledProcessStateService = ControlledProcessStateService.addService(tracker, processState).getValue();
         final SuspendController suspendController = new SuspendController();
         //Instantiating the suspendcontroller here to be able to get a reference to it in RunningStateJmx
@@ -118,7 +117,6 @@ final class BootstrapImpl implements Bootstrap {
                 controlledProcessStateService, suspendController,
                 configuration.getRunningModeControl(),
                 Type.from(ServerService.getProcessType(configuration.getServerEnvironment()).name()));
-        System.out.println("---> Adding ApplicationServerService (non wrapped)");
         final Service<?> applicationServerService = new ApplicationServerService(extraServices, configuration, processState, suspendController);
         tracker.addService(Services.JBOSS_AS, applicationServerService)
             .install();

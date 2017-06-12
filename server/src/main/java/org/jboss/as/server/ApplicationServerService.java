@@ -34,6 +34,7 @@ import java.util.ServiceLoader;
 import java.util.TreeSet;
 
 import org.jboss.as.controller.ControlledProcessState;
+import org.jboss.as.controller.MscWrappers;
 import org.jboss.as.controller.RunningModeControl;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.server.deployment.ContentCleanerService;
@@ -124,7 +125,7 @@ final class ApplicationServerService implements Service<AsyncFuture<ServiceConta
                 ServerLogger.CONFIG_LOGGER.trace(b);
             }
         }
-        final ServiceTarget serviceTarget = context.getChildTarget();
+        final ServiceTarget serviceTarget = MscWrappers.wrapTarget(context.getChildTarget());
         final ServiceController<?> myController = context.getController();
         final ServiceContainer container = myController.getServiceContainer();
         futureContainer = new FutureServiceContainer();

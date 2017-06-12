@@ -50,6 +50,7 @@ import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.DelegatingResourceDefinition;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelControllerServiceInitialization;
+import org.jboss.as.controller.MscWrappers;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
@@ -300,7 +301,7 @@ public final class ServerService extends AbstractControllerService {
         boolean ok;
         try {
             final ServerEnvironment serverEnvironment = configuration.getServerEnvironment();
-            final ServiceTarget serviceTarget = context.getServiceTarget();
+            final ServiceTarget serviceTarget = MscWrappers.wrapTarget(context.getServiceTarget());
             final File[] extDirs = serverEnvironment.getJavaExtDirs();
             final File[] newExtDirs = Arrays.copyOf(extDirs, extDirs.length + 1);
             newExtDirs[extDirs.length] = new File(serverEnvironment.getServerBaseDir(), "lib/ext");
@@ -309,12 +310,12 @@ public final class ServerService extends AbstractControllerService {
             final Boolean suspend = runningModeControl.getSuspend()!= null ? runningModeControl.getSuspend() : serverEnvironment.isStartSuspended();
             suspendController.setStartSuspended(suspend);
             runningModeControl.setSuspend(false);
-            context.getServiceTarget().addService(SuspendController.SERVICE_NAME, suspendController)
+            serviceTarget.addService(SuspendController.SERVICE_NAME, suspendController)
                     .addDependency(JBOSS_SERVER_NOTIFICATION_REGISTRY, NotificationHandlerRegistry.class, suspendController.getNotificationHandlerRegistry())
                     .install();
 
             GracefulShutdownService gracefulShutdownService = new GracefulShutdownService();
-            context.getServiceTarget().addService(GracefulShutdownService.SERVICE_NAME, gracefulShutdownService)
+            serviceTarget.addService(GracefulShutdownService.SERVICE_NAME, gracefulShutdownService)
                     .addDependency(SuspendController.SERVICE_NAME, SuspendController.class, gracefulShutdownService.getSuspendControllerInjectedValue())
                     .install();
 
