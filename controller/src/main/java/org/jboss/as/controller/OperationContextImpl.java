@@ -769,7 +769,7 @@ final class OperationContextImpl extends AbstractOperationContext {
         serviceTargets.add(cst);
 
         //TODO only do this if we use some system property or something
-        return MscWrappers.wrapTarget(cst);
+        return MarshallingMscWrappers.wrapTarget(cst);
     }
 
 

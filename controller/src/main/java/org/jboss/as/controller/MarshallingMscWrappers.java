@@ -23,25 +23,28 @@ import org.jboss.msc.value.Value;
 /**
  * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
  */
-public class MscWrappers {
-    private static final AtomicInteger counter = new AtomicInteger(0);
-    private static final Map<ServiceName, ServiceName> seenNames = new ConcurrentHashMap<>();
+public class MarshallingMscWrappers {
+    private static final AtomicInteger COUNTER = new AtomicInteger(0);
+    private static final Map<ServiceName, ServiceName> SEEN_NAMES = new ConcurrentHashMap<>();
+
+    //TODO use some kind of startup-flag for this
+    private static final boolean WRAP = Boolean.getBoolean("wildfly.marshall.services");
 
     public static ServiceTarget wrapTarget(ServiceTarget target) {
-        if (true) {
-            //TODO use some kind of system property or startup-flag for this
+        if (WRAP) {
+
             if (target instanceof CapabilityServiceTarget) {
                 return new RecordingCapabilityServiceTarget((CapabilityServiceTarget)target);
             }
-            return new MscWrappers.RecordingServiceTarget<>(target);
+            return new MarshallingMscWrappers.RecordingServiceTarget<>(target);
         } else {
             return target;
         }
     }
 
     public static CapabilityServiceTarget wrapTarget(CapabilityServiceTarget target) {
-        if (true) {
-            //TODO use some kind of system property or startup-flag for this
+        if (WRAP) {
+            //TODO use some kind of startup-flag for this
             return new RecordingCapabilityServiceTarget((CapabilityServiceTarget)target);
         } else {
             return target;
@@ -57,18 +60,18 @@ public class MscWrappers {
 
         @Override
         public <T> ServiceBuilder<T> addServiceValue(ServiceName name, Value<? extends Service<T>> value) {
-            if (!seenNames.containsKey(name)) {
-                seenNames.put(name, name);
-                System.out.println("----> addServiceValue: " + name + ": " + value.getValue() + " " + counter.incrementAndGet());
+            if (!SEEN_NAMES.containsKey(name)) {
+                SEEN_NAMES.put(name, name);
+                System.out.println("----> addServiceValue: " + name + ": " + value.getValue() + " " + COUNTER.incrementAndGet());
             }
             return delegate.addServiceValue(name, value);
         }
 
         @Override
         public <T> ServiceBuilder<T> addService(ServiceName name, Service<T> service) {
-            if (!seenNames.containsKey(name)) {
-                seenNames.put(name, name);
-                System.out.println("----> addService: " + name + ": " + service + " " + counter.incrementAndGet());
+            if (!SEEN_NAMES.containsKey(name)) {
+                SEEN_NAMES.put(name, name);
+                System.out.println("----> addService: " + name + ": " + service + " " + COUNTER.incrementAndGet());
             }
             return delegate.addService(name, new DelegatingService<>(service));
         }

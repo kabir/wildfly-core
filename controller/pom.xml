@@ -83,6 +83,11 @@
         </dependency>
 
         <dependency>
+            <groupId>org.jboss.marshalling</groupId>
+            <artifactId>jboss-marshalling</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.jboss</groupId>
             <artifactId>staxmapper</artifactId>
         </dependency>
@@ -101,6 +106,12 @@
            <groupId>junit</groupId>
            <artifactId>junit</artifactId>
            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.marshalling</groupId>
+            <artifactId>jboss-marshalling-river</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -126,7 +137,6 @@
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
     </dependencies>
 
 </project>
