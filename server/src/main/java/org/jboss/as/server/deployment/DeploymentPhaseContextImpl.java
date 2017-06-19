@@ -83,6 +83,11 @@ final class DeploymentPhaseContextImpl extends SimpleAttachable implements Deplo
         addToAttachmentList(Attachments.NEXT_PHASE_ATTACHABLE_DEPS, new AttachableDependency(attachmentKey, serviceName, true));
     }
 
+    @Override
+    public void forceUpdatedFlag() {
+
+    }
+
     private static class InjectorDeploymentPhaseDependency<T> implements DeploymentUnitPhaseDependency {
         private final ServiceName name;
         private final Class<T> type;

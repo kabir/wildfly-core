@@ -267,6 +267,12 @@ public class ProvisioningDeploymentUtils {
             delegate.addDeploymentDependency(serviceName, attachmentKey);
         }
 
+        @Override
+        public void forceUpdatedFlag() {
+            updatedInformation = true;
+            delegate.forceUpdatedFlag();
+        }
+
         public boolean getAndClearUpdatedInformation() {
             boolean updated = updatedInformation;
             updatedInformation = false;

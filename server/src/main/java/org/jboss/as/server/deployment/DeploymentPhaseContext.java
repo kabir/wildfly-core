@@ -112,4 +112,11 @@ public interface DeploymentPhaseContext extends Attachable {
      */
     <T> void addDeploymentDependency(ServiceName serviceName, AttachmentKey<T> attachmentKey);
 
+    /**
+     * When provisioning the deployers, we normally track if attachments are added or services installed
+     * to know if a deployer should be used in the provisioned server. However, this auto-detection is not
+     * fool-proof. If mutable attachments are used, the framework has no way of knowing what was changed, so
+     * users can call this method.
+     */
+    void forceUpdatedFlag();
 }
