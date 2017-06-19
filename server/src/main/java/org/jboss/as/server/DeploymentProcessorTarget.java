@@ -22,6 +22,8 @@
 
 package org.jboss.as.server;
 
+import java.util.function.Supplier;
+
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.Phase;
 
@@ -38,6 +40,7 @@ public interface DeploymentProcessorTarget {
      * @param priority the priority within the selected phase
      * @param processor the processor to install
      */
+    @Deprecated
     void addDeploymentProcessor(String subsystemName, Phase phase, int priority, DeploymentUnitProcessor processor);
 
 
@@ -53,4 +56,14 @@ public interface DeploymentProcessorTarget {
      */
     @Deprecated
     void addDeploymentProcessor(Phase phase, int priority, DeploymentUnitProcessor processor);
+
+    /**
+     * Add a deployment processor.
+     *
+     * @param subsystemName The name of the subsystem registering this processor
+     * @param phase the processor phase install into (must not be {@code null})
+     * @param priority the priority within the selected phase
+     * @param processorSupplier supplies the processor to install
+     */
+    void addDeploymentProcessor(final String subsystemName, final Phase phase, final int priority, final Supplier<DeploymentUnitProcessor> processorSupplier);
 }

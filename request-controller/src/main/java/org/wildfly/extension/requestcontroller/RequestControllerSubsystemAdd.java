@@ -60,7 +60,7 @@ class RequestControllerSubsystemAdd extends AbstractBoottimeAddStepHandler {
             @Override
             protected void execute(DeploymentProcessorTarget processorTarget) {
 
-                processorTarget.addDeploymentProcessor(RequestControllerExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_GLOBAL_REQUEST_CONTROLLER, new RequestControllerDeploymentUnitProcessor());
+                processorTarget.addDeploymentProcessor(RequestControllerExtension.SUBSYSTEM_NAME, Phase.STRUCTURE, Phase.STRUCTURE_GLOBAL_REQUEST_CONTROLLER, () -> new RequestControllerDeploymentUnitProcessor());
             }
         }, OperationContext.Stage.RUNTIME);
 

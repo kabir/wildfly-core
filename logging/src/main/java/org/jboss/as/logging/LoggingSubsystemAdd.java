@@ -80,13 +80,13 @@ class LoggingSubsystemAdd extends AbstractAddStepHandler {
             @Override
             protected void execute(final DeploymentProcessorTarget processorTarget) {
                 if (addDependencies) {
-                    processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_LOGGING, new LoggingDependencyDeploymentProcessor());
+                    processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_LOGGING, () -> new LoggingDependencyDeploymentProcessor());
                 }
                 processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_LOGGING_CONFIG,
-                        new LoggingConfigDeploymentProcessor(contextSelector, LoggingResourceDefinition.USE_DEPLOYMENT_LOGGING_CONFIG.getName(), useLoggingConfig));
-                processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_LOGGING_PROFILE, new LoggingProfileDeploymentProcessor(contextSelector));
+                        () -> new LoggingConfigDeploymentProcessor(contextSelector, LoggingResourceDefinition.USE_DEPLOYMENT_LOGGING_CONFIG.getName(), useLoggingConfig));
+                processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_LOGGING_PROFILE, () -> new LoggingProfileDeploymentProcessor(contextSelector));
                 processorTarget.addDeploymentProcessor(LoggingExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_LOGGING_DEPLOYMENT_RESOURCES,
-                        new LoggingDeploymentResourceProcessor());
+                        () -> new LoggingDeploymentResourceProcessor());
             }
         }, Stage.RUNTIME);
 

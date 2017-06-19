@@ -24,6 +24,7 @@ package org.jboss.as.server;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationStepHandler;
@@ -50,6 +51,10 @@ public abstract class AbstractDeploymentChainStep implements OperationStepHandle
         @Override
         public void addDeploymentProcessor(final Phase phase, final int priority, final DeploymentUnitProcessor processor) {
             addDeploymentProcessor("", phase, priority, processor);
+        }
+
+        public void addDeploymentProcessor(final String subsystemName, final Phase phase, final int priority, final Supplier<DeploymentUnitProcessor> processorSupplier) {
+            DeployerChainAddHandler.addDeploymentProcessor(subsystemName, phase, priority, processorSupplier);
         }
     };
 

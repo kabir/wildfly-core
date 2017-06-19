@@ -1277,6 +1277,9 @@ public interface ServerLogger extends BasicLogger {
     @Message(id = 266, value = "Server home is set to '%s', but server real home is '%s' - unpredictable results may occur.")
     void serverHomeMismatch(Path passed, Path real);
 
+    @Message(id = 267, value="Both the 'org.wildfly.provision.deployments' and 'org.wildfly.provisioned.deployers' system properties have been set. This is not allowed")
+    IllegalStateException cannotUseBothProvisionAndProvisionedProperties();
+
     ////////////////////////////////////////////////
     //Messages without IDs
 

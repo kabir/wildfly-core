@@ -133,9 +133,9 @@ class SecurityManagerSubsystemAdd extends AbstractBoottimeAddStepHandler {
         context.addStep(new AbstractDeploymentChainStep() {
             protected void execute(DeploymentProcessorTarget processorTarget) {
                  processorTarget.addDeploymentProcessor(Constants.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_PERMISSIONS,
-                         new PermissionsParserProcessor(minimumSet));
+                         () -> new PermissionsParserProcessor(minimumSet));
                  processorTarget.addDeploymentProcessor(Constants.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_PERMISSIONS_VALIDATION,
-                         new PermissionsValidationProcessor(maximumSet));
+                         () -> new PermissionsValidationProcessor(maximumSet));
             }
         }, OperationContext.Stage.RUNTIME);
     }

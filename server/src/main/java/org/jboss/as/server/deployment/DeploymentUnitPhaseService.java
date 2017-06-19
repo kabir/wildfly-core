@@ -29,6 +29,8 @@ import java.util.ListIterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.jboss.as.server.deployment.ProvisioningDeploymentUtils.ProvisioningDeploymentPhaseContext;
+import org.jboss.as.server.deployment.ProvisioningDeploymentUtils.ProvisioningDeploymentUnit;
 import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.msc.service.AbstractServiceListener;
 import org.jboss.msc.service.DelegatingServiceRegistry;
@@ -81,6 +83,8 @@ final class DeploymentUnitPhaseService<T> implements Service<T> {
      */
     private static final boolean immediateDeploymentRestart;
 
+    private final boolean trackProcessors;
+
     static {
         immediateDeploymentRestart = Boolean.getBoolean("org.jboss.msc.directionalExecutor");
     }
@@ -89,6 +93,7 @@ final class DeploymentUnitPhaseService<T> implements Service<T> {
         this.deploymentUnit = deploymentUnit;
         this.phase = phase;
         this.valueKey = valueKey;
+        this.trackProcessors = ProvisioningDeploymentUtils.isProvisionDeployments();
     }
 
     private static <T> DeploymentUnitPhaseService<T> create(final DeploymentUnit deploymentUnit, final Phase phase, AttachmentKey<T> valueKey) {
@@ -141,7 +146,7 @@ final class DeploymentUnitPhaseService<T> implements Service<T> {
         final DeploymentUnit parent = deploymentUnit.getParent();
 
         final List<DeploymentUnitPhaseDependency> dependencies = new LinkedList<>();
-        final DeploymentPhaseContext processorContext = new DeploymentPhaseContextImpl(serviceTarget, new DelegatingServiceRegistry(container), dependencies, deploymentUnit, phase);
+        final DeploymentPhaseContext processorContext = getDeploymentPhaseContext(deploymentUnit, container, serviceTarget, dependencies);
 
         // attach any injected values from the last phase
         for (AttachedDependency attachedDependency : injectedAttachedDependencies) {
@@ -158,11 +163,17 @@ final class DeploymentUnitPhaseService<T> implements Service<T> {
             }
         }
 
+        List<RegisteredDeploymentUnitProcessor> trackedProcessors = trackProcessors ? new ArrayList<>() : null;
         while (iterator.hasNext()) {
             final RegisteredDeploymentUnitProcessor processor = iterator.next();
             try {
                 if (shouldRun(deploymentUnit, processor)) {
                     processor.getProcessor().deploy(processorContext);
+                    if (trackProcessors) {
+                        if (((ProvisioningDeploymentPhaseContext)processorContext).getAndClearUpdatedInformation()) {
+                            trackedProcessors.add(processor);
+                        }
+                    }
                 }
             } catch (Throwable e) {
                 while (iterator.hasPrevious()) {
@@ -221,8 +232,22 @@ final class DeploymentUnitPhaseService<T> implements Service<T> {
                 }
             }
 
+            if (trackProcessors) {
+                ProvisioningDeploymentUtils.outputPhaseProcessors(phase, trackedProcessors);
+            }
             phaseServiceBuilder.install();
         }
+    }
+
+    private DeploymentPhaseContext getDeploymentPhaseContext(DeploymentUnit deploymentUnit, ServiceContainer container, ServiceTarget serviceTarget, List<DeploymentUnitPhaseDependency> dependencies) {
+        if (!trackProcessors) {
+            return new DeploymentPhaseContextImpl(serviceTarget, new DelegatingServiceRegistry(container), dependencies, deploymentUnit, phase);
+        }
+        ProvisioningDeploymentUnit unit = new ProvisioningDeploymentUnit(deploymentUnit);
+        DeploymentPhaseContext context = new DeploymentPhaseContextImpl(serviceTarget, new DelegatingServiceRegistry(container), dependencies, unit, phase);
+        ProvisioningDeploymentPhaseContext trackingContext = new ProvisioningDeploymentPhaseContext(context);
+        unit.setPhaseContext(trackingContext);
+        return trackingContext;
     }
 
     private Boolean restartAllowed() {

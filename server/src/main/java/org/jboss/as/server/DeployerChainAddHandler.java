@@ -29,6 +29,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.function.Supplier;
 
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationFailedException;
@@ -42,6 +43,7 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.as.server.deployment.RegisteredDeploymentUnitProcessor;
 import org.jboss.as.server.deployment.Services;
+import org.jboss.as.server.deployment.ProvisioningDeploymentUtils;
 import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.dmr.ModelNode;
 
@@ -55,6 +57,14 @@ public class DeployerChainAddHandler implements OperationStepHandler {
             .build();
     public static final DeployerChainAddHandler INSTANCE = new DeployerChainAddHandler();
 
+    @SuppressWarnings("deprecation")
+    public static void addDeploymentProcessor(final String subsystemName, Phase phase, int priority, Supplier<DeploymentUnitProcessor> processor) {
+        if (ProvisioningDeploymentUtils.shouldRegisterDeployer(subsystemName, phase, priority)) {
+            addDeploymentProcessor(subsystemName, phase, priority, processor.get());
+        }
+    }
+
+    @Deprecated
     public static void addDeploymentProcessor(final String subsystemName, Phase phase, int priority, DeploymentUnitProcessor processor) {
         final EnumMap<Phase, Set<RegisteredDeploymentUnitProcessor>> deployerMap = INSTANCE.deployerMap;
         Set<RegisteredDeploymentUnitProcessor> registeredDeploymentUnitProcessors = deployerMap.get(phase);
