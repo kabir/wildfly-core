@@ -125,6 +125,7 @@ public class KnownIssuesValidationConfiguration extends ValidationConfiguration 
         config.allowNullValueTypeForOperationReplyProperties(ROOT_ADDR, READ_RESOURCE_DESCRIPTION_OPERATION);
         config.allowNullValueTypeForOperationReplyProperties(ROOT_ADDR, READ_RESOURCE_OPERATION);
         config.allowNullValueTypeForOperationReplyProperties(ROOT_ADDR, READ_ATTRIBUTE_OPERATION);
+        config.allowNullValueTypeForOperationReplyProperties(ROOT_ADDR, PROVISION_OPERATION);
         return config;
     }
 

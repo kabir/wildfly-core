@@ -81,6 +81,7 @@ import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.notification.NotificationSupport;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.DelegatingResource;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
@@ -148,6 +149,8 @@ class ModelControllerImpl implements ModelController {
 
     private PathAddress modelControllerResourceAddress;
 
+    private final ProvisionedResourceInfoCollector provisionedResourceInfoCollector;
+
     ModelControllerImpl(final ServiceRegistry serviceRegistry, final ServiceTarget serviceTarget,
                         final ManagementResourceRegistration rootRegistration,
                         final ContainerStateMonitor stateMonitor, final ConfigurationPersister persister,
@@ -158,7 +161,8 @@ class ModelControllerImpl implements ModelController {
                         final BootErrorCollector bootErrorCollector, final OperationStepHandler extraValidationStepHandler,
                         final CapabilityRegistry capabilityRegistry,
                         final AbstractControllerService.PartialModelIndicator partialModelIndicator,
-                        final AbstractControllerService.ControllerInstabilityListener instabilityListener) {
+                        final AbstractControllerService.ControllerInstabilityListener instabilityListener,
+                        final ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         this.partialModelIndicator = partialModelIndicator;
         this.instabilityListener = instabilityListener;
         assert serviceRegistry != null;
@@ -202,6 +206,7 @@ class ModelControllerImpl implements ModelController {
         if (processType.isServer()) {
             this.modelControllerResourceAddress = MODEL_CONTROLLER_ADDRESS;
         }
+        this.provisionedResourceInfoCollector = provisionedResourceInfoCollector;
         auditLogger.startBoot();
     }
 
@@ -306,7 +311,7 @@ class ModelControllerImpl implements ModelController {
         };
 
         // Use a read-only context
-        final ReadOnlyContext context = new ReadOnlyContext(processType, runningModeControl.getRunningMode(), txControl, processState, false, model, delegateContext, this, operationId, securityIdentitySupplier);
+        final ReadOnlyContext context = new ReadOnlyContext(processType, runningModeControl.getRunningMode(), txControl, processState, false, model, delegateContext, this, operationId, securityIdentitySupplier, provisionedResourceInfoCollector);
         context.addStep(response, operation, prepareStep, OperationContext.Stage.MODEL);
         context.executeOperation();
 
@@ -397,7 +402,8 @@ class ModelControllerImpl implements ModelController {
                     operation.get(OP_ADDR), this, processType, runningModeControl.getRunningMode(),
                     headers, handler, attachments, managementModel.get(), originalResultTxControl, processState, auditLogger,
                     bootingFlag.get(), hostServerGroupTracker, accessContext, notificationSupport,
-                    false, extraValidationStepHandler, partialModel, securityIdentitySupplier);
+                    false, extraValidationStepHandler, partialModel, securityIdentitySupplier,
+                    provisionedResourceInfoCollector);
             // Try again if the operation-id is already taken
             if(activeOperations.putIfAbsent(operationID, context) == null) {
                 //noinspection deprecation
@@ -476,7 +482,8 @@ class ModelControllerImpl implements ModelController {
         final AbstractOperationContext context = new OperationContextImpl(operationID, INITIAL_BOOT_OPERATION, EMPTY_ADDRESS,
                 this, processType, runningModeControl.getRunningMode(),
                 headers, handler, null, managementModel.get(), control, processState, auditLogger, bootingFlag.get(),
-                hostServerGroupTracker, null, notificationSupport, true, extraValidationStepHandler, true, securityIdentitySupplier);
+                hostServerGroupTracker, null, notificationSupport, true, extraValidationStepHandler, true,
+                securityIdentitySupplier, provisionedResourceInfoCollector);
 
         // Add to the context all ops prior to the first ExtensionAddHandler as well as all ExtensionAddHandlers; save the rest.
         // This gets extensions registered before proceeding to other ops that count on these registrations
@@ -495,7 +502,7 @@ class ModelControllerImpl implements ModelController {
                     EMPTY_ADDRESS, this, processType, runningModeControl.getRunningMode(),
                     headers, handler, null, managementModel.get(), control, processState, auditLogger,
                             bootingFlag.get(), hostServerGroupTracker, null, notificationSupport, true,
-                            extraValidationStepHandler, partialModel, securityIdentitySupplier);
+                            extraValidationStepHandler, partialModel, securityIdentitySupplier, provisionedResourceInfoCollector);
 
             for (ParsedBootOp parsedOp : bootOperations.postExtensionOps) {
                 if (parsedOp.handler == null) {
@@ -525,7 +532,7 @@ class ModelControllerImpl implements ModelController {
                         EMPTY_ADDRESS, this, processType, runningModeControl.getRunningMode(),
                         headers, handler, null, managementModel.get(), control, processState, auditLogger,
                                 bootingFlag.get(), hostServerGroupTracker, null, notificationSupport, false,
-                                extraValidationStepHandler, partialModel, securityIdentitySupplier);
+                                extraValidationStepHandler, partialModel, securityIdentitySupplier, provisionedResourceInfoCollector);
                 validateContext.addModifiedResourcesForModelValidation(validateAddresses);
                 resultAction = validateContext.executeOperation();
             }
@@ -597,7 +604,7 @@ class ModelControllerImpl implements ModelController {
                 parallelBootRootResourceRegistrationProvider : getMutableRootResourceRegistrationProvider();
         ParallelExtensionAddHandler parallelExtensionAddHandler = executorService == null ? null : new ParallelExtensionAddHandler(executorService, parallellBRRRProvider);
         ParallelBootOperationStepHandler parallelSubsystemHandler = (executorService != null && processType.isServer() && runningModeControl.getRunningMode() == RunningMode.NORMAL)
-                ? new ParallelBootOperationStepHandler(executorService, rootRegistration, processState, this, lockPermit, extraValidationStepHandler) : null;
+                ? new ParallelBootOperationStepHandler(executorService, rootRegistration, processState, this, lockPermit, extraValidationStepHandler, provisionedResourceInfoCollector) : null;
         boolean registeredParallelSubsystemHandler = false;
         int subsystemIndex = 0;
         for (ModelNode bootOp : bootList) {
@@ -669,6 +676,7 @@ class ModelControllerImpl implements ModelController {
         // Notify the audit logger that we're done booting
         auditLogger.bootDone();
         bootingFlag.set(false);
+        provisionedResourceInfoCollector.lock();
     }
 
     ManagementModel getManagementModel() {

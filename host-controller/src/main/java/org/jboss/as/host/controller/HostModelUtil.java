@@ -32,6 +32,7 @@ import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.operations.common.ValidateOperationHandler;
 import org.jboss.as.controller.operations.global.GlobalNotifications;
 import org.jboss.as.controller.operations.global.GlobalOperationHandlers;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.services.path.PathManagerService;
@@ -83,7 +84,8 @@ public class HostModelUtil {
                                           final HostModelRegistrar hostModelRegistrar,
                                           final ProcessType processType,
                                           final DelegatingConfigurableAuthorizer authorizer,
-                                          final Resource modelControllerResource) {
+                                          final Resource modelControllerResource,
+                                          final ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         // Add of the host itself
         final HostModelRegistrationHandler hostModelRegistratorHandler =
                 new HostModelRegistrationHandler(environment, ignoredDomainResourceRegistry, hostModelRegistrar, modelControllerResource);

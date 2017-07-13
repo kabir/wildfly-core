@@ -96,6 +96,7 @@ import org.jboss.as.controller.operations.global.GlobalOperationHandlers;
 import org.jboss.as.controller.operations.global.ReadResourceHandler;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.DelegatingImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
@@ -217,9 +218,11 @@ final class OperationContextImpl extends AbstractOperationContext {
                          final boolean skipModelValidation,
                          final OperationStepHandler extraValidationStepHandler,
                          final boolean partialModel,
-                         final Supplier<SecurityIdentity> securityIdentitySupplier) {
+                         final Supplier<SecurityIdentity> securityIdentitySupplier,
+                         final ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         super(processType, runningMode, transactionControl, processState, booting, auditLogger, notificationSupport,
-                modelController, skipModelValidation, extraValidationStepHandler, operationHeaders, securityIdentitySupplier);
+                modelController, skipModelValidation, extraValidationStepHandler, operationHeaders, securityIdentitySupplier,
+                provisionedResourceInfoCollector);
         this.operationId = operationId;
         this.operationName = operationName;
         this.operationAddress = operationAddress.isDefined()

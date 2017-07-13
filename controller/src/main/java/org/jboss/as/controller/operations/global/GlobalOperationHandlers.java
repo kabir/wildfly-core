@@ -85,8 +85,8 @@ import org.jboss.dmr.ModelType;
  */
 public class GlobalOperationHandlers {
 
-
     public static void registerGlobalOperations(ManagementResourceRegistration root, ProcessType processType) {
+
         if( processType.isHostController()) {
             root.registerOperationHandler(org.jboss.as.controller.operations.global.ReadResourceHandler.DEFINITION,
                     org.jboss.as.controller.operations.global.ReadResourceHandler.INSTANCE, true);

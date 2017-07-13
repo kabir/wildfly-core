@@ -36,6 +36,7 @@ import org.jboss.as.controller.client.OperationResponse;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
@@ -59,10 +60,12 @@ public class ParallelBootOperationStepHandler implements OperationStepHandler {
 
     private final Map<String, List<ParsedBootOp>> opsBySubsystem = new LinkedHashMap<String, List<ParsedBootOp>>();
     private ParsedBootOp ourOp;
+    private final ProvisionedResourceInfoCollector provisionedResourceInfoCollector;
 
     ParallelBootOperationStepHandler(final ExecutorService executorService, final ImmutableManagementResourceRegistration rootRegistration,
                                      final ControlledProcessState processState, final ModelControllerImpl controller,
-                                     final int operationId, final OperationStepHandler extraValidationStepHandler) {
+                                     final int operationId, final OperationStepHandler extraValidationStepHandler,
+                                     final ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         this.executor = executorService;
         this.rootRegistration = rootRegistration;
         this.processState = processState;
@@ -70,6 +73,7 @@ public class ParallelBootOperationStepHandler implements OperationStepHandler {
         this.controller = controller;
         this.operationId = operationId;
         this.extraValidationStepHandler = extraValidationStepHandler;
+        this.provisionedResourceInfoCollector = provisionedResourceInfoCollector;
     }
 
     boolean addSubsystemOperation(final ParsedBootOp parsedOp) {
@@ -147,7 +151,7 @@ public class ParallelBootOperationStepHandler implements OperationStepHandler {
             List<ParsedBootOp> bootOps = entry.getValue();
             ParallelBootOperationContext pboc = bootOps.size() == 0
                     ? null
-                    : createOperationContext(primaryContext, bootSecurityDomain, txControl, subsystemRuntimeOps);
+                    : createOperationContext(primaryContext, bootSecurityDomain, txControl, subsystemRuntimeOps, provisionedResourceInfoCollector);
             ParallelBootTask subsystemTask = new ParallelBootTask(subsystemName, bootOps, OperationContext.Stage.MODEL, txControl, pboc);
             executor.execute(subsystemTask);
         }
@@ -216,10 +220,12 @@ public class ParallelBootOperationStepHandler implements OperationStepHandler {
     private ParallelBootOperationContext createOperationContext(final OperationContextImpl primaryContext,
                                                                 final SecurityDomain bootSecurityDomain,
                                                                 final ParallelBootTransactionControl txControl,
-                                                                final List<ParsedBootOp> runtimeOps) {
+                                                                final List<ParsedBootOp> runtimeOps,
+                                                                final ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         return new ParallelBootOperationContext(txControl, processState,
                 primaryContext, runtimeOps, controller, operationId, controller.getAuditLogger(),
-                extraValidationStepHandler, bootSecurityDomain::getAnonymousSecurityIdentity);
+                extraValidationStepHandler, bootSecurityDomain::getAnonymousSecurityIdentity,
+                provisionedResourceInfoCollector);
     }
 
     private void checkForSubsystemFailures(OperationContext context, Map<String, ParallelBootTransactionControl> transactionControls, OperationContext.Stage stage) {
@@ -298,7 +304,7 @@ public class ParallelBootOperationStepHandler implements OperationStepHandler {
                     List<ParsedBootOp> bootOps = entry.getValue();
                     ParallelBootOperationContext pboc = bootOps.size() == 0
                         ? null
-                        : createOperationContext(primaryContext, bootSecurityDomain, txControl, null);
+                        : createOperationContext(primaryContext, bootSecurityDomain, txControl, null, provisionedResourceInfoCollector);
                     ParallelBootTask subsystemTask = new ParallelBootTask(subsystemName, bootOps, OperationContext.Stage.RUNTIME, txControl, pboc);
                     executor.execute(subsystemTask);
                 }

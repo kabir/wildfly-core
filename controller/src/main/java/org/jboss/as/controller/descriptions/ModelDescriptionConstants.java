@@ -42,6 +42,7 @@ public class ModelDescriptionConstants {
     public static final String ACTIVE_SOCKET_BINDING_GROUPS = "active-socket-binding-groups";
     public static final String ADD = "add";
     public static final String ADDRESS = "address";
+    public static final String ADDRESSES = "addresses";
     public static final String ADD_CONTENT = "add-content";
     public static final String ADD_INDEX = "add-index";
     public static final String ADMIN_ONLY = "admin-only";
@@ -363,6 +364,7 @@ public class ModelDescriptionConstants {
     public static final String PROPERTY = "property";
     public static final String PROTOCOL = "protocol";
     public static final String PROVIDER = "provider";
+    public static final String PROVISION_OPERATION = "provision";
     public static final String PROXIES = "proxies";
     public static final String QUERY = "query";
     public static final String READ = "read";
@@ -474,6 +476,7 @@ public class ModelDescriptionConstants {
     public static final String OPERATION_REQUIRES_RESTART = "operation-requires-restart";
     public static final String RELOAD_SERVERS = "reload-servers";
     public static final String REMOVE_CONTENT = "remove-content";
+    public static final String RESOURCE = "resource";
     public static final String RESTART_SERVERS = "restart-servers";
     public static final String RESUME_SERVERS = "resume-servers";
     public static final String RESUME = "resume";

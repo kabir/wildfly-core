@@ -90,6 +90,7 @@ import org.jboss.as.controller.notification.NotificationSupport;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
@@ -188,6 +189,7 @@ abstract class AbstractOperationContext implements OperationContext {
      */
     private final Set<PathAddress> modifiedResourcesForModelValidation;
 
+    private final ProvisionedResourceInfoCollector provisionedResourceInfoCollector;
 
     enum ContextFlag {
         ROLLBACK_ON_FAIL, ALLOW_RESOURCE_SERVICE_RESTART,
@@ -204,7 +206,8 @@ abstract class AbstractOperationContext implements OperationContext {
                              final boolean skipModelValidation,
                              final OperationStepHandler extraValidationStepHandler,
                              final OperationHeaders operationHeaders,
-                             final Supplier<SecurityIdentity> securityIdentitySupplier) {
+                             final Supplier<SecurityIdentity> securityIdentitySupplier,
+                             final ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         this.processType = processType;
         this.runningMode = runningMode;
         this.transactionControl = transactionControl;
@@ -231,6 +234,7 @@ abstract class AbstractOperationContext implements OperationContext {
         this.extraValidationStepHandler = extraValidationStepHandler;
         this.operationHeaders = operationHeaders == null ? OperationHeaders.forInternalCall() : operationHeaders;
         this.securityIdentitySupplier = securityIdentitySupplier;
+        this.provisionedResourceInfoCollector = provisionedResourceInfoCollector;
     }
 
     /**
@@ -977,6 +981,7 @@ abstract class AbstractOperationContext implements OperationContext {
             try {
                 ClassLoader oldTccl = WildFlySecurityManager.setCurrentContextClassLoaderPrivileged(step.handler.getClass());
                 try {
+                    provisionedResourceInfoCollector.addOperation(this, step.operation);
                     step.handler.execute(this, step.operation);
                     // AS7-6046
                     if (isErrorLoggingNecessary() && step.hasFailed()) {

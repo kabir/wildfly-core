@@ -60,6 +60,7 @@ import org.jboss.as.controller.interfaces.InterfaceCriteria;
 import org.jboss.as.controller.notification.Notification;
 import org.jboss.as.controller.parsing.Element;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.dmr.ModelNode;
@@ -3504,4 +3505,10 @@ public interface ControllerLogger extends BasicLogger {
     @Message(id = 444, value = "The handler for operation '%s' at address '%s' attempted to add a stage %s step. " +
             "This is not valid for a 'profile' resource on process type %s so this step will not be executed.")
     void invalidRuntimeStageForProfile(String operation, String address, OperationContext.Stage stage, ProcessType processType);
+
+    @Message(id = 445, value = "The supplied data does not appear to be valid input from starting the server with -D" + ProvisionedResourceInfoCollector.PROPERTY + "=true.")
+    IllegalStateException invalidProvisionedData();
+
+    @Message(id = 446, value = "The server is not running in provisioning mode so no information was stored. To gather provisioning information, start the server with -D" + ProvisionedResourceInfoCollector.PROPERTY + "=true")
+    String notRunningInProvisioningMode();
 }

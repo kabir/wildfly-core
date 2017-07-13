@@ -38,6 +38,7 @@ import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.notification.Notification;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
@@ -69,10 +70,11 @@ class ReadOnlyContext extends AbstractOperationContext {
 
     ReadOnlyContext(final ProcessType processType, final RunningMode runningMode, final ModelController.OperationTransactionControl transactionControl,
                     final ControlledProcessState processState, final boolean booting, final ModelControllerImpl.ManagementModelImpl managementModel,
-                    final AbstractOperationContext primaryContext, final ModelControllerImpl controller, final int operationId, final Supplier<SecurityIdentity> securityIdentitySupplier) {
+                    final AbstractOperationContext primaryContext, final ModelControllerImpl controller, final int operationId,
+                    final Supplier<SecurityIdentity> securityIdentitySupplier, final ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         super(processType, runningMode, transactionControl, processState,
                 booting, controller.getAuditLogger(), controller.getNotificationSupport(),
-                controller, true, null, null, securityIdentitySupplier);
+                controller, true, null, null, securityIdentitySupplier, provisionedResourceInfoCollector);
         this.primaryContext = primaryContext;
         this.controller = controller;
         this.operationId = operationId;

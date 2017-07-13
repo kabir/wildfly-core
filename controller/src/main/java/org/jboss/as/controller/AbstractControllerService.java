@@ -52,6 +52,7 @@ import org.jboss.as.controller.notification.NotificationSupport;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.services.path.PathManager;
@@ -165,6 +166,7 @@ public abstract class AbstractControllerService implements Service<ModelControll
     private final ManagedAuditLogger auditLogger;
     private final BootErrorCollector bootErrorCollector;
     private final CapabilityRegistry capabilityRegistry;
+    private final ProvisionedResourceInfoCollector provisionedResourceInfoCollector;
 
     /**
      * Construct a new instance.
@@ -310,6 +312,7 @@ public abstract class AbstractControllerService implements Service<ModelControll
         this.securityIdentitySupplier = securityIdentitySupplier;
         this.bootErrorCollector = new BootErrorCollector();
         this.capabilityRegistry = capabilityRegistry.createShadowCopy(); //create shadow copy of proper registry so changes can only be visible by .publish()
+        this.provisionedResourceInfoCollector = ProvisionedResourceInfoCollector.create(processType);
     }
 
     @Override
@@ -334,7 +337,7 @@ public abstract class AbstractControllerService implements Service<ModelControll
                 configurationPersister, processType, runningModeControl, prepareStep,
                 processState, executorService, expressionResolver, authorizer, securityIdentitySupplier, auditLogger, notificationSupport,
                 bootErrorCollector, createExtraValidationStepHandler(), capabilityRegistry, getPartialModelIndicator(),
-                injectedInstabilityListener.getOptionalValue());
+                injectedInstabilityListener.getOptionalValue(), provisionedResourceInfoCollector);
 
         // Initialize the model
         initModel(controller.getManagementModel(), controller.getModelControllerResource());
@@ -635,6 +638,10 @@ public abstract class AbstractControllerService implements Service<ModelControll
 
     protected BootErrorCollector getBootErrorCollector() {
         return bootErrorCollector;
+    }
+
+    protected ProvisionedResourceInfoCollector getProvisionedResourceInfoCollector() {
+        return provisionedResourceInfoCollector;
     }
 
     protected OperationStepHandler createExtraValidationStepHandler() {

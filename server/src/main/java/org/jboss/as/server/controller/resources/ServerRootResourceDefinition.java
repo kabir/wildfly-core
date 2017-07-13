@@ -58,6 +58,8 @@ import org.jboss.as.controller.operations.common.SnapshotListHandler;
 import org.jboss.as.controller.operations.common.SnapshotTakeHandler;
 import org.jboss.as.controller.operations.common.ValidateAddressOperationHandler;
 import org.jboss.as.controller.operations.common.ValidateOperationHandler;
+import org.jboss.as.controller.operations.global.ResourceProvisioningHandler;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.server.operations.WriteConfigHandler;
 import org.jboss.as.controller.operations.common.XmlMarshallingHandler;
 import org.jboss.as.controller.operations.global.GlobalInstallationReportHandler;
@@ -227,6 +229,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
     private final CapabilityRegistry capabilityRegistry;
     private final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider;
     private final BootErrorCollector bootErrorCollector;
+    private final ProvisionedResourceInfoCollector provisionedResourceInfoCollector;
 
     public ServerRootResourceDefinition(
             final ContentRepository contentRepository,
@@ -244,7 +247,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
             final ManagedAuditLogger auditLogger,
             final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider,
             final BootErrorCollector bootErrorCollector,
-            final CapabilityRegistry capabilityRegistry) {
+            final CapabilityRegistry capabilityRegistry, ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         super(null, ServerDescriptions.getResourceDescriptionResolver(SERVER, false));
         this.contentRepository = contentRepository;
         this.extensibleConfigurationPersister = extensibleConfigurationPersister;
@@ -264,6 +267,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
         this.securityIdentitySupplier = securityIdentitySupplier;
         this.rootResourceRegistrationProvider = rootResourceRegistrationProvider;
         this.bootErrorCollector = bootErrorCollector;
+        this.provisionedResourceInfoCollector = provisionedResourceInfoCollector;
     }
 
     @Override
@@ -342,6 +346,9 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
 
             resourceRegistration.registerOperationHandler(ServerSuspendHandler.DEFINITION, ServerSuspendHandler.INSTANCE);
             resourceRegistration.registerOperationHandler(ServerResumeHandler.DEFINITION, ServerResumeHandler.INSTANCE);
+
+            //For now we only provision standalone servers
+            resourceRegistration.registerOperationHandler(ResourceProvisioningHandler.DEFINITION, new ResourceProvisioningHandler(provisionedResourceInfoCollector));
         }
 
         // Runtime operations

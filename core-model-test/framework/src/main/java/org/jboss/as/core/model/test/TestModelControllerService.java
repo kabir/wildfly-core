@@ -64,6 +64,7 @@ import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.persistence.ExtensibleConfigurationPersister;
 import org.jboss.as.controller.persistence.NullConfigurationPersister;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.services.path.PathManagerService;
@@ -474,7 +475,7 @@ class TestModelControllerService extends ModelTestModelControllerService {
                     securityIdentitySupplier,
                     AuditLogger.NO_OP_LOGGER,
                     getMutableRootResourceRegistrationProvider(),
-                    getBootErrorCollector(), capabilityRegistry));
+                    getBootErrorCollector(), capabilityRegistry, ProvisionedResourceInfoCollector.create(processType)));
         }
 
         @Override
@@ -535,7 +536,7 @@ class TestModelControllerService extends ModelTestModelControllerService {
                         @Override
                         public void registerHostModel(String hostName, ManagementResourceRegistration rootRegistration) {
                         }
-                    },ProcessType.HOST_CONTROLLER, authorizer, modelControllerResource);
+                    },ProcessType.HOST_CONTROLLER, authorizer, modelControllerResource, getProvisionedResourceInfoCollector());
 
             ManagementResourceRegistration hostReg = HostModelUtil.createHostRegistry(
                     hostName,
@@ -622,7 +623,7 @@ class TestModelControllerService extends ModelTestModelControllerService {
                         @Override
                         public void registerHostModel(String hostName, ManagementResourceRegistration root) {
                         }
-                    },processType, authorizer, modelControllerResource);
+                    },processType, authorizer, modelControllerResource, getProvisionedResourceInfoCollector());
 
             CoreManagementResourceDefinition.registerDomainResource(rootResource, null);
 

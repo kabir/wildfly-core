@@ -237,6 +237,7 @@ public abstract class ModelTestModelControllerService extends AbstractController
 
     /** @deprecated only for legacy version support */
     @Deprecated
+    @SuppressWarnings("deprecation")
     protected void initCoreModel(Resource rootResource, ManagementResourceRegistration rootRegistration, Resource modelControllerResource) {
         GlobalOperationHandlers.registerGlobalOperations(rootRegistration, ProcessType.STANDALONE_SERVER);
 

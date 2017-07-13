@@ -38,6 +38,7 @@ import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.notification.Notification;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.ConfigurationPersister;
+import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
@@ -66,9 +67,11 @@ class ParallelBootOperationContext extends AbstractOperationContext {
                                  final ControlledProcessState processState, final OperationContextImpl primaryContext,
                                  final List<ParsedBootOp> runtimeOps,
                                  final ModelControllerImpl controller, final int operationId, final AuditLogger auditLogger,
-                                 final OperationStepHandler extraValidationStepHandler, final Supplier<SecurityIdentity> securityIdentitySupplier) {
+                                 final OperationStepHandler extraValidationStepHandler, final Supplier<SecurityIdentity> securityIdentitySupplier,
+                                 final ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
         super(primaryContext.getProcessType(), primaryContext.getRunningMode(), transactionControl, processState, true, auditLogger,
-                controller.getNotificationSupport(), controller, true, extraValidationStepHandler, null, securityIdentitySupplier);
+                controller.getNotificationSupport(), controller, true, extraValidationStepHandler, null,
+                securityIdentitySupplier, provisionedResourceInfoCollector);
         this.primaryContext = primaryContext;
         this.runtimeOps = runtimeOps;
         this.controller = controller;
