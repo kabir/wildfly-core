@@ -58,7 +58,7 @@ import org.jboss.as.controller.operations.common.SnapshotListHandler;
 import org.jboss.as.controller.operations.common.SnapshotTakeHandler;
 import org.jboss.as.controller.operations.common.ValidateAddressOperationHandler;
 import org.jboss.as.controller.operations.common.ValidateOperationHandler;
-import org.jboss.as.controller.operations.global.ResourceProvisioningHandler;
+import org.jboss.as.controller.operations.global.ServerProvisioningHandler;
 import org.jboss.as.controller.provisioning.ProvisionedResourceInfoCollector;
 import org.jboss.as.server.operations.WriteConfigHandler;
 import org.jboss.as.controller.operations.common.XmlMarshallingHandler;
@@ -348,7 +348,9 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
             resourceRegistration.registerOperationHandler(ServerResumeHandler.DEFINITION, ServerResumeHandler.INSTANCE);
 
             //For now we only provision standalone servers
-            resourceRegistration.registerOperationHandler(ResourceProvisioningHandler.DEFINITION, new ResourceProvisioningHandler(provisionedResourceInfoCollector));
+            resourceRegistration.registerOperationHandler(
+                    ServerProvisioningHandler.DEFINITION,
+                    new ServerProvisioningHandler(provisionedResourceInfoCollector, capabilityRegistry));
         }
 
         // Runtime operations

@@ -20,6 +20,7 @@ package org.jboss.as.controller.operations.global;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADDRESS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.ADDRESSES;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CAPABILITIES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROVISION_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_RESOURCE_OPERATION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RECURSIVE;
@@ -32,6 +33,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.jboss.as.controller.CapabilityRegistry;
 import org.jboss.as.controller.OperationContext;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationFailedException;
@@ -39,6 +41,7 @@ import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.SimpleOperationDefinitionBuilder;
+import org.jboss.as.controller.capability.ProvisionCapablitiesUtil;
 import org.jboss.as.controller.descriptions.common.ControllerResolver;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.operations.common.Util;
@@ -52,17 +55,20 @@ import org.jboss.dmr.ModelType;
  *
  * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
  */
-public class ResourceProvisioningHandler implements OperationStepHandler {
+public class ServerProvisioningHandler implements OperationStepHandler {
 
     private final ProvisionedResourceInfoCollector provisionedResourceInfoCollector;
+    private final CapabilityRegistry capabilityRegistry;
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(PROVISION_OPERATION, ControllerResolver.getResolver("global"))
             .setReadOnly()
+            .setRuntimeOnly()
             .setReplyType(ModelType.OBJECT)
             .build();
 
-    public ResourceProvisioningHandler(ProvisionedResourceInfoCollector provisionedResourceInfoCollector) {
+    public ServerProvisioningHandler(ProvisionedResourceInfoCollector provisionedResourceInfoCollector, CapabilityRegistry capabilityRegistry) {
         this.provisionedResourceInfoCollector = provisionedResourceInfoCollector;
+        this.capabilityRegistry = capabilityRegistry;
     }
 
     @Override
@@ -78,6 +84,8 @@ public class ResourceProvisioningHandler implements OperationStepHandler {
             addresses.add(address.toCLIStyleString());
         }
         context.getResult().get(ADDRESSES).set(addresses);
+
+        context.getResult().get(CAPABILITIES).set(ProvisionCapablitiesUtil.provisionCapabilities(capabilityRegistry));
 
         final ModelNode response = new ModelNode();
         final ModelNode rr = Util.createOperation(READ_RESOURCE_OPERATION, PathAddress.EMPTY_ADDRESS);

@@ -80,8 +80,10 @@ public class ProvisionedResourceInfoCollector {
         if (locked) {
             return;
         }
-        if (operation.get(OP).asString().equals(ADD)) {
-            addresses.add(context.getCurrentAddress());
+        if (context.getCurrentStage() == OperationContext.Stage.MODEL) {
+            if (operation.get(OP).asString().equals(ADD)) {
+                addresses.add(context.getCurrentAddress());
+            }
         }
     }
 }

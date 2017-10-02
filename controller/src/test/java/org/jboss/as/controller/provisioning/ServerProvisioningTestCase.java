@@ -18,6 +18,7 @@
 
 package org.jboss.as.controller.provisioning;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CAPABILITIES;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILED;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.PROVISION_OPERATION;
@@ -27,22 +28,26 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RES
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.junit.Assert.assertEquals;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 import org.jboss.as.controller.AbstractAddStepHandler;
 import org.jboss.as.controller.AbstractRemoveStepHandler;
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.CapabilityRegistry;
 import org.jboss.as.controller.ControlledProcessState;
 import org.jboss.as.controller.ManagementModel;
 import org.jboss.as.controller.ModelController;
-import org.jboss.as.controller.ModelOnlyAddStepHandler;
 import org.jboss.as.controller.ModelOnlyRemoveStepHandler;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
+import org.jboss.as.controller.OperationContext;
+import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
@@ -50,10 +55,12 @@ import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.TestModelControllerService;
+import org.jboss.as.controller.capability.ProvisionCapablitiesUtil;
+import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.operations.global.GlobalOperationHandlers;
-import org.jboss.as.controller.operations.global.ResourceProvisioningHandler;
+import org.jboss.as.controller.operations.global.ServerProvisioningHandler;
 import org.jboss.as.controller.persistence.ConfigurationPersistenceException;
 import org.jboss.as.controller.persistence.NullConfigurationPersister;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
@@ -72,7 +79,7 @@ import org.junit.Test;
 /**
  * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
  */
-public class ProvisionedResourceTestCase {
+public class ServerProvisioningTestCase {
 
     static final SimpleAttributeDefinition REQUIRED = SimpleAttributeDefinitionBuilder.create("required", ModelType.STRING, false).build();
 
@@ -122,18 +129,18 @@ public class ProvisionedResourceTestCase {
             setupController();
 
             final ModelNode provision = Util.createEmptyOperation(PROVISION_OPERATION, PathAddress.EMPTY_ADDRESS);
-            ModelNode result = execute(provision);
-            System.out.println(result);
-            Assert.assertEquals(SUCCESS, result.get(OUTCOME).asString());
+            ModelNode provisionedResult = execute(provision);
+            System.out.println(provisionedResult);
+            Assert.assertEquals(SUCCESS, provisionedResult.get(OUTCOME).asString());
+            provisionedResult = provisionedResult.get(RESULT);
 
-            ProvisionedResourceAssembler assembler = ProvisionedResourceAssembler.read(result.get(RESULT));
+            ProvisionedResourceAssembler assembler = ProvisionedResourceAssembler.read(provisionedResult);
             ModelNode readModel = createResourceNode(assembler.getRootResource());
 
             //Check the model is the right shape
             final ModelNode readResource = Util.createEmptyOperation(READ_RESOURCE_OPERATION, PathAddress.EMPTY_ADDRESS);
             readResource.get(RECURSIVE).set(true);
-            result = execute(readResource);
-            System.out.println(result);
+            ModelNode result = execute(readResource);
             Assert.assertEquals(result.get(RESULT), readModel);
 
             //Check the order of the addresses
@@ -150,15 +157,20 @@ public class ProvisionedResourceTestCase {
                     PathAddress.pathAddress("child1", "second").append("sub2", "b"),
                     PathAddress.pathAddress("child1", "second").append("sub2", "a")};
             Assert.assertEquals(Arrays.asList(expected), addresses);
+
+            ModelNode provisionedCapabilities = provisionedResult.get(CAPABILITIES);
+            Assert.assertTrue(provisionedCapabilities.isDefined());
+            provisionedCapabilities.protect();
+
+            //Check that we can load the provisioned capabilities and that the output is the same
+            CapabilityRegistry registry = new CapabilityRegistry(true);
+            ProvisionCapablitiesUtil.installProvisionedCapabilities(registry, provisionedCapabilities);
+            ModelNode capabilitiesCopy = ProvisionCapablitiesUtil.provisionCapabilities(registry);
+            Assert.assertEquals(provisionedCapabilities, capabilitiesCopy);
         } finally {
             System.clearProperty(ProvisionedResourceInfoCollector.PROPERTY);
         }
 
-
-        final ModelNode readResource = Util.createEmptyOperation(READ_RESOURCE_OPERATION, PathAddress.EMPTY_ADDRESS);
-        readResource.get(RECURSIVE).set(true);
-        ModelNode result = execute(readResource);
-        System.out.println(result);
     }
 
     private ModelNode createResourceNode(Resource root) {
@@ -188,10 +200,22 @@ public class ProvisionedResourceTestCase {
 
         ManagementResourceRegistration root = managementModel.getRootResourceRegistration();
         ManagementResourceRegistration child =
-                root.registerSubModel(new TestResourceDefinition(PathElement.pathElement("child1"), REQUIRED, TIME, DEFAULT));
+                root.registerSubModel(new TestResourceDefinition(PathElement.pathElement("child1"),
+                        (OperationContext ctx) -> {
+                            final RuntimeCapability.Builder builder;
+                            if (ctx.getCurrentAddressValue().equals("first")) {
+                                builder = RuntimeCapability.Builder.of("test.provision", true, new TestRuntimeApi("first"));
+                            } else {
+                                builder = RuntimeCapability.Builder.of("test.provision", true, TestRuntimeApi.class);
+                                builder.setServiceType(TestRuntimeApi.class);
+                                builder.addRequirements("test.provision.first");
+                            }
+                            return builder.build().fromBaseCapability(ctx.getCurrentAddressValue());
+                        },
+                        REQUIRED, TIME, DEFAULT));
 
-        child.registerSubModel(new TestResourceDefinition(PathElement.pathElement("sub1"), DEFAULT));
-        child.registerSubModel(new TestResourceDefinition(PathElement.pathElement("sub2"), DEFAULT));
+        child.registerSubModel(new TestResourceDefinition(PathElement.pathElement("sub1"), null, DEFAULT));
+        child.registerSubModel(new TestResourceDefinition(PathElement.pathElement("sub2"), null, DEFAULT));
     }
 
     private void setupController() throws InterruptedException {
@@ -227,17 +251,10 @@ public class ProvisionedResourceTestCase {
         add.get("default").set("more stuff");
         bootOperations.add(add);
 
-
-
-
-
-
         setupController(bootOperations);
     }
 
     private void setupController(List<ModelNode> bootOperations) throws InterruptedException {
-        System.out.println("=========  New Test \n");
-
         for (ModelNode bootOp : bootOperations) {
             this.bootOperations.add(bootOp.clone()); // clone so we don't have to worry about mutated ops when we compare
         }
@@ -257,6 +274,7 @@ public class ProvisionedResourceTestCase {
     }
 
     private class RootResourceDefinition extends SimpleResourceDefinition {
+
         RootResourceDefinition() {
             super(new Parameters(PathElement.pathElement("root"), new NonResolvingResourceDescriptionResolver())
                     .setAddHandler(new AbstractAddStepHandler() {})
@@ -268,7 +286,10 @@ public class ProvisionedResourceTestCase {
             super.registerOperations(resourceRegistration);
             GlobalOperationHandlers.registerGlobalOperations(resourceRegistration, ProcessType.EMBEDDED_SERVER);
             resourceRegistration.registerOperationHandler(
-                    ResourceProvisioningHandler.DEFINITION, new ResourceProvisioningHandler(controllerService.getProvisionedResourceInfoCollector()));
+                    ServerProvisioningHandler.DEFINITION,
+                    new ServerProvisioningHandler(
+                            controllerService.getProvisionedResourceInfoCollector(),
+                            controllerService.getCapabilityRegistry()));
         }
     }
 
@@ -276,9 +297,16 @@ public class ProvisionedResourceTestCase {
 
         private final AttributeDefinition[] attributes;
 
-        TestResourceDefinition(PathElement pathElement, AttributeDefinition...attributes) {
+        TestResourceDefinition(PathElement pathElement, Function<OperationContext, RuntimeCapability<?>> capabilityFunction, AttributeDefinition...attributes) {
             super(new Parameters(pathElement, new NonResolvingResourceDescriptionResolver())
-                    .setAddHandler(new ModelOnlyAddStepHandler(attributes) {})
+                    .setAddHandler(new AbstractAddStepHandler(attributes) {
+                        @Override
+                        protected void recordCapabilitiesAndRequirements(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+                            if (capabilityFunction != null) {
+                                context.registerCapability(capabilityFunction.apply(context));
+                            }
+                        }
+                    })
                     .setRemoveHandler(new ModelOnlyRemoveStepHandler() {}));
             this.attributes = attributes;
         }
@@ -300,7 +328,7 @@ public class ProvisionedResourceTestCase {
         }
         @Override
         protected void initModel(ManagementModel managementModel, Resource modelControllerResource) {
-            ProvisionedResourceTestCase.this.initModel(managementModel);
+            ServerProvisioningTestCase.this.initModel(managementModel);
         }
 
         @Override
@@ -308,7 +336,7 @@ public class ProvisionedResourceTestCase {
                 throws ConfigurationPersistenceException {
             List<ModelNode> bootOps = new ArrayList<>(bootOperations);
             try {
-                for (ModelNode bootOp : ProvisionedResourceTestCase.this.bootOperations) {
+                for (ModelNode bootOp : ServerProvisioningTestCase.this.bootOperations) {
                     bootOps.add(bootOp.clone()); // clone so we don't have to worry about mutated ops when we compare
                 }
             } catch (Exception e) {
@@ -320,6 +348,27 @@ public class ProvisionedResourceTestCase {
         @Override
         protected ProvisionedResourceInfoCollector getProvisionedResourceInfoCollector() {
             return super.getProvisionedResourceInfoCollector();
+        }
+    }
+
+    private static class TestRuntimeApi implements Serializable {
+        private final String test;
+
+        public TestRuntimeApi(String test) {
+            this.test = test;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof TestRuntimeApi == false) {
+                return false;
+            }
+            return test.equals(((TestRuntimeApi)obj).test);
+        }
+
+        @Override
+        public int hashCode() {
+            return test != null ? test.hashCode() : 0;
         }
     }
 }

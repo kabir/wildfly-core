@@ -3511,4 +3511,10 @@ public interface ControllerLogger extends BasicLogger {
 
     @Message(id = 446, value = "The server is not running in provisioning mode so no information was stored. To gather provisioning information, start the server with -D" + ProvisionedResourceInfoCollector.PROPERTY + "=true")
     String notRunningInProvisioningMode();
+
+    @Message(id = 447, value = "The provisioned scope '%s' showing in the provisioned data for the capability '%s' is unknown.")
+    IllegalStateException unknownProvisionedCapabilityScope(String scope, String name);
+
+    @Message(id = 448, value = "An error occurred serializing the runtime API instance for capability '%s'.")
+    RuntimeException errorSerializingRuntimeApiForCapability(String capabilityName);
 }
