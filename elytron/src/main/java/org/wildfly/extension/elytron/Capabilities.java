@@ -18,6 +18,7 @@
 
 package org.wildfly.extension.elytron;
 
+import java.io.Serializable;
 import java.security.KeyStore;
 import java.security.Policy;
 import java.security.Provider;
@@ -85,7 +86,11 @@ class Capabilities {
 
     // This has to be at this position, and must not be a lambda, to avoid an init circularity problem on IBM
     @SuppressWarnings("Convert2Lambda")
-    static final Consumer<ServiceBuilder> COMMON_DEPENDENCIES = new Consumer<ServiceBuilder>() {
+    private interface SerializableConsumer<T> extends Consumer<T>, Serializable {
+
+    }
+
+    static final SerializableConsumer<ServiceBuilder> COMMON_DEPENDENCIES = new SerializableConsumer<ServiceBuilder>() {
         // unchecked because ServiceBuilder is a raw type
         @SuppressWarnings("unchecked")
         public void accept(final ServiceBuilder serviceBuilder) {
@@ -93,7 +98,7 @@ class Capabilities {
         }
     };
 
-    static final RuntimeCapability<Consumer<ServiceBuilder>> ELYTRON_RUNTIME_CAPABILITY = RuntimeCapability
+    static final RuntimeCapability<SerializableConsumer<ServiceBuilder>> ELYTRON_RUNTIME_CAPABILITY = RuntimeCapability
             .Builder.of(ELYTRON_CAPABILITY, COMMON_DEPENDENCIES)
             .build();
 
