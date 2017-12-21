@@ -73,9 +73,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
 import org.jboss.as.controller.HashUtil;
 import org.jboss.as.controller.PathAddress;
-
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.client.Operation;
 import org.jboss.as.controller.client.OperationBuilder;
@@ -298,6 +298,41 @@ public class ExplodedDeploymentTestCase {
         assertTrue(Operations.isSuccessfulOutcome(result));
     }
 
+    @Test
+    public void testEmptyAndAddContentInComposite() throws Exception {
+
+        ModelNode composite = Operations.createCompositeOperation();
+        ModelNode steps = composite.get(STEPS);
+        steps.add(addEmptyDeploymentNode());
+
+        ModelNode addContent = Operations.createOperation(ADD_CONTENT, PathAddress.pathAddress(DEPLOYMENT_PATH).toModelNode());
+        Map<String, InputStream> initialContents = new HashMap<>();
+        initialContents.put(ServiceActivatorDeployment.class.getName().replace('.', File.separatorChar) + ".class",
+                ServiceActivatorDeployment.class.getResourceAsStream("ServiceActivatorDeployment.class"));
+        initialContents.put("META-INF/MANIFEST.MF",
+                new ByteArrayInputStream("Dependencies: org.jboss.msc\n".getBytes(StandardCharsets.UTF_8)));
+        initialContents.put("META-INF/services/org.jboss.msc.service.ServiceActivator",
+                new ByteArrayInputStream("org.jboss.as.test.deployment.trivial.ServiceActivatorDeployment\n".getBytes(StandardCharsets.UTF_8)));
+        initialContents.put("META-INF/permissions.xml", new ByteArrayInputStream(PermissionUtils.createPermissionsXml(
+                new PropertyPermission("test.deployment.trivial.prop", "write"),
+                new PropertyPermission("service", "write"))));
+        initialContents.put(ServiceActivatorDeployment.PROPERTIES_RESOURCE,
+                toStream(properties, "Creating content"));
+        List<InputStream> contentAttachments = addContentToDeploymentNode(addContent, initialContents);
+        steps.add(addContent);
+
+        steps.add(deployOnServerGroup());
+
+        Operation operation = Operation.Factory.create(composite, contentAttachments);
+
+        AsyncFuture<ModelNode> future = masterClient.executeAsync(operation, null);
+        ModelNode result = awaitSimpleOperationExecution(future);
+        assertTrue(Operations.isSuccessfulOutcome(result));
+
+        // TODO more checks as above
+
+    }
+
     private ModelNode readDeploymentResource(PathAddress address) {
         ModelNode operation = Operations.createReadResourceOperation(address.toModelNode());
         operation.get(INCLUDE_RUNTIME).set(true);
@@ -398,6 +433,11 @@ public class ExplodedDeploymentTestCase {
 
     private Operation addContentToDeployment(Map<String, InputStream> contents) throws MalformedURLException {
         ModelNode operation = Operations.createOperation(ADD_CONTENT, PathAddress.pathAddress(DEPLOYMENT_PATH).toModelNode());
+        final List<InputStream> attachments = addContentToDeploymentNode(operation, contents);
+        return Operation.Factory.create(operation, attachments);
+    }
+
+    private List<InputStream> addContentToDeploymentNode(ModelNode operation, Map<String, InputStream> contents) {
         int stream = 0;
         List<InputStream> attachments = new ArrayList<>(contents.size());
         for(Entry<String, InputStream> content : contents.entrySet()) {
@@ -408,7 +448,7 @@ public class ExplodedDeploymentTestCase {
             operation.get(CONTENT).add(contentNode);
             stream++;
         }
-        return Operation.Factory.create(operation, attachments);
+        return attachments;
     }
 
     private Operation removeContentFromDeployment(List<String> paths) throws MalformedURLException {
@@ -427,11 +467,15 @@ public class ExplodedDeploymentTestCase {
     }
 
     private Operation addEmptyDeployment() throws MalformedURLException {
+        return Operation.Factory.create(addEmptyDeploymentNode());
+    }
+
+    private ModelNode addEmptyDeploymentNode() {
         ModelNode operation = Operations.createAddOperation(PathAddress.pathAddress(DEPLOYMENT_PATH).toModelNode());
         ModelNode content = new ModelNode();
         content.get(EMPTY).set(true);
         operation.get(CONTENT).add(content);
-        return Operation.Factory.create(operation);
+        return operation;
     }
 
     private ModelNode undeployAndRemoveOp() throws MalformedURLException {
