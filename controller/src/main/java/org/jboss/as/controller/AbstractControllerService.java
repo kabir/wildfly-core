@@ -59,6 +59,10 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.controller.services.path.PathManager;
 import org.jboss.dmr.ModelNode;
+import org.jboss.modules.Module;
+import org.jboss.modules.ModuleClassLoader;
+import org.jboss.modules.ModuleLoadException;
+import org.jboss.modules.ModuleLoader;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceContainer;
@@ -760,8 +764,30 @@ public abstract class AbstractControllerService implements Service<ModelControll
                     assert context instanceof OperationContextImpl;
                     ManagementModel managementModel = ((OperationContextImpl)context).getManagementModel();
 
-                    // TODO call out to the CLI stuff
+                    // TODO remove
                     System.out.println("--------> Calling CLI with " + file.getAbsolutePath());
+
+                    ModuleClassLoader classLoader = (ModuleClassLoader)WildFlySecurityManager.getClassLoaderPrivileged(this.getClass());
+                    ModuleLoader loader = classLoader.getModule().getModuleLoader();
+                    Module module = null;
+                    try {
+                        // TODO Decide where this should live
+                        module = loader.loadModule("name.of.module");
+                    } catch (ModuleLoadException e) {
+                        throw new RuntimeException(e);
+                    }
+                    ServiceLoader<AdditionalBootCliScriptInvoker> sl = module.loadService(AdditionalBootCliScriptInvoker.class);
+                    AdditionalBootCliScriptInvoker invoker = null;
+                    for (AdditionalBootCliScriptInvoker currentInvoker : sl) {
+                        if (invoker != null) {
+                            throw new IllegalStateException("More than one instance of " +
+                                    AdditionalBootCliScriptInvoker.class.getName() + "found. Have: " + invoker.getClass().getName() + ". " +
+                                    "Found: " + currentInvoker.getClass().getName());
+                        }
+                        invoker = currentInvoker;
+                    }
+
+                    invoker.runCliScript(file);
 
                     managementModel.getRootResourceRegistration().unregisterOperationHandler(INIT_CONTROLLER_OP.getName());
                 }
