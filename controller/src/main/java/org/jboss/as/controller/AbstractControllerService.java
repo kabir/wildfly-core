@@ -24,6 +24,7 @@ package org.jboss.as.controller;
 
 import static org.jboss.as.controller.logging.ControllerLogger.ROOT_LOGGER;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -161,6 +162,11 @@ public abstract class AbstractControllerService implements Service<ModelControll
     private static final OperationDefinition INIT_CONTROLLER_OP = new SimpleOperationDefinitionBuilder("boottime-controller-initializer-step", null)
         .setPrivateEntry()
         .build();
+
+    private static final OperationDefinition ADDITIONAL_CLI_BOOT_SCRIPT = new SimpleOperationDefinitionBuilder("boottime-additional-cli-operations-step", null)
+            .setPrivateEntry()
+            .build();
+
 
     protected final ProcessType processType;
     protected final DelegatingConfigurableAuthorizer authorizer;
@@ -699,11 +705,31 @@ public abstract class AbstractControllerService implements Service<ModelControll
         ModelControllerServiceInitializationParams initParams = getModelControllerServiceInitializationParams();
         if (initParams != null) {
             //Register the hidden op. The operation handler removes the operation once it is done
-            controller.getManagementModel().getRootResourceRegistration().registerOperationHandler(INIT_CONTROLLER_OP, new ModelControllerServiceInitializationBootStepHandler(initParams));
+            registerAdditionalBootStep(context, INIT_CONTROLLER_OP, new ModelControllerServiceInitializationBootStepHandler(initParams));
             //Return the operation
             return Util.createEmptyOperation(INIT_CONTROLLER_OP.getName(), PathAddress.EMPTY_ADDRESS);
         }
         return null;
+    }
+
+    protected final ModelNode registerAdditionalCLIBootScriptStep(BootContext context) throws ConfigurationPersistenceException {
+        String additionalBootCliScriptPath = WildFlySecurityManager.getPropertyPrivileged("org.wildfly.additional.cli.boot.script", null);
+        if (additionalBootCliScriptPath != null) {
+            File additionalBootCliScriptFile = new File(additionalBootCliScriptPath);
+            if (!additionalBootCliScriptFile.exists()) {
+                // TODO i18n
+                throw new ConfigurationPersistenceException("Could not find file " + additionalBootCliScriptFile.getAbsolutePath());
+            }
+
+            registerAdditionalBootStep(context, ADDITIONAL_CLI_BOOT_SCRIPT, new CliScriptBootHandler(additionalBootCliScriptFile));
+
+            return Util.createOperation(ADDITIONAL_CLI_BOOT_SCRIPT, PathAddress.EMPTY_ADDRESS);
+        }
+        return null;
+    }
+
+    private final void registerAdditionalBootStep(BootContext context, OperationDefinition opDef, OperationStepHandler handler) {
+        controller.getManagementModel().getRootResourceRegistration().registerOperationHandler(opDef, handler);
     }
 
     /**
@@ -715,6 +741,32 @@ public abstract class AbstractControllerService implements Service<ModelControll
      */
     protected ModelControllerServiceInitializationParams getModelControllerServiceInitializationParams() {
         return null;
+    }
+
+    private static class CliScriptBootHandler implements OperationStepHandler {
+        private final File file;
+
+        public CliScriptBootHandler(File file) {
+            this.file = file;
+        }
+
+        @Override
+        public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+            context.addStep(new OperationStepHandler() {
+                @Override
+                public void execute(OperationContext context, ModelNode operation) throws OperationFailedException {
+                    //Get the current management model instance here, so make sure that if ModelControllerServiceInitializations
+                    //add resources, those resources end up in the model
+                    assert context instanceof OperationContextImpl;
+                    ManagementModel managementModel = ((OperationContextImpl)context).getManagementModel();
+
+                    // TODO call out to the CLI stuff
+                    System.out.println("--------> Calling CLI with " + file.getAbsolutePath());
+
+                    managementModel.getRootResourceRegistration().unregisterOperationHandler(INIT_CONTROLLER_OP.getName());
+                }
+            }, OperationContext.Stage.MODEL);
+        }
     }
 
     /**

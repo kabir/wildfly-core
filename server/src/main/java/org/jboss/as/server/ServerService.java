@@ -390,6 +390,12 @@ public final class ServerService extends AbstractControllerService {
 
                 // Load the ops
                 List<ModelNode> bootOps = extensibleConfigurationPersister.load();
+
+                ModelNode additionalCliOp = registerAdditionalCLIBootScriptStep(context);
+                if (additionalCliOp != null) {
+                    bootOps.add(additionalCliOp);
+                }
+
                 //Add the controller initialization operation to the boot ops
                 ModelNode controllerInitOp = registerModelControllerServiceInitializationBootStep(context);
                 if (controllerInitOp != null) {
