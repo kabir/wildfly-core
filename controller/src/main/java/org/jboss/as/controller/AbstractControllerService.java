@@ -772,7 +772,7 @@ public abstract class AbstractControllerService implements Service<ModelControll
                     Module module = null;
                     try {
                         // TODO Decide where this should live
-                        module = loader.loadModule("name.of.module");
+                        module = loader.loadModule("org.jboss.as.cli");
                     } catch (ModuleLoadException e) {
                         throw new RuntimeException(e);
                     }
@@ -786,10 +786,11 @@ public abstract class AbstractControllerService implements Service<ModelControll
                         }
                         invoker = currentInvoker;
                     }
+                    if (invoker != null) {
+                        invoker.runCliScript(file);
+                    }
 
-                    invoker.runCliScript(file);
-
-                    managementModel.getRootResourceRegistration().unregisterOperationHandler(INIT_CONTROLLER_OP.getName());
+                    managementModel.getRootResourceRegistration().unregisterOperationHandler(ADDITIONAL_CLI_BOOT_SCRIPT.getName());
                 }
             }, OperationContext.Stage.MODEL);
         }
