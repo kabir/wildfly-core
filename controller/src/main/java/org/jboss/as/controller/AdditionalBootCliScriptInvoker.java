@@ -19,10 +19,11 @@
 package org.jboss.as.controller;
 
 import java.io.File;
+import org.jboss.as.controller.client.ModelControllerClient;
 
 /**
  * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
  */
 public interface AdditionalBootCliScriptInvoker {
-    void runCliScript(File file);
+    void runCliScript(File file, ModelControllerClient client);
 }

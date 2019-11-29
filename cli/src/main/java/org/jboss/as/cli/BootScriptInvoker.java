@@ -23,6 +23,7 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import org.jboss.as.controller.AdditionalBootCliScriptInvoker;
+import org.jboss.as.controller.client.ModelControllerClient;
 import org.jboss.as.protocol.StreamUtils;
 import org.wildfly.security.manager.WildFlySecurityManager;
 
@@ -33,7 +34,7 @@ import org.wildfly.security.manager.WildFlySecurityManager;
 public class BootScriptInvoker implements AdditionalBootCliScriptInvoker {
 
     @Override
-    public void runCliScript(File file) {
+    public void runCliScript(File file, ModelControllerClient client) {
         CommandContext ctx;
         String props = WildFlySecurityManager.getPropertyPrivileged("org.wildfly.cli.boot.script.properties", null);
         if (props != null) {
@@ -46,6 +47,7 @@ public class BootScriptInvoker implements AdditionalBootCliScriptInvoker {
         }
         try {
             ctx = CommandContextFactory.getInstance().newCommandContext();
+            ctx.bindClient(client);
         } catch (CliInitializationException ex) {
             throw new RuntimeException(ex);
         }
@@ -62,6 +64,7 @@ public class BootScriptInvoker implements AdditionalBootCliScriptInvoker {
                 cmdCtx.handleSafe(line.trim());
                 line = reader.readLine();
             }
+            cmdCtx.handle(":reload(start-mode=normal)");
         } catch (Throwable e) {
             throw new IllegalStateException("Failed to process file '" + file.getAbsolutePath() + "'", e);
         } finally {

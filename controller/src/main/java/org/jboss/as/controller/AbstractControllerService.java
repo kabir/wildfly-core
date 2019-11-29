@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -717,15 +718,21 @@ public abstract class AbstractControllerService implements Service<ModelControll
     }
 
     protected final ModelNode registerAdditionalCLIBootScriptStep(BootContext context) throws ConfigurationPersistenceException {
+        String done = WildFlySecurityManager.getPropertyPrivileged("org.wildfly.additional.cli.boot.script.done", null);
+        if ("true".equals(done)) {
+            System.out.println("Already executed, NO MORE STEP");
+            return null;
+        }
         String additionalBootCliScriptPath = WildFlySecurityManager.getPropertyPrivileged("org.wildfly.additional.cli.boot.script", null);
         if (additionalBootCliScriptPath != null) {
+            WildFlySecurityManager.setPropertyPrivileged("org.wildfly.additional.cli.boot.script.done", "true");
             File additionalBootCliScriptFile = new File(additionalBootCliScriptPath);
             if (!additionalBootCliScriptFile.exists()) {
                 // TODO i18n
                 throw new ConfigurationPersistenceException("Could not find file " + additionalBootCliScriptFile.getAbsolutePath());
             }
-
-            registerAdditionalBootStep(context, ADDITIONAL_CLI_BOOT_SCRIPT, new CliScriptBootHandler(additionalBootCliScriptFile));
+            System.out.println("REGISTER ADDITIONAL STEPS");
+            registerAdditionalBootStep(context, ADDITIONAL_CLI_BOOT_SCRIPT, new CliScriptBootHandler(additionalBootCliScriptFile, controller));
 
             return Util.createOperation(ADDITIONAL_CLI_BOOT_SCRIPT, PathAddress.EMPTY_ADDRESS);
         }
@@ -749,9 +756,10 @@ public abstract class AbstractControllerService implements Service<ModelControll
 
     private static class CliScriptBootHandler implements OperationStepHandler {
         private final File file;
-
-        public CliScriptBootHandler(File file) {
+        private final ModelController controller;
+        public CliScriptBootHandler(File file, ModelController controller) {
             this.file = file;
+            this.controller = controller;
         }
 
         @Override
@@ -786,8 +794,15 @@ public abstract class AbstractControllerService implements Service<ModelControll
                         }
                         invoker = currentInvoker;
                     }
+                    final AdditionalBootCliScriptInvoker finInvoker = invoker;
                     if (invoker != null) {
-                        invoker.runCliScript(file);
+                        Runnable r = new Runnable() {
+                            public void run() {
+                                finInvoker.runCliScript(file, controller.createClient(Executors.newCachedThreadPool()));
+                            }
+                        };
+                        Thread thr = new Thread(r);
+                        thr.start();
                     }
 
                     managementModel.getRootResourceRegistration().unregisterOperationHandler(ADDITIONAL_CLI_BOOT_SCRIPT.getName());
