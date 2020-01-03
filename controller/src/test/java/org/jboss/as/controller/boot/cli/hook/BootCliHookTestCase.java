@@ -51,7 +51,7 @@ import org.wildfly.security.manager.WildFlySecurityManager;
 /**
  * @author <a href="mailto:kabir.khan@jboss.com">Kabir Khan</a>
  */
-public class BootCliHookStandaloneServerTestCase extends AbstractControllerTestBase {
+public class BootCliHookTestCase extends AbstractControllerTestBase {
 
     private File directory;
     private File cliFile;
@@ -61,7 +61,7 @@ public class BootCliHookStandaloneServerTestCase extends AbstractControllerTestB
 
     private RunningModeControl runningModeControl;
 
-    public BootCliHookStandaloneServerTestCase() {
+    public BootCliHookTestCase() {
         super(ProcessType.STANDALONE_SERVER);
     }
 

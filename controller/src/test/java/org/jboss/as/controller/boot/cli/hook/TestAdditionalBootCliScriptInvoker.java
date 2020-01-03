@@ -41,7 +41,7 @@ public class TestAdditionalBootCliScriptInvoker implements AdditionalBootCliScri
     @Override
     public void runCliScript(ModelControllerClient client, File file) {
         try {
-            commands = BootCliHookStandaloneServerTestCase.readFile(file);
+            commands = BootCliHookTestCase.readFile(file);
             if (shouldError) {
                 throw new RuntimeException("Our CLI commands threw an error");
             }
