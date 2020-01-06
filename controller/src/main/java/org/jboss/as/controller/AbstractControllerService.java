@@ -902,6 +902,8 @@ public abstract class AbstractControllerService implements Service<ModelControll
                 return null;
             }
 
+            ROOT_LOGGER.bootCliSystemPropertyOnlySupportedInOpenshift(CLI_SCRIPT_PROPERTY);
+
             boolean keepAlive = Boolean.valueOf(WildFlySecurityManager.getPropertyPrivileged(SKIP_RELOAD_PROPERTY, "false"));
             final String markerDirectoryProperty =
                     WildFlySecurityManager.getPropertyPrivileged(MARKER_DIRECTORY_PROPERTY, null);

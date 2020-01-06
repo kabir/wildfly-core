@@ -3621,4 +3621,7 @@ public interface ControllerLogger extends BasicLogger {
     @Message(id = 474, value = "No marker file found indicating that the server has been restarted following execution of the additional commands from the CLI script")
     void noRestartMarkerFile();
 
+    @LogMessage(level = WARN)
+    @Message(id = 475, value = "-D%s has been specified to invoke a CLI script file as part of server boot. Note that this is an internal mechanism for use in OpenShift images. This is not supported outside of OpenShift, and may change in the future")
+    void bootCliSystemPropertyOnlySupportedInOpenshift(String cliScriptProperty);
 }
