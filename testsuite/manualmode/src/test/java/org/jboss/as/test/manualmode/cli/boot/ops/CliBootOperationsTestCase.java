@@ -309,7 +309,7 @@ public class CliBootOperationsTestCase {
     }
 
     class JvmArgsBuilder {
-        private StringBuilder sb = new StringBuilder(DEFAULT_JVM_ARGS);
+
         private String commands;
         private boolean skipReload;
 
@@ -325,6 +325,7 @@ public class CliBootOperationsTestCase {
         }
 
         void build() throws Exception {
+            StringBuilder sb = new StringBuilder(DEFAULT_JVM_ARGS);
             Files.createDirectories(markerDirectory.toPath());
             sb.append(" -D" + AdditionalBootCliScriptInvoker.MARKER_DIRECTORY_PROPERTY + "=" + markerDirectory.getAbsolutePath());
 
