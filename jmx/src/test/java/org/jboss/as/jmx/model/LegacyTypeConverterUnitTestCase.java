@@ -896,6 +896,22 @@ public class LegacyTypeConverterUnitTestCase {
         Assert.assertEquals(expected, converter.toModelNode(tabularData));
     }
 
+    @Test
+    public void testComplexTypeObject() throws Exception {
+        ModelNode valueType = new ModelNode();
+        valueType.get("one", TYPE).set(ModelType.LONG);
+        ModelNode description = createDescription(ModelType.OBJECT, valueType);
+        TypeConverter converter = getConverter(description);
+
+        System.out.println(converter.getOpenType());
+        ModelNode node = new ModelNode();
+        node.get("A", "one").set(100L);
+
+        TabularData tabularData = assertCast(TabularData.class, converter.fromModelNode(node));
+        System.out.println(tabularData);
+        Assert.assertEquals(1, tabularData.size());
+    }
+
     private OpenType<?> assertCompositeType(CompositeType composite, String name, String type, String description){
         return assertCompositeType(composite, name, type, description, true);
     }
@@ -946,10 +962,14 @@ public class LegacyTypeConverterUnitTestCase {
     }
 
     private ModelNode createDescription(ModelType type) {
-        return createDescription(type, null);
+        return createDescription(type, (ModelNode)null);
     }
 
     private ModelNode createDescription(ModelType type, ModelType valueType) {
+        return createDescription(type, new ModelNode(valueType));
+    }
+
+    private ModelNode createDescription(ModelType type, ModelNode valueType) {
         ModelNode node = new ModelNode();
         node.get(TYPE).set(type);
         if (valueType != null) {

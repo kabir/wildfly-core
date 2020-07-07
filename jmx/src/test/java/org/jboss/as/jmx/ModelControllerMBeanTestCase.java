@@ -22,6 +22,7 @@
 package org.jboss.as.jmx;
 
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.REMOVE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUBSYSTEM;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -79,12 +80,14 @@ import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
 
 import org.jboss.as.controller.Extension;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ProcessType;
 import org.jboss.as.controller.capability.registry.RuntimeCapabilityRegistry;
 import org.jboss.as.controller.extension.ExtensionRegistry;
 import org.jboss.as.controller.extension.ExtensionRegistryType;
 import org.jboss.as.controller.operations.common.ResolveExpressionHandler;
+import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.jmx.model.ModelControllerMBeanHelper;
@@ -96,6 +99,7 @@ import org.jboss.as.subsystem.test.AbstractSubsystemTest;
 import org.jboss.as.subsystem.test.AdditionalInitialization;
 import org.jboss.as.subsystem.test.ControllerInitializer;
 import org.jboss.as.subsystem.test.KernelServices;
+import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
@@ -144,6 +148,7 @@ public class ModelControllerMBeanTestCase extends AbstractSubsystemTest {
     private static final QueryExp   DEFAULT_INTERFACE_QUERY_EXP = Query.eq(Query.attr("defaultInterface"), Query.value("test-interface"));
 
     private JMXConnector jmxConnector;
+    private KernelServices kernelServices;
 
     public ModelControllerMBeanTestCase() {
         super(JMXExtension.SUBSYSTEM_NAME, new JMXExtension());
@@ -160,6 +165,7 @@ public class ModelControllerMBeanTestCase extends AbstractSubsystemTest {
         super.cleanup();
         IoUtils.safeClose(jmxConnector);
         jmxConnector = null;
+        kernelServices = kernelServices;
     }
 
     @Test
@@ -1421,6 +1427,40 @@ public class ModelControllerMBeanTestCase extends AbstractSubsystemTest {
         connection.removeNotificationListener(MBeanServerDelegate.DELEGATE_NAME, listener, filter, null);
     }
 
+    @Test
+    public void testNestedComplexRuntimeTypeDefinitions() throws Exception {
+        MBeanServerConnection connection = setupAndGetConnection(new MBeanInfoAdditionalInitialization(ProcessType.STANDALONE_SERVER, new ComplexRuntimeAttributesExtension()));
+
+        ModelNode rr = Util.createOperation("read-resource", PathAddress.pathAddress(SUBSYSTEM, "test"));
+        rr.get("include-runtime").set(true);
+        System.out.println(kernelServices.executeForResult(rr));
+
+        ModelNode rrd = Util.createOperation("read-resource-description", PathAddress.pathAddress(SUBSYSTEM, "test"));
+        rrd.get("include-runtime").set(true);
+        System.out.println(kernelServices.executeForResult(rrd));
+
+        ObjectName name = new ObjectName("jboss.as.expr:subsystem=test");
+
+        TabularData mapOfMaps = (TabularData) connection.getAttribute(name, "map-of-maps");
+        System.out.println(mapOfMaps);
+        Assert.assertEquals(2, mapOfMaps.size());
+
+        CompositeData a = mapOfMaps.get(new String[]{"a"});
+        Assert.assertEquals(100L, a.get("one"));
+
+        //mapOfMaps.get()
+
+        System.out.println(mapOfMaps.getTabularType().getIndexNames());
+//        System.out.println("methods.getCompositeType: " + mapOfMaps.getCompositeType());
+//        for(String key : mapOfMaps.getCompositeType().keySet()) {
+//            System.out.printf("key: %s value: %s\n", key, mapOfMaps.get(key));
+//        }
+
+    }
+
+
+
+
     private OpenMBeanOperationInfo findOperation(MBeanOperationInfo[] ops, String name) {
         for (MBeanOperationInfo op : ops) {
             Assert.assertNotNull(op.getName());
@@ -1614,7 +1654,7 @@ public class ModelControllerMBeanTestCase extends AbstractSubsystemTest {
     }
 
     private MBeanServerConnection setupAndGetConnection(BaseAdditionalInitialization additionalInitialization) throws Exception {
-        setup(additionalInitialization);
+        kernelServices = setup(additionalInitialization);
         return getRemoteConnection();
     }
 
