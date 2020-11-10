@@ -72,8 +72,6 @@ public class OperationFailedException extends Exception implements OperationClie
     public OperationFailedException(final ModelNode description) {
         assert description != null : "description is null";
         failureDescription = description;
-        System.out.println("---> " + description);
-        new Exception().printStackTrace();
     }
 
     /**
@@ -87,8 +85,6 @@ public class OperationFailedException extends Exception implements OperationClie
         super(msg);
         assert description != null : "description is null";
         failureDescription = description;
-        System.out.println("---> " + description);
-        new Exception().printStackTrace();
     }
 
     /**
@@ -114,10 +110,6 @@ public class OperationFailedException extends Exception implements OperationClie
         super(cause);
         assert description != null : "description is null";
         failureDescription = description;
-        System.out.println("---> " + description);
-        new Exception().printStackTrace();
-        cause.printStackTrace();
-
     }
 
     /**
@@ -131,9 +123,6 @@ public class OperationFailedException extends Exception implements OperationClie
         super(msg, cause);
         assert description != null : "description is null";
         failureDescription = description;
-        System.out.println("---> " + description);
-        new Exception().printStackTrace();
-        cause.printStackTrace();
     }
 
     /**
