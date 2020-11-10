@@ -492,7 +492,7 @@ public class CommandTimeoutHandlerTestCase {
                 // XXX OK expected.
             }
             // Wait for the task to terminate and check the various steps.
-            int waitTime = 1000;
+            int waitTime = TimeoutUtil.adjust(3000);
             while (holder.size() != 3 && waitTime > 0) {
                 Thread.sleep(100);
                 waitTime -= 100;
