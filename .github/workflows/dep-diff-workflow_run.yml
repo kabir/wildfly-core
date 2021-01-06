@@ -61,10 +61,10 @@ jobs:
           echo "::set-output name=deps_ok_label_name::${DEPS_OK_LABEL_NAME}"
           echo "::set-output name=deps_changed_label_name::${DEPS_CHANGED_LABEL_NAME}"
           echo "::set-output name=change_mentions::${CHANGE_MENTIONS}"
-          tmp=${<pr}
-          tmp=${<baseVersions}
-          echo "::set-output name=base_files::${tmp}"
-          tmp=${<newVersions}
+          tmp=$(<pr)
+          tmp=$(<baseVersions)
+          echo "::set-output name=base_files::$({)tmp}"
+          tmp=$(<newVersions)
           echo "::set-output name=new_files::${tmp}"
 
 
