@@ -19,14 +19,16 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      ARTIFACTS: .pr_artifacts
+      ARTIFACTS: ${GITHUB_WORKSPACE}/.pr_artifacts
     steps:
       - name: Prepare
         id: prepare
         run: |
           echo "::set-output name=base::${GITHUB_BASE_REF}"
+          echo "Artifacts dir: ${ARTIFACTS}"
           mkdir ${ARTIFACTS}
           echo ${{ github.event.number }} > ${ARTIFACTS}/pr
+
 
       - name: Clone base version
         uses: actions/checkout@v2
