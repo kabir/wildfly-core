@@ -28,11 +28,10 @@ jobs:
 
           # Make ARTIFACTS absolute
           ARTIFACTS="${GITHUB_WORKSPACE}/${ARTIFACTS}"
+          echo "ARTIFACTS=${ARTIFACTS}" >> $GITHUB_ENV
 
-          echo "Artifacts dir: ${ARTIFACTS}"
           mkdir ${ARTIFACTS}
           echo ${{ github.event.number }} > "${ARTIFACTS}/pr"
-
 
       - name: Clone base version
         uses: actions/checkout@v2
