@@ -20,12 +20,6 @@ jobs:
       ${{ github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success' }}
     steps:
-      - name: Temp
-        env:
-          GITHUB: ${{toJson(github)}}
-        run: |
-          echo "${GITHUB}"
-
       - name: Download artifacts
         # It would have been nice to be able to use actions/download-artifact@v2
         # for this, but as the artifacts are uploaded by another workflow it does
@@ -61,10 +55,19 @@ jobs:
           echo "::set-output name=deps_ok_label_name::${DEPS_OK_LABEL_NAME}"
           echo "::set-output name=deps_changed_label_name::${DEPS_CHANGED_LABEL_NAME}"
           echo "::set-output name=change_mentions::${CHANGE_MENTIONS}"
+
+          echo Reading PR number
           tmp=$(<pr)
+          echo "PR: ${tmp}"
+
+          echo Reading base version files
           tmp=$(<baseVersions)
+          echo "Base version files: ${tmp}"
           echo "::set-output name=base_files::$(tmp}"
+
+          echo Reading new version files
           tmp=$(<newVersions)
+          echo "New version files: ${tmp}"
           echo "::set-output name=new_files::${tmp}"
 
 
