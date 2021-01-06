@@ -27,11 +27,11 @@ jobs:
           echo "::set-output name=base::${GITHUB_BASE_REF}"
 
           # Make ARTIFACTS absolute
-          ARTIFACTS="${GITHUB_WORKSPACE}/${ARTIFACTS"
+          ARTIFACTS="${GITHUB_WORKSPACE}/${ARTIFACTS}"
 
           echo "Artifacts dir: ${ARTIFACTS}"
           mkdir ${ARTIFACTS}
-          echo ${{ github.event.number }} > ${ARTIFACTS}/pr
+          echo ${{ github.event.number }} > "${ARTIFACTS}/pr"
 
 
       - name: Clone base version
