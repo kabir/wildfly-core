@@ -63,7 +63,7 @@ jobs:
           echo Reading base version files
           tmp=$(<baseVersions)
           echo "Base version files: ${tmp}"
-          echo "::set-output name=base_files::$(tmp}"
+          echo "::set-output name=base_files::${tmp}"
 
           echo Reading new version files
           tmp=$(<newVersions)
