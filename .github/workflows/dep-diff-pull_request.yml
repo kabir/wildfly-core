@@ -19,12 +19,16 @@ jobs:
   check:
     runs-on: ubuntu-latest
     env:
-      ARTIFACTS: ${GITHUB_WORKSPACE}/.pr_artifacts
+      ARTIFACTS: .pr_artifacts
     steps:
       - name: Prepare
         id: prepare
         run: |
           echo "::set-output name=base::${GITHUB_BASE_REF}"
+
+          # Make ARTIFACTS absolute
+          ARTIFACTS=${GITHUB_WORKSPACE}/${ARTIFACTS"
+
           echo "Artifacts dir: ${ARTIFACTS}"
           mkdir ${ARTIFACTS}
           echo ${{ github.event.number }} > ${ARTIFACTS}/pr
