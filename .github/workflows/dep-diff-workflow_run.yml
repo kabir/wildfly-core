@@ -47,7 +47,7 @@ jobs:
 
       - name: Set needed env vars in outputs
         env:
-          GITHUB: ${{toJson(github}}
+          GITHUB: ${{toJson(github)}}
         id: prepare
         run: |
           echo "${GITHUB}"
