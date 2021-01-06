@@ -24,14 +24,15 @@ jobs:
       - name: Prepare
         id: prepare
         run: |
-          echo "::set-output name=base::${GITHUB_BASE_REF}"
-
           # Make ARTIFACTS absolute
           ARTIFACTS="${GITHUB_WORKSPACE}/${ARTIFACTS}"
           echo "ARTIFACTS=${ARTIFACTS}" >> $GITHUB_ENV
 
           mkdir ${ARTIFACTS}
           echo ${{ github.event.number }} > "${ARTIFACTS}/pr"
+
+          echo "::set-output name=base::${GITHUB_BASE_REF}"
+          echo "::set-output name=artifacts::${ARTIFACTS}"
 
       - name: Clone base version
         uses: actions/checkout@v2
@@ -72,7 +73,7 @@ jobs:
           for module in $(echo "${MODULES_TO_CHECK}" | sed "s/,/ /g")
           do
             baseVersionFile="_base-versions-$i.txt"
-            mvn -B dependency:tree -pl "${module}" -DoutputFile="${GITHUB_WORKSPACE}/${baseVersionFile}" || exit 1
+            mvn -B dependency:tree -pl "${module}" -DoutputFile="${ARTIFACTS}/${baseVersionFile}" || exit 1
 
             if [ $i -gt 0 ]; then
               baseVersionFiles="${baseVersionFiles},${baseVersionFile}"
@@ -97,7 +98,7 @@ jobs:
           for module in $(echo "${MODULES_TO_CHECK}" | sed "s/,/ /g")
           do
             newVersionFile="_new-versions-$i.txt"
-            mvn -B dependency:tree -pl "${module}" -DoutputFile="${GITHUB_WORKSPACE}/${newVersionFile}" || exit 1
+            mvn -B dependency:tree -pl "${module}" -DoutputFile="${ARTIFACTS}/${newVersionFile}" || exit 1
 
             if [ $i -gt 0 ]; then
               newVersionFiles="${newVersionFiles},${newVersionFile}"
@@ -111,4 +112,4 @@ jobs:
       - uses: actions/upload-artifact@v2
         with:
           name: input-artifacts
-          path: ${ARTIFACTS}
+          path: ${{ steps.prepare.outputs.artifacts }}
