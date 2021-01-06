@@ -20,6 +20,12 @@ jobs:
       ${{ github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success' }}
     steps:
+      - name: Temp
+        env:
+          GITHUB: ${{toJson(github)}}
+        run: |
+          echo "${GITHUB}"
+
       - name: Download artifacts
         # It would have been nice to be able to use actions/download-artifact@v2
         # for this, but as the artifacts are uploaded by another workflow it does
@@ -47,11 +53,8 @@ jobs:
 
 
       - name: Set needed env vars in outputs
-        env:
-          GITHUB: ${{toJson(github)}}
         id: prepare
         run: |
-          echo "${GITHUB}"
           unzip input.zip
           echo current directory contents
           ls -al
