@@ -70,8 +70,8 @@ jobs:
           echo "New version files: ${tmp}"
           echo "::set-output name=new_files::${tmp}"
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+#      - name: Setup tmate session
+#        uses: mxschmitt/action-tmate@v3
 
       - name: Check versions
         uses: wildfly/dep-tree-diff@master
