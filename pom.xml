@@ -184,7 +184,7 @@
         <version.org.jboss.classfilewriter>1.2.4.Final</version.org.jboss.classfilewriter>
         <version.org.jboss.invocation>1.6.0.Final</version.org.jboss.invocation>
         <version.org.jboss.jandex>2.2.3.Final</version.org.jboss.jandex>
-        <version.org.jboss.jboss-dmr>1.5.1.Final</version.org.jboss.jboss-dmr>
+        <version.org.jboss.jboss-dmr>1.6.0.Beta2-SNAPSHOT</version.org.jboss.jboss-dmr>
         <version.org.jboss.jboss-vfs>3.2.15.Final</version.org.jboss.jboss-vfs>
         <version.org.jboss.logging.commons-logging-jboss-logging>1.0.0.Final</version.org.jboss.logging.commons-logging-jboss-logging>
         <version.org.jboss.logging.jboss-logging>3.4.1.Final</version.org.jboss.logging.jboss-logging>
@@ -251,6 +251,7 @@
         <module>discovery</module>
         <module>domain-http</module>
         <module>domain-management</module>
+        <module>expression-resolver-policy</module>
         <module>elytron</module>
         <module>embedded</module>
         <module>event-logger</module>
@@ -1548,6 +1549,11 @@
             <dependency>
                 <groupId>org.wildfly.core</groupId>
                 <artifactId>wildfly-event-logger</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wildfly.core</groupId>
+                <artifactId>wildfly-expression-resolver-policy</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

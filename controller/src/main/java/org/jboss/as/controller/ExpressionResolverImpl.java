@@ -354,6 +354,7 @@ public class ExpressionResolverImpl implements ExpressionResolver {
                 // resolveStandardExpression made progress
                 result = resolvedString;
             } // else there is nothing more we can do with this string
+
         } else {
             // resolvePluggableExpression made progress
             result = resolveNode.asString();
@@ -381,8 +382,8 @@ public class ExpressionResolverImpl implements ExpressionResolver {
         } catch (IllegalStateException e) {
             return unresolved.asString();
         }
-
     }
+
 
     private static String getStringToResolve(String initialValue, Stack<OpenExpression> stack, int expressionEndIndex) {
         int stackSize = stack.size();
