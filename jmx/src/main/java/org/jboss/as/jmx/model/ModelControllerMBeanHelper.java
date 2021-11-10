@@ -261,6 +261,7 @@ public class ModelControllerMBeanHelper {
     }
 
     MBeanInfo getMBeanInfo(final ObjectName name) throws InstanceNotFoundException {
+        System.out.println("---- getMBeanInfo(): " + name);
         final ManagementModelIntegration.ResourceAndRegistration reg = getRootResourceAndRegistration();
         final PathAddress address = resolvePathAddress(name, reg);
         if (address == null) {
@@ -424,6 +425,7 @@ public class ModelControllerMBeanHelper {
 
     Object invoke(ObjectName name, String operationName, Object[] params, String[] signature) throws InstanceNotFoundException, MBeanException, ReflectionException {
         Assert.checkNotNullParam("operationName", operationName);
+        System.out.println("---- invoke(): " + name);
         if (params == null) {
             params = new Object[0];
         }

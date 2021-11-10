@@ -141,6 +141,7 @@ class TypeConverters {
 
     TypeConverter getConverter(AttributeDefinition attributeDefinition, ModelType modelType, ModelNode valueTypeNode) {
         switch (modelType) {
+        //switch (attributeDefinition.getType()) {
             case BIG_DECIMAL:
                 return expressions ? BIG_DECIMAL_EXPR : BIG_DECIMAL_NO_EXPR;
             case BIG_INTEGER:

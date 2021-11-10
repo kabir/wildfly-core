@@ -276,6 +276,9 @@ public class MBeanInfoFactory {
             String name = prop.getName();
             ModelNode value = prop.getValue();
             AttributeDefinition attributeDefinition = attributeDefinitions.get(name);
+            if (attributeDefinition == null) {
+                System.out.println("----> " + opDef.getName() + " - " + name);
+            }
 
             String paramName = NameConverter.convertToCamelCase(name);
 
