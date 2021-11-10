@@ -52,6 +52,7 @@ public class DefaultResourceAddDescriptionProvider implements DescriptionProvide
 
     private static AttributeDefinition INDEX = SimpleAttributeDefinitionBuilder.create(ModelDescriptionConstants.ADD_INDEX, ModelType.INT, true).build();
 
+
     private final ImmutableManagementResourceRegistration registration;
     final ResourceDescriptionResolver descriptionResolver;
     final boolean orderedChildResource;
@@ -69,37 +70,87 @@ public class DefaultResourceAddDescriptionProvider implements DescriptionProvide
         this.orderedChildResource = orderedChildResource;
     }
 
+//    @Override
+//    public ModelNode getModelDescription(Locale locale) {
+//        ModelNode result = new ModelNode();
+//
+//        final ResourceBundle bundle = descriptionResolver.getResourceBundle(locale);
+//        result.get(OPERATION_NAME).set(ADD);
+//        result.get(DESCRIPTION).set(descriptionResolver.getOperationDescription(ADD, locale, bundle));
+//
+//        // Sort the attribute descriptions based on attribute group and then attribute name
+//        Set<String> attributeNames = registration.getAttributeNames(PathAddress.EMPTY_ADDRESS);
+//
+//        Map<AttributeDefinition.NameAndGroup, ModelNode> sortedDescriptions = new TreeMap<>();
+//        for (String attr : attributeNames)  {
+//            AttributeAccess attributeAccess = registration.getAttributeAccess(PathAddress.EMPTY_ADDRESS, attr);
+//            if (attributeAccess.getStorageType() == AttributeAccess.Storage.CONFIGURATION) {
+//                AttributeDefinition def = attributeAccess.getAttributeDefinition();
+//                if (def != null) {
+//                    if (!def.isResourceOnly()){
+//                        addAttributeDescriptionToMap(sortedDescriptions, def, locale, bundle);
+//                    }
+//                } else {
+//                    // Just stick in a placeholder;
+//                    sortedDescriptions.put(new AttributeDefinition.NameAndGroup(attr), new ModelNode());
+//                }
+//            }
+//        }
+//
+//        if (orderedChildResource) {
+//            //Add the index property to the add operation
+//            addAttributeDescriptionToMap(sortedDescriptions, INDEX, locale, bundle);
+//        }
+//
+//        // Store the sorted descriptions into the overall result
+//        final ModelNode params = result.get(REQUEST_PROPERTIES).setEmptyObject();
+//        for (Map.Entry<AttributeDefinition.NameAndGroup, ModelNode> entry : sortedDescriptions.entrySet()) {
+//            params.get(entry.getKey().getName()).set(entry.getValue());
+//        }
+//
+//        //This is auto-generated so don't add any access constraints
+//
+//        result.get(REPLY_PROPERTIES).setEmptyObject();
+//
+//
+//        return result;
+//    }
+
     @Override
     public ModelNode getModelDescription(Locale locale) {
-        ModelNode result = new ModelNode();
-
         final ResourceBundle bundle = descriptionResolver.getResourceBundle(locale);
+        final Map<AttributeDefinition.NameAndGroup, ModelNode> sortedDescriptions = new TreeMap<>();
+
+        AttributeCollector collector = new AttributeCollector() {
+            @Override
+            public void attributeFound(AttributeDefinition def) {
+                addAttributeDescriptionToMap(def, locale, bundle);
+            }
+
+            @Override
+            public void attributeWithNoDefinition(String attrName) {
+                sortedDescriptions.put(new AttributeDefinition.NameAndGroup(attrName), new ModelNode());
+            }
+
+            @Override
+            public void addIndexAttribute() {
+                addAttributeDescriptionToMap(INDEX, locale, bundle);
+            }
+
+            private void addAttributeDescriptionToMap(AttributeDefinition def, Locale locale, ResourceBundle bundle) {
+                ModelNode attrDesc = new ModelNode();
+                // def will add the description to attrDesc under "request-properties" => { attr
+                def.addOperationParameterDescription(attrDesc, ADD, descriptionResolver, locale, bundle);
+                sortedDescriptions.put(new AttributeDefinition.NameAndGroup(def), attrDesc.get(REQUEST_PROPERTIES, def.getName()));
+            }
+        };
+
+        iterateResourceParameters(collector);
+
+        ModelNode result = new ModelNode();
         result.get(OPERATION_NAME).set(ADD);
         result.get(DESCRIPTION).set(descriptionResolver.getOperationDescription(ADD, locale, bundle));
 
-        // Sort the attribute descriptions based on attribute group and then attribute name
-        Set<String> attributeNames = registration.getAttributeNames(PathAddress.EMPTY_ADDRESS);
-
-        Map<AttributeDefinition.NameAndGroup, ModelNode> sortedDescriptions = new TreeMap<>();
-        for (String attr : attributeNames)  {
-            AttributeAccess attributeAccess = registration.getAttributeAccess(PathAddress.EMPTY_ADDRESS, attr);
-            if (attributeAccess.getStorageType() == AttributeAccess.Storage.CONFIGURATION) {
-                AttributeDefinition def = attributeAccess.getAttributeDefinition();
-                if (def != null) {
-                    if (!def.isResourceOnly()){
-                        addAttributeDescriptionToMap(sortedDescriptions, def, locale, bundle);
-                    }
-                } else {
-                    // Just stick in a placeholder;
-                    sortedDescriptions.put(new AttributeDefinition.NameAndGroup(attr), new ModelNode());
-                }
-            }
-        }
-
-        if (orderedChildResource) {
-            //Add the index property to the add operation
-            addAttributeDescriptionToMap(sortedDescriptions, INDEX, locale, bundle);
-        }
 
         // Store the sorted descriptions into the overall result
         final ModelNode params = result.get(REQUEST_PROPERTIES).setEmptyObject();
@@ -113,12 +164,40 @@ public class DefaultResourceAddDescriptionProvider implements DescriptionProvide
 
 
         return result;
+
     }
 
-    private void addAttributeDescriptionToMap(Map<AttributeDefinition.NameAndGroup, ModelNode> sortedDescriptions, AttributeDefinition def, Locale locale, ResourceBundle bundle) {
-        ModelNode attrDesc = new ModelNode();
-        // def will add the description to attrDesc under "request-properties" => { attr
-        def.addOperationParameterDescription(attrDesc, ADD, descriptionResolver, locale, bundle);
-        sortedDescriptions.put(new AttributeDefinition.NameAndGroup(def), attrDesc.get(REQUEST_PROPERTIES, def.getName()));
+
+    private void iterateResourceParameters(AttributeCollector attributeCollector) {
+        // Sort the attribute descriptions based on attribute group and then attribute name
+        Set<String> attributeNames = registration.getAttributeNames(PathAddress.EMPTY_ADDRESS);
+
+        for (String attr : attributeNames)  {
+            AttributeAccess attributeAccess = registration.getAttributeAccess(PathAddress.EMPTY_ADDRESS, attr);
+            if (attributeAccess.getStorageType() == AttributeAccess.Storage.CONFIGURATION) {
+                AttributeDefinition def = attributeAccess.getAttributeDefinition();
+                if (def != null) {
+                    if (!def.isResourceOnly()){
+                        attributeCollector.attributeFound(def);
+                    }
+                } else {
+                    // We may want to put in a placeholder
+                    attributeCollector.attributeWithNoDefinition(attr);
+                }
+            }
+        }
+
+        if (orderedChildResource) {
+            //Add the index property to the add operation
+            attributeCollector.addIndexAttribute();
+        }
+    }
+
+    private interface AttributeCollector {
+        void attributeFound(AttributeDefinition attrDef);
+
+        void attributeWithNoDefinition(String attrName);
+
+        void addIndexAttribute();
     }
 }

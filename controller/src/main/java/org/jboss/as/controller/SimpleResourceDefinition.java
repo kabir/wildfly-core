@@ -423,11 +423,11 @@ public class SimpleResourceDefinition implements ResourceDefinition {
                                , handler);
 
         } else {
-            registration.registerOperationHandler(getOperationDefinition(ModelDescriptionConstants.ADD,
-                    new DefaultResourceAddDescriptionProvider(registration, descriptionResolver, orderedChild),
-                    parameters,
-                    OperationEntry.EntryType.PUBLIC,
-                    flags)
+            DefaultResourceAddDescriptionProvider provider =
+                    new DefaultResourceAddDescriptionProvider(registration, descriptionResolver, orderedChild);
+            registration.registerOperationHandler(
+                    getOperationDefinition(
+                            ModelDescriptionConstants.ADD, provider, parameters, OperationEntry.EntryType.PUBLIC, flags)
                     , handler);
         }
     }
