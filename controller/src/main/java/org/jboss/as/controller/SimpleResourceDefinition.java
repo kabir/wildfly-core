@@ -425,9 +425,11 @@ public class SimpleResourceDefinition implements ResourceDefinition {
         } else {
             DefaultResourceAddDescriptionProvider provider =
                     new DefaultResourceAddDescriptionProvider(registration, descriptionResolver, orderedChild);
+            Collection<? extends AttributeDefinition> opParams =
+                    provider.mergeOperationParametersWithResourceAttributes(parameters);
             registration.registerOperationHandler(
                     getOperationDefinition(
-                            ModelDescriptionConstants.ADD, provider, parameters, OperationEntry.EntryType.PUBLIC, flags)
+                            ModelDescriptionConstants.ADD, provider, opParams, OperationEntry.EntryType.PUBLIC, flags)
                     , handler);
         }
     }
@@ -453,9 +455,14 @@ public class SimpleResourceDefinition implements ResourceDefinition {
      */
     protected void registerAddOperation(final ManagementResourceRegistration registration, final AbstractAddStepHandler handler,
                                         OperationEntry.Flag... flags) {
-        registration.registerOperationHandler(getOperationDefinition(ModelDescriptionConstants.ADD,
-                new DefaultResourceAddDescriptionProvider(registration, descriptionResolver, orderedChild), handler.getAttributes(), OperationEntry.EntryType.PUBLIC, flags)
-                , handler);
+        DefaultResourceAddDescriptionProvider provider =
+                new DefaultResourceAddDescriptionProvider(registration, descriptionResolver, orderedChild);
+        Collection<? extends AttributeDefinition> opParams =
+                provider.mergeOperationParametersWithResourceAttributes(handler.getAttributes());
+        registration.registerOperationHandler(
+                getOperationDefinition(ModelDescriptionConstants.ADD, provider, opParams,
+                        OperationEntry.EntryType.PUBLIC, flags),
+                handler);
     }
 
     @Deprecated
@@ -463,9 +470,11 @@ public class SimpleResourceDefinition implements ResourceDefinition {
     protected void registerRemoveOperation(final ManagementResourceRegistration registration, final OperationStepHandler handler,
                                            OperationEntry.Flag... flags) {
         if (handler instanceof DescriptionProvider) {
-            registration.registerOperationHandler(getOperationDefinition(ModelDescriptionConstants.REMOVE,
-                                            (DescriptionProvider) handler, Collections.emptyList(), OperationEntry.EntryType.PUBLIC,flags)
-                                           , handler);
+            registration.registerOperationHandler(
+                    getOperationDefinition(
+                            ModelDescriptionConstants.REMOVE, (DescriptionProvider) handler, Collections.emptyList(),
+                            OperationEntry.EntryType.PUBLIC, flags),
+                    handler);
         } else {
             OperationDefinition opDef = new SimpleOperationDefinitionBuilder(ModelDescriptionConstants.REMOVE, descriptionResolver)
                     .withFlags(flags)
