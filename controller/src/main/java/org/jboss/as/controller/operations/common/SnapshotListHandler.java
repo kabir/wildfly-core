@@ -57,6 +57,7 @@ public class SnapshotListHandler implements OperationStepHandler {
             .build();
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, ControllerResolver.getResolver("snapshot"))
+            .setReplyType(ModelType.OBJECT)
             .setReplyParameters(DIRECTORY, NAMES)
             .setReadOnly()
             .setRuntimeOnly()

@@ -66,6 +66,7 @@ public class ValidateAddressOperationHandler implements OperationStepHandler {
 
     public static final OperationDefinition DEFINITION = new SimpleOperationDefinitionBuilder(OPERATION_NAME, ControllerResolver.getResolver("global"))
         .addParameter(VALUE_PARAM)
+        .setReplyType(ModelType.OBJECT)
         .setReplyParameters(
                 SimpleAttributeDefinitionBuilder.create(VALID, ModelType.BOOLEAN).build(),
                 SimpleAttributeDefinitionBuilder.create(PROBLEM, ModelType.STRING)
