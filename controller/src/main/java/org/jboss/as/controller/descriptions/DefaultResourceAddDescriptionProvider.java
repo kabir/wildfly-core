@@ -287,4 +287,9 @@ public class DefaultResourceAddDescriptionProvider implements DescriptionProvide
             return sortedDescriptions.values();
         }
     }
+
+    @Override
+    public ResourceDescriptionResolver getDescriptionResolver() {
+        return descriptionResolver;
+    }
 }

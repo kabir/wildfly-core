@@ -67,4 +67,9 @@ public class DefaultNotificationDescriptionProvider implements DescriptionProvid
 
         return result;
     }
+
+    @Override
+    public ResourceDescriptionResolver getDescriptionResolver() {
+        return descriptionResolver;
+    }
 }

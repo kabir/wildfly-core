@@ -46,6 +46,7 @@ import org.jboss.as.controller.access.AuthorizationResult;
 import org.jboss.as.controller.access.management.SensitiveTargetAccessConstraintDefinition;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.common.ControllerResolver;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.as.controller.registry.ImmutableManagementResourceRegistration;
@@ -205,5 +206,10 @@ public class GenericSubsystemDescribeHandler implements OperationStepHandler, De
     public ModelNode getModelDescription(Locale locale) {
         // This is a private operation, so we should not be getting requests for descriptions
         return DEFINITION.getDescriptionProvider().getModelDescription(locale);
+    }
+
+    @Override
+    public ResourceDescriptionResolver getDescriptionResolver() {
+        return DEFINITION.getDescriptionProvider().getDescriptionResolver();
     }
 }

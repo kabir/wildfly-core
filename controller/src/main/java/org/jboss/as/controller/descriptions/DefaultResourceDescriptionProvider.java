@@ -241,4 +241,9 @@ public class DefaultResourceDescriptionProvider implements DescriptionProvider {
         Collections.reverse(elements);
         return PathAddress.pathAddress(elements.toArray(new PathElement[elements.size()]));
     }
+
+    @Override
+    public ResourceDescriptionResolver getDescriptionResolver() {
+        return descriptionResolver;
+    }
 }

@@ -82,6 +82,8 @@ import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
+import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.operations.common.ValidateAddressOperationHandler;
 import org.jboss.as.controller.registry.AttributeAccess;
 import org.jboss.as.controller.registry.AttributeAccess.AccessType;
@@ -115,6 +117,7 @@ public class MBeanInfoFactory {
     private final ConfiguredDomains configuredDomains;
     private final MutabilityChecker mutabilityChecker;
     private final ImmutableManagementResourceRegistration resourceRegistration;
+    private final ResourceDescriptionResolver resolver;
     private final ModelNode providedDescription;
     private final PathAddress pathAddress;
     private final boolean legacy;
@@ -128,6 +131,8 @@ public class MBeanInfoFactory {
         this.resourceRegistration = resourceRegistration;
         DescriptionProvider provider = resourceRegistration.getModelDescription(PathAddress.EMPTY_ADDRESS);
         providedDescription = provider != null ? provider.getModelDescription(null) : new ModelNode();
+        // TODO Is NonResolvingResourceDescriptionResolver the right choice in the null case?
+        resolver = provider != null ? provider.getDescriptionResolver() : new NonResolvingResourceDescriptionResolver();
         this.pathAddress = address;
     }
 
@@ -137,7 +142,7 @@ public class MBeanInfoFactory {
 
     private MBeanInfo createMBeanInfo() {
         return new OpenMBeanInfoSupport(ModelControllerMBeanHelper.CLASS_NAME,
-                getDescription(providedDescription),
+                resolver.getResourceDescription(null, resolver.getResourceBundle(null)),
                 getAttributes(),
                 getConstructors(),
                 getOperations(),
@@ -157,23 +162,25 @@ public class MBeanInfoFactory {
         return description;
     }
 
+    private String getDescription(AttributeDefinition attributeDefinition, ModelNode node) {
+        return resolver.getResourceAttributeDescription(attributeDefinition.getName(), null, resolver.getResourceBundle(null));
+    }
+
     private OpenMBeanAttributeInfo[] getAttributes() {
-        List<OpenMBeanAttributeInfo> infos = new LinkedList<OpenMBeanAttributeInfo>();
-        if (providedDescription.hasDefined(ATTRIBUTES)) {
-            for (final String name : providedDescription.require(ATTRIBUTES).keys()) {
-                OpenMBeanAttributeInfo attributeInfo = getAttribute(name);
-                if (attributeInfo != null) {
-                    infos.add(getAttribute(name));
-                }
+        List<OpenMBeanAttributeInfo> infos = new LinkedList<>();
+        Map<String, AttributeAccess> attributes = resourceRegistration.getAttributes(PathAddress.EMPTY_ADDRESS);
+        for (Map.Entry<String, AttributeAccess> attributeEntry : attributes.entrySet()) {
+            OpenMBeanAttributeInfo attributeInfo = getAttribute(attributeEntry.getValue(), attributeEntry.getKey());
+            if (attributeInfo != null) {
+                infos.add(attributeInfo);
             }
         }
         return infos.toArray(new OpenMBeanAttributeInfo[infos.size()]);
     }
 
-    private OpenMBeanAttributeInfo getAttribute(String name) {
+    private OpenMBeanAttributeInfo getAttribute(AttributeAccess access, String name) {
         final String escapedName = NameConverter.convertToCamelCase(name);
         ModelNode attribute = providedDescription.require(ATTRIBUTES).require(name);
-        AttributeAccess access = resourceRegistration.getAttributeAccess(PathAddress.EMPTY_ADDRESS, name);
         if (access == null) {
             // Check for a bogus attribute in the description that's really a child
             Set<String> childTypes = resourceRegistration.getChildNames(PathAddress.EMPTY_ADDRESS);
@@ -181,11 +188,11 @@ public class MBeanInfoFactory {
                 return null;
             }
         }
-        final boolean writable = mutabilityChecker.mutable(pathAddress) && (access != null && access.getAccessType() == AccessType.READ_WRITE);
+        final boolean writable = mutabilityChecker.mutable(pathAddress) && access.getAccessType() == AccessType.READ_WRITE;
 
         return new OpenMBeanAttributeInfoSupport(
                 escapedName,
-                getDescription(attribute),
+                getDescription(access.getAttributeDefinition(), attribute),
                 converters.convertToMBeanType(access.getAttributeDefinition(), attribute),
                 true,
                 writable,

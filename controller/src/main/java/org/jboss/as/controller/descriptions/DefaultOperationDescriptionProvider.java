@@ -244,4 +244,9 @@ public class DefaultOperationDescriptionProvider implements DescriptionProvider 
         return new ModelNode(ModelType.OBJECT); //todo rethink this
         //throw MESSAGES.operationReplyValueTypeRequired(operationName);
     }
+
+    @Override
+    public ResourceDescriptionResolver getDescriptionResolver() {
+        return descriptionResolver;
+    }
 }

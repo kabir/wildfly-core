@@ -29,8 +29,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import org.jboss.as.controller.CapabilityReferenceRecorder;
 
+import org.jboss.as.controller.CapabilityReferenceRecorder;
 import org.jboss.as.controller.OperationDefinition;
 import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
@@ -44,6 +44,7 @@ import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
 import org.jboss.as.controller.descriptions.OverrideDescriptionProvider;
+import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.dmr.ModelNode;
 import org.wildfly.common.Assert;
@@ -585,6 +586,12 @@ abstract class AbstractResourceRegistration implements ManagementResourceRegistr
                 children.get(entry.getKey()).set(entry.getValue());
             }
             return result;
+        }
+
+        @Override
+        public ResourceDescriptionResolver getDescriptionResolver() {
+            // TODO we should also take into account the override provider
+            return mainDescriptionProvider.getDescriptionResolver();
         }
     }
 }

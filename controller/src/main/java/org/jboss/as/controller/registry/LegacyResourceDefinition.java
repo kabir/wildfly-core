@@ -37,6 +37,8 @@ import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
+import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
+import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.Property;
 
@@ -103,6 +105,12 @@ public class LegacyResourceDefinition implements ResourceDefinition {
             @Override
             public ModelNode getModelDescription(Locale locale) {
                 return description;
+            }
+
+            @Override
+            public ResourceDescriptionResolver getDescriptionResolver() {
+                // TODO do we need the real thing?
+                return new NonResolvingResourceDescriptionResolver();
             }
         };
     }
@@ -174,5 +182,7 @@ public class LegacyResourceDefinition implements ResourceDefinition {
     public boolean isOrderedChild() {
         return false;
     }
+
+
 }
 

@@ -46,4 +46,12 @@ public interface DescriptionProvider {
      * @return {@link ModelNode} describing the model node's structure
      */
     ModelNode getModelDescription(Locale locale);
+
+    /**
+     * Gets the {@link ResourceDescriptionResolver} used to resolve internationalized descriptions for the
+     * resource description this description provider is attached to.
+     *
+     * @return the description resolver
+     */
+    ResourceDescriptionResolver getDescriptionResolver();
 }

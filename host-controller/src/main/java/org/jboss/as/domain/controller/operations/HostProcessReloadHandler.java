@@ -183,6 +183,11 @@ public class HostProcessReloadHandler extends ProcessReloadHandler<HostRunningMo
                             AttributeDefinition[] params = hostControllerInfo.isMasterDomainController() ? MASTER_ATTRIBUTES : SLAVE_ATTRIBUTES;
                             return new DefaultOperationDescriptionProvider(getName(), resolver, attributeResolver, replyType, replyValueType, replyAllowNull, deprecationData, replyParameters, params, accessConstraints).getModelDescription(locale);
                         }
+
+                        @Override
+                        public ResourceDescriptionResolver getDescriptionResolver() {
+                            return resolver;
+                        }
                     };
                 }
             };

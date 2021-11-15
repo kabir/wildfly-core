@@ -25,10 +25,12 @@
 package org.jboss.as.controller;
 
 import java.util.EnumSet;
+import java.util.Locale;
 
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.descriptions.DefaultOperationDescriptionProvider;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
+import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.registry.OperationEntry;
 import org.jboss.dmr.ModelNode;
@@ -136,6 +138,17 @@ public class SimpleOperationDefinition extends OperationDefinition {
         return new DefaultOperationDescriptionProvider(getName(), resolver, attributeResolver, replyType, replyValueType, replyAllowNull, deprecationData, replyParameters, parameters, accessConstraints);
     }
 
-    private static DescriptionProvider PRIVATE_PROVIDER = locale -> new ModelNode();
+    private static final NonResolvingResourceDescriptionResolver NOOP_RESOLVER = new NonResolvingResourceDescriptionResolver();
+    private static DescriptionProvider PRIVATE_PROVIDER = new DescriptionProvider() {
+        @Override
+        public ModelNode getModelDescription(Locale locale) {
+            return new ModelNode();
+        }
+
+        @Override
+        public ResourceDescriptionResolver getDescriptionResolver() {
+            return NOOP_RESOLVER;
+        }
+    };
 
 }

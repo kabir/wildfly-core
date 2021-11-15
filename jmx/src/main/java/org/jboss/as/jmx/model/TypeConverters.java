@@ -140,8 +140,41 @@ class TypeConverters {
     }
 
     TypeConverter getConverter(AttributeDefinition attributeDefinition, ModelType modelType, ModelNode valueTypeNode) {
+        if (attributeDefinition != null) {
+            switch (attributeDefinition.getType()) {
+                case BIG_DECIMAL:
+                    return expressions ? BIG_DECIMAL_EXPR : BIG_DECIMAL_NO_EXPR;
+                case BIG_INTEGER:
+                    return expressions ? BIG_INTEGER_EXPR : BIG_INTEGER_NO_EXPR;
+                case BOOLEAN:
+                    return expressions ? BOOLEAN_EXPR : BOOLEAN_NO_EXPR;
+                case BYTES:
+                    //Allowing expressions for byte[] seems pointless
+                    return BYTES_NO_EXPR;
+                case DOUBLE:
+                    return expressions ? DOUBLE_EXPR : DOUBLE_NO_EXPR;
+                case STRING:
+                    return expressions ? STRING_EXPR : STRING_NO_EXPR;
+//                case PROPERTY:
+//                    //For the legacy setup properties are converted to a dmr string
+//                    //For the expr setup or legacy with legacyWithProperPropertyFormat=true we use a composite type
+//                    return expressions || legacyWithProperPropertyFormat ? new PropertyTypeConverter(attributeDefinition, valueTypeNode) : PROPERTY_NO_EXPR;
+                case INT:
+                    return expressions ? INT_EXPR : INT_NO_EXPR;
+                case LONG:
+                    return expressions ? LONG_EXPR : LONG_NO_EXPR;
+                case TYPE:
+                    return expressions ? TYPE_EXPR : TYPE_NO_EXPR;
+                case UNDEFINED:
+                    return expressions ? UNDEFINED_EXPR : UNDEFINED_NO_EXPR;
+//                case OBJECT:
+//                    return new ObjectTypeConverter(attributeDefinition, valueTypeNode);
+//                case LIST:
+//                    return new ListTypeConverter(attributeDefinition, valueTypeNode);
+            }
+        }
+
         switch (modelType) {
-        //switch (attributeDefinition.getType()) {
             case BIG_DECIMAL:
                 return expressions ? BIG_DECIMAL_EXPR : BIG_DECIMAL_NO_EXPR;
             case BIG_INTEGER:

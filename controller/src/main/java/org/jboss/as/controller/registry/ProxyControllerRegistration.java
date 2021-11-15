@@ -46,6 +46,7 @@ import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
 import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.OverrideDescriptionProvider;
+import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.dmr.ModelNode;
 
@@ -426,6 +427,13 @@ final class ProxyControllerRegistration extends AbstractResourceRegistration imp
     @Override
     public Set<RuntimePackageDependency> getAdditionalRuntimePackages() {
         return Collections.emptySet();
+    }
+
+
+    @Override
+    public ResourceDescriptionResolver getDescriptionResolver() {
+        // TODO - is this actually needed for a proxy
+        return new NonResolvingResourceDescriptionResolver();
     }
 
     /**

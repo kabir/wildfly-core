@@ -41,7 +41,9 @@ import org.jboss.as.controller.ResourceDefinition;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.capability.RuntimeCapability;
 import org.jboss.as.controller.descriptions.DescriptionProvider;
+import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.controller.descriptions.OverrideDescriptionProvider;
+import org.jboss.as.controller.descriptions.ResourceDescriptionResolver;
 import org.jboss.as.controller.logging.ControllerLogger;
 import org.jboss.dmr.ModelNode;
 
@@ -355,5 +357,11 @@ final class AliasResourceRegistration extends AbstractResourceRegistration imple
     @Override
     public Set<RuntimePackageDependency> getAdditionalRuntimePackages() {
         return target.getAdditionalRuntimePackages();
+    }
+
+    @Override
+    public ResourceDescriptionResolver getDescriptionResolver() {
+        // TODO - replace with the real thing (from target?)
+        return new NonResolvingResourceDescriptionResolver();
     }
 }
