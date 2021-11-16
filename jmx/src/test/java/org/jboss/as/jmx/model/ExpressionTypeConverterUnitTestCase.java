@@ -976,7 +976,7 @@ public class ExpressionTypeConverterUnitTestCase {
     }
 
     private TypeConverter getConverter(AttributeDefinition attrDef, ModelNode description) {
-        return TypeConverters.createExpressionTypeConverters().getConverter(attrDef, description);
+        return TypeConverters.createExpressionTypeConverters().getConverter(attrDef, () -> description);
     }
 
     private ModelNode createDescription(ModelType type) {

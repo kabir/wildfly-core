@@ -39,9 +39,9 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.WRI
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.management.Attribute;
 import javax.management.AttributeList;
@@ -319,8 +319,11 @@ public class ModelControllerMBeanHelper {
         if (error != null) {
             throw new AttributeNotFoundException(error);
         }
-        ModelNode attrDesc = getAttributeDescription(attributeName, registration, attributes);
-        return converters.fromModelNode(attributes.get(attributeName).getAttributeDefinition(), attrDesc, result.get(RESULT));
+
+        return converters.fromModelNode(
+                attributes.get(attributeName).getAttributeDefinition(),
+                () -> getAttributeDescription(attributeName, registration, attributes),
+                result.get(RESULT));
     }
 
     private ModelNode getAttributeDescription(String attributeName, ImmutableManagementResourceRegistration registration, Map<String, AttributeAccess> attributes) {
@@ -396,8 +399,11 @@ public class ModelControllerMBeanHelper {
         op.get(OP_ADDR).set(address.toModelNode());
         op.get(NAME).set(attributeName);
         try {
-            ModelNode attrDesc = getAttributeDescription(attributeName, registration, attributes);
-            op.get(VALUE).set(converters.toModelNode(attributes.get(attributeName).getAttributeDefinition(), attrDesc, attribute.getValue()));
+            op.get(VALUE).set(
+                    converters.toModelNode(
+                            attributes.get(attributeName).getAttributeDefinition(),
+                            () -> getAttributeDescription(attributeName, registration, attributes),
+                            attribute.getValue()));
         } catch (ClassCastException e) {
             throw JmxLogger.ROOT_LOGGER.invalidAttributeType(e, attribute.getName());
         }
@@ -512,26 +518,37 @@ public class ModelControllerMBeanHelper {
         op.get(OP).set(operationName);
         op.get(OP_ADDR).set(address.toModelNode());
         if (params.length > 0) {
-            ModelNode requestProperties = description.require(REQUEST_PROPERTIES);
-            Set<String> keys = requestProperties.keys();
-            if (keys.size() != params.length) {
-                throw JmxLogger.ROOT_LOGGER.differentLengths("params", "description");
-            }
-            Iterator<String> it = requestProperties.keys().iterator();
-            for (Object param : params) {
-                String attributeName = it.next();
-                ModelNode paramDescription = requestProperties.get(attributeName);
-                AttributeDefinition[] attrs = entry.getOperationDefinition().getParameters();
-                AttributeDefinition attr = null;
-                if (attrs != null) {
-                    for (AttributeDefinition currAttr : attrs) {
-                        if (currAttr.getName().equals(attributeName)) {
-                            attr = currAttr;
-                            break;
-                        }
+            Supplier<ModelNode> requestPropertiesSupplier = new Supplier<ModelNode>() {
+                volatile ModelNode description;
+                volatile ModelNode requestProperties;
+
+                @Override
+                public ModelNode get() {
+                    if (description == null) {
+                        description = entry.getDescriptionProvider().getModelDescription(null);
                     }
+                    requestProperties = description.require(REQUEST_PROPERTIES);
+                    Set<String> keys = requestProperties.keys();
+                    if (keys.size() != params.length) {
+                        throw JmxLogger.ROOT_LOGGER.differentLengths("params", "description");
+                    }
+                    return requestProperties;
                 }
-                op.get(attributeName).set(converters.toModelNode(attr, paramDescription, param));
+            };
+            AttributeDefinition[] definitionParameters = entry.getOperationDefinition().getParameters();
+            if (definitionParameters.length != params.length) {
+                // This is an internal safeguard indicating a bug - users should not see this
+                throw JmxLogger.ROOT_LOGGER.differentLengths("params", "operation definition parameters");
+            }
+            int index = 0;
+            for (Object param : params) {
+                AttributeDefinition attr = definitionParameters[index];
+                op.get(attr.getName()).set(
+                        converters.toModelNode(
+                                attr,
+                                () -> requestPropertiesSupplier.get().get(attr.getName()),
+                                param));
+                index++;
             }
         }
 
@@ -560,7 +577,7 @@ public class ModelControllerMBeanHelper {
         if (replyParams != null && replyParams.length > 0) {
             reply = replyParams[0];
         }
-        return converters.fromModelNode(reply, description.get(REPLY_PROPERTIES), result.get(RESULT));
+        return converters.fromModelNode(reply, () -> description.get(REPLY_PROPERTIES), result.get(RESULT));
     }
 
     private ManagementModelIntegration.ResourceAndRegistration getRootResourceAndRegistration() {

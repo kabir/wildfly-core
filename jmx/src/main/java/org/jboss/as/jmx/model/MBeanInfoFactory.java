@@ -193,7 +193,7 @@ public class MBeanInfoFactory {
         return new OpenMBeanAttributeInfoSupport(
                 escapedName,
                 getDescription(access.getAttributeDefinition(), attribute),
-                converters.convertToMBeanType(access.getAttributeDefinition(), attribute),
+                converters.convertToMBeanType(access.getAttributeDefinition(), () -> attribute),
                 true,
                 writable,
                 false,
@@ -323,7 +323,7 @@ public class MBeanInfoFactory {
                     new OpenMBeanParameterInfoSupport(
                             paramName,
                             getDescription(value),
-                            converters.convertToMBeanType(attributeDefinition, value),
+                            converters.convertToMBeanType(attributeDefinition, () -> value),
                             new ImmutableDescriptor(descriptions)));
 
         }
@@ -341,7 +341,7 @@ public class MBeanInfoFactory {
     private Object getIfExists(AttributeDefinition attributeDefinition, final ModelNode parentNode, final String name) {
         if (parentNode.has(name)) {
             ModelNode defaultNode = parentNode.get(name);
-            return converters.fromModelNode(attributeDefinition, parentNode, defaultNode);
+            return converters.fromModelNode(attributeDefinition, () -> parentNode, defaultNode);
         } else {
             return null;
         }
@@ -350,7 +350,7 @@ public class MBeanInfoFactory {
     private Comparable<?> getIfExistsAsComparable(AttributeDefinition attributeDefinition, final ModelNode parentNode, final String name) {
         if (parentNode.has(name)) {
             ModelNode defaultNode = parentNode.get(name);
-            Object value = converters.fromModelNode(attributeDefinition, parentNode, defaultNode);
+            Object value = converters.fromModelNode(attributeDefinition, () -> parentNode, defaultNode);
             if (value instanceof Comparable) {
                 return (Comparable<?>) value;
             }
@@ -368,7 +368,7 @@ public class MBeanInfoFactory {
 
         //TODO might have more than one REPLY_PROPERTIES?
         ModelNode reply = opNode.get(REPLY_PROPERTIES);
-        return converters.convertToMBeanType(null, reply);
+        return converters.convertToMBeanType(null, () -> reply);
     }
 
     private MBeanNotificationInfo[] getNotifications() {

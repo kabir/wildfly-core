@@ -365,9 +365,9 @@ public class ModelControllerMBeanServerPlugin extends BaseMBeanServerPlugin {
                     AttributeDefinition attrDef = reg.getAttributeAccess(PathAddress.EMPTY_ADDRESS, attributeName).getAttributeDefinition();
 
                     TypeConverters converters = getHelper(source).getConverters();
-                    Object oldValue = converters.fromModelNode(attrDef, attributeDescription, data.get(GlobalNotifications.OLD_VALUE));
-                    Object newValue = converters.fromModelNode(attrDef, attributeDescription, data.get(GlobalNotifications.NEW_VALUE));
-                    String attributeType = converters.convertToMBeanType(attrDef, attributeDescription).getTypeName();
+                    Object oldValue = converters.fromModelNode(attrDef, () -> attributeDescription, data.get(GlobalNotifications.OLD_VALUE));
+                    Object newValue = converters.fromModelNode(attrDef, () -> attributeDescription, data.get(GlobalNotifications.NEW_VALUE));
+                    String attributeType = converters.convertToMBeanType(attrDef, () -> attributeDescription).getTypeName();
                     jmxNotification = new AttributeChangeNotification(source, sequenceNumber, timestamp, message, jmxAttributeName, attributeType, oldValue, newValue);
 
                 } catch (InstanceNotFoundException e) {

@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import javax.management.openmbean.ArrayType;
@@ -100,11 +101,11 @@ class TypeConverters {
         return new TypeConverters(true, true);
     }
 
-    OpenType<?> convertToMBeanType(AttributeDefinition attributeDefinition, final ModelNode description) {
+    OpenType<?> convertToMBeanType(AttributeDefinition attributeDefinition, final Supplier<ModelNode> description) {
         return getConverter(attributeDefinition, description).getOpenType();
     }
 
-    ModelNode toModelNode(AttributeDefinition attributeDefinition, final ModelNode description, final Object value) {
+    ModelNode toModelNode(AttributeDefinition attributeDefinition, final Supplier<ModelNode> description, final Object value) {
         ModelNode node = new ModelNode();
         if (value == null) {
             return node;
@@ -112,7 +113,7 @@ class TypeConverters {
         return getConverter(attributeDefinition, description).toModelNode(value);
     }
 
-    Object fromModelNode(AttributeDefinition attributeDefinition, final ModelNode description, final ModelNode value) {
+    Object fromModelNode(AttributeDefinition attributeDefinition, final Supplier<ModelNode> description, final ModelNode value) {
         if (value == null || !value.isDefined()) {
             return null;
         }
@@ -132,12 +133,39 @@ class TypeConverters {
 
     // TODO WFCORE-3551 stop using the full attribute description for this, particularly
     // for non-OBJECT/LIST/PROPERTY where all we need is the ModelType
-    TypeConverter getConverter(AttributeDefinition attributeDefinition, ModelNode description) {
+    TypeConverter getConverter(AttributeDefinition attributeDefinition, Supplier<ModelNode> descriptionSupplier) {
+        if (isSimpleType(attributeDefinition)) {
+            return getConverter(attributeDefinition, (ModelType)null, null);
+        }
+
+        ModelNode description = descriptionSupplier.get();
         return getConverter(
                 attributeDefinition,
                 description.hasDefined(TYPE) ? description.get(TYPE) : null,
                 description.hasDefined(VALUE_TYPE) ? description.get(VALUE_TYPE) : null);
     }
+
+
+    private boolean isSimpleType(AttributeDefinition attributeDefinition) {
+        if (attributeDefinition != null) {
+            switch (attributeDefinition.getType()) {
+                case BIG_DECIMAL:
+                case BIG_INTEGER:
+                case BOOLEAN:
+                case BYTES:
+                case DOUBLE:
+                case STRING:
+                case INT:
+                case LONG:
+                case TYPE:
+                case UNDEFINED:
+                    return true;
+            }
+        }
+        return false;
+    }
+
+
 
     TypeConverter getConverter(AttributeDefinition attributeDefinition, ModelType modelType, ModelNode valueTypeNode) {
         if (attributeDefinition != null) {

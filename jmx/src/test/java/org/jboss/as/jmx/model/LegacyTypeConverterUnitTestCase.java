@@ -217,7 +217,7 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testProperPropertyTypeConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY);
-        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, description);
+        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, () -> description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -241,7 +241,7 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testProperPropertyValueTypeConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY, ModelType.INT);
-        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, description);
+        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, () -> description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -710,7 +710,7 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testProperPropertyTypeExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY);
-        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, description);
+        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, () -> description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -734,7 +734,7 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testProperPropertyValueTypeExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY, ModelType.INT);
-        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, description);
+        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, () -> description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -1039,7 +1039,7 @@ public class LegacyTypeConverterUnitTestCase {
     }
 
     private TypeConverter getConverter(AttributeDefinition attrDef, ModelNode description) {
-        return TypeConverters.createLegacyTypeConverters(false).getConverter(attrDef, description);
+        return TypeConverters.createLegacyTypeConverters(false).getConverter(attrDef, () -> description);
     }
 
     private ModelNode createDescription(ModelType type) {
