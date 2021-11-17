@@ -85,7 +85,7 @@ import org.wildfly.common.Assert;
  */
 public class ModelControllerMBeanHelper {
 
-    private static final Set<ModelType> COMPLEX_TYPES = Collections.unmodifiableSet(EnumSet.of(ModelType.LIST, ModelType.OBJECT, ModelType.PROPERTY));
+    static final Set<ModelType> COMPLEX_TYPES = Collections.unmodifiableSet(EnumSet.of(ModelType.LIST, ModelType.OBJECT, ModelType.PROPERTY));
 
     static final String CLASS_NAME = ModelController.class.getName();
     private static final String AUTHORIZED_ERROR = "WFLYCTL0313";
@@ -513,6 +513,7 @@ public class ModelControllerMBeanHelper {
             throw JmxLogger.ROOT_LOGGER.notAuthorizedToExecuteOperation(operationName);
         }
 
+        // TODO make lazy once we've dealt with the return parameters
         final ModelNode description = entry.getDescriptionProvider().getModelDescription(null);
         ModelNode op = new ModelNode();
         op.get(OP).set(operationName);

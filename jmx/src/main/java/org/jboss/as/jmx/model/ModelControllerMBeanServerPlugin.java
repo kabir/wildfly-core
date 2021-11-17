@@ -27,6 +27,7 @@ import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RES
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import javax.management.Attribute;
@@ -360,14 +361,20 @@ public class ModelControllerMBeanServerPlugin extends BaseMBeanServerPlugin {
                 String jmxAttributeName = NameConverter.convertToCamelCase(attributeName);
                 try {
                     ImmutableManagementResourceRegistration reg = getHelper(source).getMBeanRegistration(source);
-                    ModelNode modelDescription = reg.getModelDescription(PathAddress.EMPTY_ADDRESS).getModelDescription(null);
-                    ModelNode attributeDescription = modelDescription.get(ATTRIBUTES, attributeName);
+
+                    Supplier<ModelNode> attributeDescriptionSupplier = new CachingSupplier<ModelNode>() {
+                        @Override
+                        protected ModelNode init() {
+                            ModelNode modelDescription = reg.getModelDescription(PathAddress.EMPTY_ADDRESS).getModelDescription(null);
+                            return modelDescription.get(ATTRIBUTES, attributeName);
+                        }
+                    };
                     AttributeDefinition attrDef = reg.getAttributeAccess(PathAddress.EMPTY_ADDRESS, attributeName).getAttributeDefinition();
 
                     TypeConverters converters = getHelper(source).getConverters();
-                    Object oldValue = converters.fromModelNode(attrDef, () -> attributeDescription, data.get(GlobalNotifications.OLD_VALUE));
-                    Object newValue = converters.fromModelNode(attrDef, () -> attributeDescription, data.get(GlobalNotifications.NEW_VALUE));
-                    String attributeType = converters.convertToMBeanType(attrDef, () -> attributeDescription).getTypeName();
+                    Object oldValue = converters.fromModelNode(attrDef, attributeDescriptionSupplier, data.get(GlobalNotifications.OLD_VALUE));
+                    Object newValue = converters.fromModelNode(attrDef, attributeDescriptionSupplier, data.get(GlobalNotifications.NEW_VALUE));
+                    String attributeType = converters.convertToMBeanType(attrDef, attributeDescriptionSupplier).getTypeName();
                     jmxNotification = new AttributeChangeNotification(source, sequenceNumber, timestamp, message, jmxAttributeName, attributeType, oldValue, newValue);
 
                 } catch (InstanceNotFoundException e) {

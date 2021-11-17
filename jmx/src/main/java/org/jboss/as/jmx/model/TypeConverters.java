@@ -135,10 +135,12 @@ class TypeConverters {
     // for non-OBJECT/LIST/PROPERTY where all we need is the ModelType
     TypeConverter getConverter(AttributeDefinition attributeDefinition, Supplier<ModelNode> descriptionSupplier) {
         if (isSimpleType(attributeDefinition)) {
-            return getConverter(attributeDefinition, (ModelType)null, null);
+            return getConverter(attributeDefinition, (ModelType) null, null);
         }
+        return getConverter(attributeDefinition, descriptionSupplier.get());
+    }
 
-        ModelNode description = descriptionSupplier.get();
+    private TypeConverter getConverter(AttributeDefinition attributeDefinition, ModelNode description) {
         return getConverter(
                 attributeDefinition,
                 description.hasDefined(TYPE) ? description.get(TYPE) : null,
@@ -148,24 +150,10 @@ class TypeConverters {
 
     private boolean isSimpleType(AttributeDefinition attributeDefinition) {
         if (attributeDefinition != null) {
-            switch (attributeDefinition.getType()) {
-                case BIG_DECIMAL:
-                case BIG_INTEGER:
-                case BOOLEAN:
-                case BYTES:
-                case DOUBLE:
-                case STRING:
-                case INT:
-                case LONG:
-                case TYPE:
-                case UNDEFINED:
-                    return true;
-            }
+            return !ModelControllerMBeanHelper.COMPLEX_TYPES.contains(attributeDefinition.getType());
         }
         return false;
     }
-
-
 
     TypeConverter getConverter(AttributeDefinition attributeDefinition, ModelType modelType, ModelNode valueTypeNode) {
         if (attributeDefinition != null) {

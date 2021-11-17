@@ -118,7 +118,7 @@ public class MBeanInfoFactory {
     private final MutabilityChecker mutabilityChecker;
     private final ImmutableManagementResourceRegistration resourceRegistration;
     private final ResourceDescriptionResolver resolver;
-    private final ModelNode providedDescription;
+    private final CachingSupplier<ModelNode> providedDescriptionSupplier;
     private final PathAddress pathAddress;
     private final boolean legacy;
 
@@ -130,7 +130,12 @@ public class MBeanInfoFactory {
         this.legacy = configuredDomains.isLegacyDomain(name);
         this.resourceRegistration = resourceRegistration;
         DescriptionProvider provider = resourceRegistration.getModelDescription(PathAddress.EMPTY_ADDRESS);
-        providedDescription = provider != null ? provider.getModelDescription(null) : new ModelNode();
+        providedDescriptionSupplier = new CachingSupplier<ModelNode>() {
+            @Override
+            protected ModelNode init() {
+                return provider != null ? provider.getModelDescription(null) : new ModelNode();
+            }
+        };
         // TODO Is NonResolvingResourceDescriptionResolver the right choice in the null case?
         resolver = provider != null ? provider.getDescriptionResolver() : new NonResolvingResourceDescriptionResolver();
         this.pathAddress = address;
@@ -162,7 +167,7 @@ public class MBeanInfoFactory {
         return description;
     }
 
-    private String getDescription(AttributeDefinition attributeDefinition, ModelNode node) {
+    private String getDescription(AttributeDefinition attributeDefinition) {
         return resolver.getResourceAttributeDescription(attributeDefinition.getName(), null, resolver.getResourceBundle(null));
     }
 
@@ -180,7 +185,17 @@ public class MBeanInfoFactory {
 
     private OpenMBeanAttributeInfo getAttribute(AttributeAccess access, String name) {
         final String escapedName = NameConverter.convertToCamelCase(name);
-        ModelNode attribute = providedDescription.require(ATTRIBUTES).require(name);
+        CachingSupplier<ModelNode> attributeSupplier = new CachingSupplier<ModelNode>() {
+            ModelNode attribute;
+            @Override
+            protected ModelNode init() {
+                if (attribute == null) {
+                    attribute = providedDescriptionSupplier.get().require(ATTRIBUTES).require(name);
+                }
+                return attribute;
+            }
+        };
+
         if (access == null) {
             // Check for a bogus attribute in the description that's really a child
             Set<String> childTypes = resourceRegistration.getChildNames(PathAddress.EMPTY_ADDRESS);
@@ -192,12 +207,12 @@ public class MBeanInfoFactory {
 
         return new OpenMBeanAttributeInfoSupport(
                 escapedName,
-                getDescription(access.getAttributeDefinition(), attribute),
-                converters.convertToMBeanType(access.getAttributeDefinition(), () -> attribute),
+                getDescription(access.getAttributeDefinition()),
+                converters.convertToMBeanType(access.getAttributeDefinition(), attributeSupplier),
                 true,
                 writable,
                 false,
-                createAttributeDescriptor(attribute));
+                createAttributeDescriptor(attributeSupplier.get()));
     }
 
     private OpenMBeanConstructorInfo[] getConstructors() {
