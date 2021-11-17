@@ -277,7 +277,7 @@ public class MBeanInfoFactory {
             }
         };
         OperationDefinition opDef = entry.getOperationDefinition();
-        OpenMBeanParameterInfo[] params = getParameterInfos(opDef, descriptionSupplier);
+        OpenMBeanParameterInfo[] params = getParameterInfos(entry, descriptionSupplier);
         if (addWildcardChildName != null) {
             OpenMBeanParameterInfo[] newParams = new OpenMBeanParameterInfo[params.length + 1];
             newParams[0] = addWildcardChildName;
@@ -294,13 +294,14 @@ public class MBeanInfoFactory {
                 createOperationDescriptor());
     }
 
-    private OpenMBeanParameterInfo[] getParameterInfos(OperationDefinition opDef, Supplier<ModelNode> descriptionSupplier) {
+    private OpenMBeanParameterInfo[] getParameterInfos(OperationEntry opEntry, Supplier<ModelNode> descriptionSupplier) {
+        OperationDefinition opDef = opEntry.getOperationDefinition();
         ModelNode opNode = descriptionSupplier.get();
         if (!opNode.hasDefined(REQUEST_PROPERTIES)) {
             return EMPTY_PARAMETERS;
         }
         List<Property> propertyList = opNode.get(REQUEST_PROPERTIES).asPropertyList();
-        List<OpenMBeanParameterInfo> params = new ArrayList<OpenMBeanParameterInfo>(propertyList.size());
+        List<OpenMBeanParameterInfo> params = new ArrayList<>(propertyList.size());
 
         Map<String, AttributeDefinition> attributeDefinitions = new HashMap<>();
         AttributeDefinition[] attrs = opDef.getParameters();
@@ -362,6 +363,7 @@ public class MBeanInfoFactory {
     }
 
     private Set<?> fromModelNodes(final List<ModelNode> nodes) {
+
         Set<Object> values = new HashSet<Object>(nodes.size());
         for (ModelNode node : nodes) {
             values.add(converters.getConverter(null, ModelType.STRING,null).fromModelNode(node));
