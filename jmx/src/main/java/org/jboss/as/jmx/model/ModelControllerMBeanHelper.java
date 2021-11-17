@@ -322,30 +322,10 @@ public class ModelControllerMBeanHelper {
 
         return converters.fromModelNode(
                 attributes.get(attributeName).getAttributeDefinition(),
-                () -> getAttributeDescription(attributeName, registration, attributes),
+                new GetAttributeDescriptionSupplier(attributeName, registration, attributes),
                 result.get(RESULT));
     }
 
-    private ModelNode getAttributeDescription(String attributeName, ImmutableManagementResourceRegistration registration, Map<String, AttributeAccess> attributes) {
-        AttributeAccess aa = attributes.get(attributeName);
-        AttributeDefinition ad = aa.getAttributeDefinition();
-        ModelNode desc;
-        if (ad != null) {
-            if (!COMPLEX_TYPES.contains(ad.getType())) {
-                desc = ad.getNoTextDescription(false);
-            } else {
-                // the simple no-text description is not enough to get value-type; ask for the full desc
-                ModelNode wrapped = new ModelNode();
-                ad.addResourceAttributeDescription(wrapped, NonResolvingResourceDescriptionResolver.INSTANCE,
-                        null, NonResolvingResourceDescriptionResolver.INSTANCE.getResourceBundle(null));
-                desc = wrapped.get(ATTRIBUTES, attributeName);
-            }
-        } else {
-            // We shouldn't be getting here any more, but just in case
-            desc = registration.getModelDescription(PathAddress.EMPTY_ADDRESS).getModelDescription(null).get(ATTRIBUTES, attributeName);
-        }
-        return desc;
-    }
 
 
     void setAttribute(ObjectName name, Attribute attribute) throws InstanceNotFoundException, AttributeNotFoundException, InvalidAttributeValueException {
@@ -402,7 +382,7 @@ public class ModelControllerMBeanHelper {
             op.get(VALUE).set(
                     converters.toModelNode(
                             attributes.get(attributeName).getAttributeDefinition(),
-                            () -> getAttributeDescription(attributeName, registration, attributes),
+                            new GetAttributeDescriptionSupplier(attributeName, registration, attributes),
                             attribute.getValue()));
         } catch (ClassCastException e) {
             throw JmxLogger.ROOT_LOGGER.invalidAttributeType(e, attribute.getName());
@@ -519,16 +499,13 @@ public class ModelControllerMBeanHelper {
         op.get(OP).set(operationName);
         op.get(OP_ADDR).set(address.toModelNode());
         if (params.length > 0) {
-            Supplier<ModelNode> requestPropertiesSupplier = new Supplier<ModelNode>() {
-                volatile ModelNode description;
-                volatile ModelNode requestProperties;
-
+            Supplier<ModelNode> requestPropertiesSupplier = new CachingSupplier<ModelNode>() {
                 @Override
-                public ModelNode get() {
+                protected ModelNode init() {
                     if (description == null) {
-                        description = entry.getDescriptionProvider().getModelDescription(null);
                     }
-                    requestProperties = description.require(REQUEST_PROPERTIES);
+                    ModelNode description = entry.getDescriptionProvider().getModelDescription(null);
+                    ModelNode requestProperties = description.require(REQUEST_PROPERTIES);
                     Set<String> keys = requestProperties.keys();
                     if (keys.size() != params.length) {
                         throw JmxLogger.ROOT_LOGGER.differentLengths("params", "description");
@@ -721,6 +698,39 @@ public class ModelControllerMBeanHelper {
                 }
             }
             return result;
+        }
+    }
+
+    private static class GetAttributeDescriptionSupplier implements Supplier<ModelNode> {
+        private final String attributeName;
+        private final ImmutableManagementResourceRegistration registration;
+        private final Map<String, AttributeAccess> attributes;
+
+        GetAttributeDescriptionSupplier(String attributeName, ImmutableManagementResourceRegistration registration, Map<String, AttributeAccess> attributes) {
+            this.attributeName = attributeName;
+            this.registration = registration;
+            this.attributes = attributes;
+        }
+        @Override
+        public ModelNode get() {
+            AttributeAccess aa = attributes.get(attributeName);
+            AttributeDefinition ad = aa.getAttributeDefinition();
+            ModelNode desc;
+            if (ad != null) {
+                if (!COMPLEX_TYPES.contains(ad.getType())) {
+                    desc = ad.getNoTextDescription(false);
+                } else {
+                    // the simple no-text description is not enough to get value-type; ask for the full desc
+                    ModelNode wrapped = new ModelNode();
+                    ad.addResourceAttributeDescription(wrapped, NonResolvingResourceDescriptionResolver.INSTANCE,
+                            null, NonResolvingResourceDescriptionResolver.INSTANCE.getResourceBundle(null));
+                    desc = wrapped.get(ATTRIBUTES, attributeName);
+                }
+            } else {
+                // We shouldn't be getting here any more, but just in case
+                desc = registration.getModelDescription(PathAddress.EMPTY_ADDRESS).getModelDescription(null).get(ATTRIBUTES, attributeName);
+            }
+            return desc;
         }
     }
 }

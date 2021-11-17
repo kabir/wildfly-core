@@ -53,7 +53,9 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.MissingResourceException;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.management.AttributeChangeNotification;
 import javax.management.Descriptor;
@@ -171,6 +173,12 @@ public class MBeanInfoFactory {
         return resolver.getResourceAttributeDescription(attributeDefinition.getName(), null, resolver.getResourceBundle(null));
     }
 
+    private String getDescription(OperationEntry operationEntry) {
+        ResourceDescriptionResolver resolver = operationEntry.getDescriptionProvider().getDescriptionResolver();
+        return resolver.getOperationDescription(
+                operationEntry.getOperationDefinition().getName(), null, resolver.getResourceBundle(null));
+    }
+
     private OpenMBeanAttributeInfo[] getAttributes() {
         List<OpenMBeanAttributeInfo> infos = new LinkedList<>();
         Map<String, AttributeAccess> attributes = resourceRegistration.getAttributes(PathAddress.EMPTY_ADDRESS);
@@ -262,24 +270,32 @@ public class MBeanInfoFactory {
     }
 
     private OpenMBeanOperationInfo getOperation(String name, OpenMBeanParameterInfo addWildcardChildName, OperationEntry entry) {
-        ModelNode opNode = entry.getDescriptionProvider().getModelDescription(null);
-        OpenMBeanParameterInfo[] params = getParameterInfos(entry.getOperationDefinition(), opNode);
+        Supplier<ModelNode> descriptionSupplier = new CachingSupplier<ModelNode>() {
+            @Override
+            protected ModelNode init() {
+                return entry.getDescriptionProvider().getModelDescription(null);
+            }
+        };
+        OperationDefinition opDef = entry.getOperationDefinition();
+        OpenMBeanParameterInfo[] params = getParameterInfos(opDef, descriptionSupplier);
         if (addWildcardChildName != null) {
             OpenMBeanParameterInfo[] newParams = new OpenMBeanParameterInfo[params.length + 1];
             newParams[0] = addWildcardChildName;
             System.arraycopy(params, 0, newParams, 1, params.length);
             params = newParams;
         }
+
         return new OpenMBeanOperationInfoSupport(
                 name,
-                getDescription(opNode),
+                getDescription(entry),
                 params,
-                getReturnType(opNode),
+                getReturnType(opDef, descriptionSupplier),
                 entry.getFlags().contains(Flag.READ_ONLY) ? MBeanOperationInfo.INFO : MBeanOperationInfo.UNKNOWN,
                 createOperationDescriptor());
     }
 
-    private OpenMBeanParameterInfo[] getParameterInfos(OperationDefinition opDef, ModelNode opNode) {
+    private OpenMBeanParameterInfo[] getParameterInfos(OperationDefinition opDef, Supplier<ModelNode> descriptionSupplier) {
+        ModelNode opNode = descriptionSupplier.get();
         if (!opNode.hasDefined(REQUEST_PROPERTIES)) {
             return EMPTY_PARAMETERS;
         }
@@ -373,17 +389,21 @@ public class MBeanInfoFactory {
         return null;
     }
 
-    private OpenType<?> getReturnType(ModelNode opNode) {
-        if (!opNode.hasDefined(REPLY_PROPERTIES)) {
+    private OpenType<?> getReturnType(OperationDefinition opDef, Supplier<ModelNode> descriptionSupplier) {
+        if (opDef.getReplyType() == null || opDef.getReplyType() == ModelType.UNDEFINED) {
             return SimpleType.VOID;
         }
-        if (opNode.get(REPLY_PROPERTIES).asList().isEmpty()) {
-            return SimpleType.VOID;
-        }
-
-        //TODO might have more than one REPLY_PROPERTIES?
-        ModelNode reply = opNode.get(REPLY_PROPERTIES);
-        return converters.convertToMBeanType(null, () -> reply);
+//        ModelNode opNode = descriptionSupplier.get();
+//        if (!opNode.hasDefined(REPLY_PROPERTIES)) {
+//            return SimpleType.VOID;
+//        }
+//        if (opNode.get(REPLY_PROPERTIES).asList().isEmpty()) {
+//            return SimpleType.VOID;
+//        }
+//
+//        //TODO might have more than one REPLY_PROPERTIES?
+//        ModelNode reply = opNode.get(REPLY_PROPERTIES);
+        return converters.convertToMBeanType(null, () -> descriptionSupplier.get().get(REPLY_PROPERTIES));
     }
 
     private MBeanNotificationInfo[] getNotifications() {
