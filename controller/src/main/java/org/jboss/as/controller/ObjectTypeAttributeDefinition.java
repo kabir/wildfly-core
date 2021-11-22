@@ -25,9 +25,11 @@ package org.jboss.as.controller;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 
@@ -248,6 +250,11 @@ public class ObjectTypeAttributeDefinition extends SimpleAttributeDefinition {
         addValueTypeDescription(node, prefix, bundle, false, resolver, locale);
     }
 
+    @Override
+    protected <T> T performVisit(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        return visitor.visitObjectType(this, visitorCtx);
+    }
+
     protected void addValueTypeDescription(final ModelNode node, final String prefix, final ResourceBundle bundle,
                                            boolean forOperation,
                                            final ResourceDescriptionResolver resolver,
@@ -318,6 +325,18 @@ public class ObjectTypeAttributeDefinition extends SimpleAttributeDefinition {
     @Override
     protected void addAllowedValuesToDescription(ModelNode result, ParameterValidator validator) {
         //Don't add allowed values for object types, since they simply enumerate the fields given in the value type
+    }
+
+    @Override
+    protected <T> T internalAccept(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        Map<String, T> childResults = new LinkedHashMap<>();
+        for (AttributeDefinition valueType : valueTypes) {
+            T childResult = valueType.internalAccept(visitor, new AttributeDefinitionVisitorContextImpl<>(false));
+            childResults.put(valueType.getName(), childResult);
+        }
+        visitorCtx.setChildResults(childResults);
+
+        return super.internalAccept(visitor, visitorCtx);
     }
 
     public static final class Builder extends AbstractAttributeDefinitionBuilder<Builder, ObjectTypeAttributeDefinition> {

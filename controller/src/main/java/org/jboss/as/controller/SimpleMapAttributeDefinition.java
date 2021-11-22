@@ -98,6 +98,13 @@ public class SimpleMapAttributeDefinition extends MapAttributeDefinition {
         }
     }
 
+    @Override
+    protected <T> T internalAccept(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        T childResult = visitor.visitSimpleValueType(valueType, new AttributeDefinitionVisitorContextImpl<>(false));
+        visitorCtx.setChildResult(childResult);
+        return super.internalAccept(visitor, visitorCtx);
+    }
+
     public static final class Builder extends MapAttributeDefinition.Builder<Builder, SimpleMapAttributeDefinition> {
         private ModelType valueType = ModelType.STRING;
 

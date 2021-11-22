@@ -377,4 +377,9 @@ public abstract class MapAttributeDefinition extends AttributeDefinition {
             return result;
         }
     }
+
+    @Override
+    protected <T> T performVisit(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        return visitor.visitObjectType(this, visitorCtx);
+    }
 }

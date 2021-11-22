@@ -22,8 +22,13 @@
 
 package org.jboss.as.controller;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MAX;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MAX_LENGTH;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MIN;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MIN_LENGTH;
 import static org.jboss.as.controller.registry.AttributeAccess.Flag.immutableSetOf;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -34,10 +39,13 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import org.jboss.as.controller.AttributeDefinitionVisitor.ChildResultType;
 import org.jboss.as.controller.access.management.AccessConstraintDefinition;
 import org.jboss.as.controller.access.management.AccessConstraintDescriptionProviderUtil;
 import org.jboss.as.controller.client.helpers.MeasurementUnit;
@@ -993,6 +1001,53 @@ public abstract class AttributeDefinition {
             }
         }
 
+        addMaxMin(
+                (min, length) -> result.get(length ? MIN_LENGTH : MIN).set(min),
+                (max, length) -> result.get(length ? MAX_LENGTH : MAX).set(max));
+
+        addAllowedValuesToDescription(result, validator);
+        arbitraryDescriptors.forEach((key, value) -> {
+            assert !result.hasDefined(key); //You can't override an arbitrary descriptor set through other properties.
+            result.get(key).set(value);
+        });
+        return result;
+    }
+
+    public <T> T accept(AttributeDefinitionVisitor<T> visitor) {
+        AttributeDefinitionVisitorContextImpl<T> ctx = new AttributeDefinitionVisitorContextImpl<>(true);
+        return internalAccept(visitor, ctx);
+    }
+
+    protected <T> T internalAccept(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        if (visitor.isIncludeMaxMin()) {
+            addMaxMin(
+                    (min, length) -> {
+                        if (length) {
+                            visitorCtx.minSize = min;
+                        } else {
+                            visitorCtx.min = min;
+                        }
+                    },
+                    (max, length) -> {
+                        if (length) {
+                            visitorCtx.maxSize = max;
+                        } else {
+                            visitorCtx.max = max;
+                        }
+                    });
+        }
+        if (visitor.isIncludeAllowedValues()) {
+            addAllowedValues(validator, visitorCtx);
+        }
+        return performVisit(visitor, visitorCtx);
+    }
+
+    // Overridable for all the main types, some of which will have children (i.e. value types)
+    protected <T> T performVisit(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        return visitor.visitSimpleType(this, visitorCtx);
+    }
+
+    private void addMaxMin(BiConsumer<Long, Boolean> minConsumer, BiConsumer<Long, Boolean> maxConsumer) {
         if (validator instanceof MinMaxValidator) {
             MinMaxValidator minMax = (MinMaxValidator) validator;
             Long min = minMax.getMin();
@@ -1002,10 +1057,10 @@ public abstract class AttributeDefinition {
                     case LIST:
                     case OBJECT:
                     case BYTES:
-                        result.get(ModelDescriptionConstants.MIN_LENGTH).set(min);
+                        minConsumer.accept(min, true);
                         break;
                     default:
-                        result.get(ModelDescriptionConstants.MIN).set(min);
+                        minConsumer.accept(min, false);
                 }
             }
             Long max = minMax.getMax();
@@ -1015,19 +1070,13 @@ public abstract class AttributeDefinition {
                     case LIST:
                     case OBJECT:
                     case BYTES:
-                        result.get(ModelDescriptionConstants.MAX_LENGTH).set(max);
+                        maxConsumer.accept(max, true);
                         break;
                     default:
-                        result.get(ModelDescriptionConstants.MAX).set(max);
+                        maxConsumer.accept(max, false);
                 }
             }
         }
-        addAllowedValuesToDescription(result, validator);
-        arbitraryDescriptors.forEach((key, value) -> {
-            assert !result.hasDefined(key); //You can't override an arbitrary descriptor set through other properties.
-            result.get(key).set(value);
-        });
-        return result;
     }
 
     /**
@@ -1134,16 +1183,24 @@ public abstract class AttributeDefinition {
      * @param validator the validator to get the allowed values from
      */
     protected void addAllowedValuesToDescription(ModelNode result, ParameterValidator validator) {
+        addAllowedValuesToDescription(validator, allowedValue -> result.get(ModelDescriptionConstants.ALLOWED).add(allowedValue));
+    }
+
+    private void addAllowedValues(ParameterValidator validator, AttributeDefinitionVisitorContextImpl visitorContext) {
+        addAllowedValuesToDescription(validator, allowedValue -> visitorContext.addAllowedValue(allowedValue));
+    }
+
+    private void addAllowedValuesToDescription(ParameterValidator validator, Consumer<ModelNode> consumer) {
         if (allowedValues != null) {
             for (ModelNode allowedValue : allowedValues) {
-                result.get(ModelDescriptionConstants.ALLOWED).add(allowedValue);
+                consumer.accept(allowedValue);
             }
         } else if (validator instanceof AllowedValuesValidator) {
             AllowedValuesValidator avv = (AllowedValuesValidator) validator;
             List<ModelNode> allowed = avv.getAllowedValues();
             if (allowed != null) {
                 for (ModelNode ok : allowed) {
-                    result.get(ModelDescriptionConstants.ALLOWED).add(ok);
+                    consumer.accept(ok);
                 }
             }
         }
@@ -1362,6 +1419,91 @@ public abstract class AttributeDefinition {
             int result = name.hashCode();
             result = 31 * result + (group != null ? group.hashCode() : 0);
             return result;
+        }
+    }
+
+    protected class AttributeDefinitionVisitorContextImpl<T> implements AttributeDefinitionVisitor.Context<T> {
+        private final boolean topLevel;
+        private Long min;
+        private Long max;
+        private Long minSize;
+        private Long maxSize;
+        private List<ModelNode> allowedValues;
+
+        private ChildResultType childResultType = ChildResultType.NONE;
+        private T childResult;
+        private Map<String, T> childResults;
+
+
+        public AttributeDefinitionVisitorContextImpl(boolean topLevel) {
+            this.topLevel = topLevel;
+        }
+
+        void addAllowedValue(ModelNode modelNode) {
+            if (allowedValues == null) {
+                allowedValues = new ArrayList<>();
+            }
+            allowedValues.add(modelNode);
+        }
+
+        void setChildResult(T t) {
+            assert childResults == null;
+            childResult = t;
+            childResultType = ChildResultType.SINGLE;
+        }
+
+        void setChildResults(Map<String, T> childResults) {
+            assert childResult == null;
+            this.childResults = childResults;
+            childResultType = ChildResultType.MULTIPLE;
+        }
+
+        @Override
+        public Long getMin() {
+            return min;
+        }
+
+        @Override
+        public Long getMax() {
+            return max;
+        }
+
+        @Override
+        public Long getMinSize() {
+            return minSize;
+        }
+
+        @Override
+        public Long getMaxSize() {
+            return maxSize;
+        }
+
+        @Override
+        public List<ModelNode> getAllowedValues() {
+            if (allowedValues == null) {
+                return Collections.emptyList();
+            }
+            return allowedValues;
+        }
+
+        @Override
+        public boolean isTopLevel() {
+            return topLevel;
+        }
+
+        @Override
+        public ChildResultType getChildResultType() {
+            return childResultType;
+        }
+
+        @Override
+        public T getChildResult() {
+            return childResult;
+        }
+
+        @Override
+        public Map<String, T> getChildResults() {
+            return childResults;
         }
     }
 }

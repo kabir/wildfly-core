@@ -152,6 +152,13 @@ public class ObjectMapAttributeDefinition extends MapAttributeDefinition {
         return new Builder(name, valueType);
     }
 
+    @Override
+    protected <T> T internalAccept(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        T childResult = getValueType().internalAccept(visitor, new AttributeDefinitionVisitorContextImpl<>(false));
+        visitorCtx.setChildResult(childResult);
+        return super.internalAccept(visitor, visitorCtx);
+    }
+
     public static final class Builder extends MapAttributeDefinition.Builder<Builder, ObjectMapAttributeDefinition> {
         private final ObjectTypeAttributeDefinition valueType;
 

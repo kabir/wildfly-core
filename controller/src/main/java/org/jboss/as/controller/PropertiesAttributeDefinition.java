@@ -116,6 +116,11 @@ public final class PropertiesAttributeDefinition extends MapAttributeDefinition 
         return wrapperElement;
     }
 
+    @Override
+    protected <T> T performVisit(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        return visitor.visitPropertiesType(this, visitorCtx);
+    }
+
     public static class Builder extends MapAttributeDefinition.Builder<Builder, PropertiesAttributeDefinition> {
         private boolean wrapXmlElement = true;
         private String wrapperElement = null;

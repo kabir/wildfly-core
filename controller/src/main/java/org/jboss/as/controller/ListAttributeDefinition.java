@@ -247,6 +247,11 @@ public abstract class ListAttributeDefinition extends AttributeDefinition {
         }
     }
 
+    @Override
+    protected <T> T performVisit(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        return visitor.visitListType(this, visitorCtx);
+    }
+
     public abstract static class Builder<BUILDER extends Builder, ATTRIBUTE extends ListAttributeDefinition>
             extends AbstractAttributeDefinitionBuilder<BUILDER, ATTRIBUTE> {
 
