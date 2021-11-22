@@ -150,6 +150,13 @@ public class SimpleListAttributeDefinition extends ListAttributeDefinition {
         node.get(ModelDescriptionConstants.VALUE_TYPE).set(valueType.getType());
     }
 
+    @Override
+    protected <T> T internalAccept(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        T childResult = getValueType().internalAccept(visitor, new AttributeDefinitionVisitorContextImpl<>(false));
+        visitorCtx.setChildResult(childResult);
+        return super.internalAccept(visitor, visitorCtx);
+    }
+
     public static class Builder extends ListAttributeDefinition.Builder<Builder,SimpleListAttributeDefinition>{
         private final AttributeDefinition valueType;
         private boolean wrapXmlList = true;

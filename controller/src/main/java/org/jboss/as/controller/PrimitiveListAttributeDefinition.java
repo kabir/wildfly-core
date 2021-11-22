@@ -156,6 +156,13 @@ public class PrimitiveListAttributeDefinition extends ListAttributeDefinition {
         }
     }
 
+    @Override
+    protected <T> T internalAccept(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        T childResult = visitor.visitSimpleValueType(getValueType(), new AttributeDefinitionVisitorContextImpl<>(false));
+        visitorCtx.setChildResult(childResult);
+        return super.internalAccept(visitor, visitorCtx);
+    }
+
     public static class Builder extends ListAttributeDefinition.Builder<Builder, PrimitiveListAttributeDefinition> {
 
         private final ModelType valueType;

@@ -177,6 +177,12 @@ public class ObjectListAttributeDefinition extends ListAttributeDefinition {
         return valueType;
     }
 
+    @Override
+    protected <T> T internalAccept(AttributeDefinitionVisitor<T> visitor, AttributeDefinitionVisitorContextImpl<T> visitorCtx) {
+        T childResult = getValueType().internalAccept(visitor, new AttributeDefinitionVisitorContextImpl<>(false));
+        visitorCtx.setChildResult(childResult);
+        return super.internalAccept(visitor, visitorCtx);
+    }
 
     public static final class Builder extends ListAttributeDefinition.Builder<Builder, ObjectListAttributeDefinition> {
         private ObjectTypeAttributeDefinition valueType;
