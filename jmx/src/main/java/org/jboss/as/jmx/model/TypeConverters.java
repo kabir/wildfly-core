@@ -45,9 +45,14 @@ import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
 import org.jboss.as.controller.AttributeDefinition;
+import org.jboss.as.controller.AttributeDefinitionVisitor;
 import org.jboss.as.controller.ExpressionResolver;
+import org.jboss.as.controller.ListAttributeDefinition;
+import org.jboss.as.controller.MapAttributeDefinition;
 import org.jboss.as.controller.ObjectMapAttributeDefinition;
+import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationFailedException;
+import org.jboss.as.controller.PropertiesAttributeDefinition;
 import org.jboss.as.jmx.logging.JmxLogger;
 import org.jboss.dmr.ModelNode;
 import org.jboss.dmr.ModelType;
@@ -148,6 +153,10 @@ class TypeConverters {
     }
 
 
+    TypeConverter newGetConverter(AttributeDefinition attributeDefinition) {
+        return attributeDefinition.accept(new TypeConverterVisitor());
+    }
+
     private boolean isSimpleType(AttributeDefinition attributeDefinition) {
         if (attributeDefinition != null) {
             return !ModelControllerMBeanHelper.COMPLEX_TYPES.contains(attributeDefinition.getType());
@@ -247,8 +256,11 @@ class TypeConverters {
         Object[] toArray(final List<Object> list);
     }
 
+    interface NewTypeConverter extends TypeConverter {
 
-    private static class SimpleTypeConverter implements TypeConverter {
+    }
+
+    private static class SimpleTypeConverter implements NewTypeConverter {
         private final SimpleValueAccessor valueAccessor;
         private final boolean expressions;
 
@@ -1038,4 +1050,69 @@ class TypeConverters {
             return new ModelNode().set(ModelType.valueOf(s));
         }
     }
+
+    private class TypeConverterVisitor implements AttributeDefinitionVisitor<TypeConverter> {
+        @Override
+        public TypeConverter visitSimpleValueType(ModelType type, Context<TypeConverter> context) {
+            switch (type) {
+                case BIG_DECIMAL:
+                    return expressions ? BIG_DECIMAL_EXPR : BIG_DECIMAL_NO_EXPR;
+                case BIG_INTEGER:
+                    return expressions ? BIG_INTEGER_EXPR : BIG_INTEGER_NO_EXPR;
+                case BOOLEAN:
+                    return expressions ? BOOLEAN_EXPR : BOOLEAN_NO_EXPR;
+                case BYTES:
+                    //Allowing expressions for byte[] seems pointless
+                    return BYTES_NO_EXPR;
+                case DOUBLE:
+                    return expressions ? DOUBLE_EXPR : DOUBLE_NO_EXPR;
+                case STRING:
+                    return expressions ? STRING_EXPR : STRING_NO_EXPR;
+//                case PROPERTY:
+//                    //For the legacy setup properties are converted to a dmr string
+//                    //For the expr setup or legacy with legacyWithProperPropertyFormat=true we use a composite type
+//                    return expressions || legacyWithProperPropertyFormat ? new PropertyTypeConverter(attributeDefinition, valueTypeNode) : PROPERTY_NO_EXPR;
+                case INT:
+                    return expressions ? INT_EXPR : INT_NO_EXPR;
+                case LONG:
+                    return expressions ? LONG_EXPR : LONG_NO_EXPR;
+                case TYPE:
+                    return expressions ? TYPE_EXPR : TYPE_NO_EXPR;
+                case UNDEFINED:
+                    return expressions ? UNDEFINED_EXPR : UNDEFINED_NO_EXPR;
+            }
+            System.out.println("===> Null simple value type for ");
+            return null;
+        }
+
+        @Override
+        public TypeConverter visitSimpleType(AttributeDefinition attr, Context<TypeConverter> context) {
+            TypeConverter converter =  visitSimpleValueType(attr.getType(), context);
+            if (converter == null) {
+                System.out.println("===> Null simple type for " + attr);
+            }
+            return converter;
+        }
+
+        @Override
+        public TypeConverter visitListType(ListAttributeDefinition attr, Context<TypeConverter> context) {
+            return null;
+        }
+
+        @Override
+        public TypeConverter visitObjectType(ObjectTypeAttributeDefinition attr, Context<TypeConverter> context) {
+            return null;
+        }
+
+        @Override
+        public TypeConverter visitObjectType(MapAttributeDefinition attr, Context<TypeConverter> context) {
+            return null;
+        }
+
+        @Override
+        public TypeConverter visitPropertiesType(PropertiesAttributeDefinition attr, Context<TypeConverter> context) {
+            return null;
+        }
+    }
+
 }

@@ -66,53 +66,61 @@ import org.junit.Test;
  *
  * @author <a href="kabir.khan@jboss.com">Kabir Khan</a>
  */
-public class LegacyTypeConverterUnitTestCase {
+public class _Old_ExpressionTypeConverterUnitTestCase {
 
 
     @Test
     public void testBigIntegerConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.BIG_INTEGER);
-        TypeConverter converter = getConverter(def);
-        Assert.assertEquals(SimpleType.BIGINTEGER, converter.getOpenType());
-        Assert.assertEquals(BigInteger.valueOf(1), assertCast(BigInteger.class, converter.fromModelNode(new ModelNode().set(BigInteger.valueOf(1)))));
-        Assert.assertEquals(2, converter.toModelNode(BigInteger.valueOf(2)).asInt());
-        assertToArray(converter, BigInteger.valueOf(1), BigInteger.valueOf(2));
+        ModelNode description = createDescription(ModelType.BIG_INTEGER);
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
+        Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set(BigInteger.valueOf(1)))));
+        ModelNode newNode = converter.toModelNode("2");
+        Assert.assertEquals(ModelType.BIG_INTEGER, newNode.getType());
+        Assert.assertEquals(BigInteger.valueOf(2), newNode.asBigInteger());
+        assertToArray(converter, "1", "2");
     }
 
     @Test
     public void testBigDecimalConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.BIG_DECIMAL);
-        TypeConverter converter = getConverter(def);
-        Assert.assertEquals(SimpleType.BIGDECIMAL, converter.getOpenType());
-        Assert.assertEquals(BigDecimal.valueOf(1), assertCast(BigDecimal.class, converter.fromModelNode(new ModelNode().set(BigDecimal.valueOf(1)))));
-        Assert.assertEquals(2, converter.toModelNode(BigDecimal.valueOf(2)).asInt());
-        assertToArray(converter, BigDecimal.valueOf(1), BigDecimal.valueOf(2));
+        ModelNode description = createDescription(ModelType.BIG_DECIMAL);
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
+        Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set(BigDecimal.valueOf(1)))));
+        ModelNode newNode = converter.toModelNode("2");
+        Assert.assertEquals(ModelType.BIG_DECIMAL, newNode.getType());
+        Assert.assertEquals(BigDecimal.valueOf(2), newNode.asBigDecimal());
+        assertToArray(converter, "1", "2");
     }
 
     @Test
     public void testIntConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.INT);
-        TypeConverter converter = getConverter(def);
-        Assert.assertEquals(SimpleType.INTEGER, converter.getOpenType());
-        Assert.assertEquals(Integer.valueOf(1), assertCast(Integer.class, converter.fromModelNode(new ModelNode().set(1))));
-        Assert.assertEquals(2, converter.toModelNode(2).asInt());
-        assertToArray(converter, 1, 2);
+        ModelNode description = createDescription(ModelType.INT);
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
+        Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set(Integer.valueOf(1)))));
+        ModelNode newNode = converter.toModelNode("2");
+        Assert.assertEquals(ModelType.INT, newNode.getType());
+        Assert.assertEquals(Integer.valueOf(2), Integer.valueOf(newNode.asInt()));
+        assertToArray(converter, "1", "2");
     }
 
     @Test
     public void testBooleanConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.BOOLEAN);
-        TypeConverter converter = getConverter(def);
-        Assert.assertEquals(SimpleType.BOOLEAN, converter.getOpenType());
-        Assert.assertEquals(Boolean.FALSE, assertCast(Boolean.class, converter.fromModelNode(ModelNode.FALSE)));
-        Assert.assertEquals(true, converter.toModelNode(Boolean.TRUE).asBoolean());
-        assertToArray(converter, Boolean.TRUE, Boolean.FALSE);
+        ModelNode description = createDescription(ModelType.BOOLEAN);
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
+        Assert.assertEquals("false", assertCast(String.class, converter.fromModelNode(new ModelNode().set(Boolean.FALSE))));
+        ModelNode newNode = converter.toModelNode("true");
+        Assert.assertEquals(ModelType.BOOLEAN, newNode.getType());
+        Assert.assertEquals(Boolean.TRUE, newNode.asBoolean());
+        assertToArray(converter, "true", "false");
     }
 
     @Test
     public void testBytesConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.BYTES);
-        TypeConverter converter = getConverter(def);
+        ModelNode description = createDescription(ModelType.BYTES);
+        TypeConverter converter = getConverter(description);
         Assert.assertEquals(ArrayType.getPrimitiveArrayType(byte[].class), converter.getOpenType());
         Assert.assertTrue(Arrays.equals(new byte[] {1,2,3}, assertCast(byte[].class, converter.fromModelNode(new ModelNode().set(new byte[] {1,2,3})))));
         Assert.assertTrue(Arrays.equals(new byte[] {1,2,3}, converter.toModelNode(new byte[] {1,2,3}).asBytes()));
@@ -124,49 +132,55 @@ public class LegacyTypeConverterUnitTestCase {
 
     @Test
     public void testDoubleConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.DOUBLE);
-        TypeConverter converter = getConverter(def);
-        Assert.assertEquals(SimpleType.DOUBLE, converter.getOpenType());
-        Assert.assertEquals(Double.valueOf(1), assertCast(Double.class, converter.fromModelNode(new ModelNode().set(1))));
-        Assert.assertEquals(2.0d, converter.toModelNode((double) 2).asDouble(), 0.0d);
-        assertToArray(converter, (double) 1, (double) 2);
+        ModelNode description = createDescription(ModelType.DOUBLE);
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
+        Assert.assertEquals("1.0", assertCast(String.class, converter.fromModelNode(new ModelNode().set((double) 1))));
+        ModelNode newNode = converter.toModelNode("2");
+        Assert.assertEquals(ModelType.DOUBLE, newNode.getType());
+        Assert.assertEquals(Double.valueOf(2), Double.valueOf(newNode.asInt()));
+        assertToArray(converter, "1", "2");
     }
 
     @Test
     public void testStringConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.STRING);
-        TypeConverter converter = getConverter(def);
+        ModelNode description = createDescription(ModelType.STRING);
+        TypeConverter converter = getConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
-        Assert.assertEquals("A", assertCast(String.class, converter.fromModelNode(new ModelNode().set("A"))));
-        Assert.assertEquals("B", converter.toModelNode("B").asString());
-        assertToArray(converter, "A", "B");
+        Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set("1"))));
+        ModelNode newNode = converter.toModelNode("2");
+        Assert.assertEquals(ModelType.STRING, newNode.getType());
+        Assert.assertEquals("2", newNode.asString());
+        assertToArray(converter, "1", "2");
     }
 
     @Test
     public void testLongConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.LONG);
-        TypeConverter converter = getConverter(def);
-        Assert.assertEquals(SimpleType.LONG, converter.getOpenType());
-        Assert.assertEquals(Long.valueOf(1), assertCast(Long.class, converter.fromModelNode(new ModelNode().set(1L))));
-        Assert.assertEquals(2L, converter.toModelNode((long) 2).asLong());
-        assertToArray(converter, (long) 1, (long) 2);
+        ModelNode description = createDescription(ModelType.LONG);
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
+        Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set(Long.valueOf(1)))));
+        ModelNode newNode = converter.toModelNode("2");
+        Assert.assertEquals(ModelType.LONG, newNode.getType());
+        Assert.assertEquals(Long.valueOf(2), Long.valueOf(newNode.asInt()));
+        assertToArray(converter, "1", "2");
     }
 
     @Test
     public void testTypeConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.TYPE);
-        TypeConverter converter = getConverter(def);
+        ModelNode description = createDescription(ModelType.TYPE);
+        TypeConverter converter = getConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
-        Assert.assertEquals("OBJECT", assertCast(String.class, converter.fromModelNode(new ModelNode().set(ModelType.OBJECT))));
-        Assert.assertEquals(ModelType.LONG, converter.toModelNode("LONG").asType());
-        assertToArray(converter, "LONG", "INT");
+        Assert.assertEquals(ModelType.OBJECT, ModelType.valueOf(assertCast(String.class, converter.fromModelNode(new ModelNode().set(ModelType.OBJECT)))));
+        ModelNode newNode = converter.toModelNode(ModelType.INT.toString());
+        Assert.assertEquals(ModelType.TYPE, newNode.getType());
+        Assert.assertEquals(ModelType.INT, newNode.asType());
+        assertToArray(converter, ModelType.BOOLEAN.toString(), ModelType.INT.toString());
     }
 
-    // TODO do we need this - attribute definitions cannot have null types once I have finished
     @Test
     public void testUndefinedTypeConverter() {
-        AttributeDefinition def = createSimpleDefinition(ModelType.UNDEFINED);
-        TypeConverter converter = getConverter(def);
+        TypeConverter converter = getConverter(new ModelNode());
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
 
         ModelNode node = new ModelNode();
@@ -185,41 +199,9 @@ public class LegacyTypeConverterUnitTestCase {
     }
 
     @Test
-    public void testPropertyTypeConverter() {
+    public void testPropertyTypeConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY);
-        TypeConverter converter = getOldConverter(description);
-
-        ModelNode node = new ModelNode();
-        node.set("name", "value");
-        node.protect();
-
-        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
-        String dmr = assertCast(String.class, converter.fromModelNode(node));
-        Assert.assertEquals(node, ModelNode.fromString(dmr));
-        Assert.assertEquals(dmr, assertCast(String.class, converter.fromModelNode(node)));
-        assertToArray(converter, dmr);
-    }
-
-    @Test
-    public void testPropertyValueTypeConverter() {
-        ModelNode description = createDescription(ModelType.PROPERTY, ModelType.INT);
-        TypeConverter converter = getOldConverter(description);
-
-        ModelNode node = new ModelNode();
-        node.set("name", 1);
-        node.protect();
-
-        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
-        String dmr = assertCast(String.class, converter.fromModelNode(node));
-        Assert.assertEquals(node, ModelNode.fromString(dmr));
-        Assert.assertEquals(dmr, assertCast(String.class, converter.fromModelNode(node)));
-        assertToArray(converter, dmr);
-    }
-
-    @Test
-    public void testProperPropertyTypeConverter() throws Exception {
-        ModelNode description = createDescription(ModelType.PROPERTY);
-        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, () -> description);
+        TypeConverter converter = getConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -241,22 +223,22 @@ public class LegacyTypeConverterUnitTestCase {
     }
 
     @Test
-    public void testProperPropertyValueTypeConverter() throws Exception {
+    public void testPropertyValueTypeConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY, ModelType.INT);
-        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, () -> description);
+        TypeConverter converter = getConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
         Assert.assertEquals(2, keys.size());
         assertCompositeType(type, "name", String.class.getName(), JmxLogger.ROOT_LOGGER.propertyName());
-        assertCompositeType(type, "value", Integer.class.getName(), JmxLogger.ROOT_LOGGER.propertyValue());
+        assertCompositeType(type, "value", String.class.getName(), JmxLogger.ROOT_LOGGER.propertyValue());
 
         CompositeData data = assertCast(CompositeData.class, converter.fromModelNode(new ModelNode().set("one", 1)));
         Assert.assertEquals(type, data.getCompositeType());
         Assert.assertEquals("one", data.get("name"));
-        Assert.assertEquals(1, data.get("value"));
+        Assert.assertEquals("1", data.get("value"));
 
-        data = new CompositeDataSupport(type, new String[] {"name", "value"}, new Object[] {"two", 2});
+        data = new CompositeDataSupport(type, new String[] {"name", "value"}, new String[] {"two", "2"});
         ModelNode newNode = converter.toModelNode(data);
         Assert.assertEquals(ModelType.PROPERTY, newNode.getType());
         Assert.assertEquals(new ModelNode().set("two", 2), newNode);
@@ -267,19 +249,19 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testSimpleTypeList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.INT);
-        TypeConverter converter = getOldConverter(description);
-        Assert.assertEquals(ArrayType.getArrayType(SimpleType.INTEGER), converter.getOpenType());
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(ArrayType.getArrayType(SimpleType.STRING), converter.getOpenType());
         ModelNode node = new ModelNode();
         node.add(1);
         node.add(2);
-        Assert.assertTrue(Arrays.equals(new Integer[] {1,2} ,assertCast(Integer[].class, converter.fromModelNode(node))));
-        Assert.assertEquals(node, converter.toModelNode(new Integer[] {1,2}));
+        Assert.assertTrue(Arrays.equals(new String[] {"1", "2"} ,assertCast(String[].class, converter.fromModelNode(node))));
+        Assert.assertEquals(node, converter.toModelNode(new String[] {"1", "2"}));
     }
 
     @Test
     public void testByteArrayList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.BYTES);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
         Assert.assertEquals(ArrayType.getArrayType(ArrayType.getPrimitiveArrayType(byte[].class)), converter.getOpenType());
         ModelNode node = new ModelNode();
         node.add(new byte[] {1,2});
@@ -294,9 +276,9 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testSimpleTypeObject() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT, ModelType.LONG);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
-        assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.LONG);
+        assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.STRING);
 
         ModelNode node = new ModelNode();
         node.get("one").set(1L);
@@ -304,22 +286,22 @@ public class LegacyTypeConverterUnitTestCase {
 
         TabularData tabularData = assertCast(TabularData.class, converter.fromModelNode(node));
         Assert.assertEquals(2, tabularData.size());
-        Assert.assertEquals((long) 1, tabularData.get(new Object[] {"one"}).get("value"));
-        Assert.assertEquals((long) 2, tabularData.get(new Object[] {"two"}).get("value"));
+        Assert.assertEquals("1", tabularData.get(new Object[] {"one"}).get("value"));
+        Assert.assertEquals("2", tabularData.get(new Object[] {"two"}).get("value"));
 
         Assert.assertEquals(node, converter.toModelNode(tabularData));
 
         //Allow plain map as well? Yeah why not!
-        Map<String, Long> map = new HashMap<String, Long>();
-        map.put("one", 1L);
-        map.put("two", 2L);
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("one", "1");
+        map.put("two", "2");
         Assert.assertEquals(node, converter.toModelNode(map));
     }
 
     @Test
     public void testByteArrayObject() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT, ModelType.BYTES);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
         assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, ArrayType.getPrimitiveArrayType(byte[].class));
 
@@ -369,22 +351,22 @@ public class LegacyTypeConverterUnitTestCase {
         complexValueType.get("map-int-value", VALUE_TYPE).set(ModelType.INT);
         description.get(VALUE_TYPE).set(complexValueType);
 
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
         Assert.assertEquals(11, keys.size());
-        assertCompositeType(type, "int-value", Integer.class.getName(), "An int value");
-        assertCompositeType(type, "bigint-value", BigInteger.class.getName(), "A biginteger value");
-        assertCompositeType(type, "bigdecimal-value", BigDecimal.class.getName(), "A bigdecimal value");
-        assertCompositeType(type, "boolean-value", Boolean.class.getName(), "A boolean value");
+        assertCompositeType(type, "int-value", String.class.getName(), "An int value");
+        assertCompositeType(type, "bigint-value", String.class.getName(), "A biginteger value");
+        assertCompositeType(type, "bigdecimal-value", String.class.getName(), "A bigdecimal value");
+        assertCompositeType(type, "boolean-value", String.class.getName(), "A boolean value");
         assertCompositeType(type, "bytes-value", byte[].class.getName(), "A bytes value");
-        assertCompositeType(type, "double-value", Double.class.getName(), "A double value");
+        assertCompositeType(type, "double-value", String.class.getName(), "A double value");
         assertCompositeType(type, "string-value", String.class.getName(), "A string value");
-        assertCompositeType(type, "long-value", Long.class.getName(), "A long value");
+        assertCompositeType(type, "long-value", String.class.getName(), "A long value");
         assertCompositeType(type, "type-value", String.class.getName(), "A type value");
-        assertCompositeType(type, "list-int-value", Integer[].class.getName(), "An int list value");
-        assertMapType(assertCast(TabularType.class, assertCompositeType(type, "map-int-value", TabularType.class.getName(), "An int map value", false)), SimpleType.STRING, SimpleType.INTEGER);
+        assertCompositeType(type, "list-int-value", String[].class.getName(), "An int list value");
+        assertMapType(assertCast(TabularType.class, assertCompositeType(type, "map-int-value", TabularType.class.getName(), "An int map value", false)), SimpleType.STRING, SimpleType.STRING);
 
         ModelNode node = new ModelNode();
         node.get("int-value").set(1);
@@ -400,6 +382,7 @@ public class LegacyTypeConverterUnitTestCase {
         node.get("list-int-value").add(10);
         node.get("map-int-value", "one").set(11);
         node.get("map-int-value", "two").set(12);
+
 
         CompositeData data = assertCast(CompositeData.class, converter.fromModelNode(node));
         Assert.assertEquals(type, data.getCompositeType());
@@ -429,14 +412,14 @@ public class LegacyTypeConverterUnitTestCase {
         complexValueType.get("list-int-value", VALUE_TYPE).set(ModelType.INT);
         description.get(VALUE_TYPE).set(complexValueType);
 
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
         ArrayType<CompositeType> arrayType = assertCast(ArrayType.class, converter.getOpenType());
         CompositeType type = assertCast(CompositeType.class, arrayType.getElementOpenType());
         Set<String> keys = type.keySet();
         Assert.assertEquals(2, keys.size());
-        assertCompositeType(type, "int-value", Integer.class.getName(), "An int value");
-        assertCompositeType(type, "list-int-value", Integer[].class.getName(), "An int list value");
+        assertCompositeType(type, "int-value", String.class.getName(), "An int value");
+        assertCompositeType(type, "list-int-value", String[].class.getName(), "An int list value");
 
         ModelNode node = new ModelNode();
         ModelNode entry = new ModelNode();
@@ -461,7 +444,7 @@ public class LegacyTypeConverterUnitTestCase {
     public void testJsonObject() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT);
 
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
 
@@ -482,7 +465,7 @@ public class LegacyTypeConverterUnitTestCase {
     public void testJsonObjectInList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.OBJECT);
 
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
         ArrayType<String> arrayType = assertCast(ArrayType.class, converter.getOpenType());
         Assert.assertEquals(SimpleType.STRING, assertCast(SimpleType.class, arrayType.getElementOpenType()));
@@ -516,7 +499,7 @@ public class LegacyTypeConverterUnitTestCase {
         complexValueType.get("value", TYPE).set(ModelType.OBJECT);
         description.get(VALUE_TYPE).set(complexValueType);
 
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -537,130 +520,117 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testBigIntegerExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.BIG_INTEGER);
-        TypeConverter converter = getOldConverter(description);
-        BigInteger data = assertCast(BigInteger.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
-        Assert.assertEquals(BigInteger.valueOf(1), data);
-        try {
-            converter.toModelNode("${this.should.not.exist.!!!!!:2}");
-            Assert.fail("Should not have been able to convert to a model node");
-        } catch (IllegalArgumentException expexted) {
-            //expected
-        }
+        TypeConverter converter = getConverter(description);
+        String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
+        ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
+        Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
+        Assert.assertEquals("${this.should.not.exist.!!!!!:2}", newNode.asString());
+        assertToArray(converter, "1", "${this.should.not.exist.!!!!!:2}");
 
     }
 
     @Test
     public void testBigDecimalExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.BIG_DECIMAL);
-        TypeConverter converter = getOldConverter(description);
-        BigDecimal data = assertCast(BigDecimal.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
-        Assert.assertEquals(BigDecimal.valueOf(1), data);
-        try {
-            converter.toModelNode("${this.should.not.exist.!!!!!:2}");
-            Assert.fail("Should not have been able to convert to a model node");
-        } catch (IllegalArgumentException expexted) {
-            //expected
-        }
+        TypeConverter converter = getConverter(description);
+        String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
+        ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
+        Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
+        Assert.assertEquals("${this.should.not.exist.!!!!!:2}", newNode.asString());
+        assertToArray(converter, "1", "${this.should.not.exist.!!!!!:2}");
     }
 
     @Test
     public void testIntExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.INT);
-        TypeConverter converter = getOldConverter(description);
-        Integer data = assertCast(Integer.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
-        Assert.assertEquals(Integer.valueOf(1), data);
-        try {
-            converter.toModelNode("${this.should.not.exist.!!!!!:2}");
-            Assert.fail("Should not have been able to convert to a model node");
-        } catch (IllegalArgumentException expexted) {
-            //expected
-        }
+        TypeConverter converter = getConverter(description);
+        String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
+        ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
+        Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
+        Assert.assertEquals("${this.should.not.exist.!!!!!:2}", newNode.asString());
+        assertToArray(converter, "1", "${this.should.not.exist.!!!!!:2}");
     }
 
     @Test
     public void testBooleanExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.BOOLEAN);
-        TypeConverter converter = getOldConverter(description);
-        Boolean data = assertCast(Boolean.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:false}"))));
-        Assert.assertEquals(Boolean.FALSE, data);
-        try {
-            converter.toModelNode("${this.should.not.exist.!!!!!:2}");
-            Assert.fail("Should not have been able to convert to a model node");
-        } catch (IllegalArgumentException expexted) {
-            //expected
-        }
+        TypeConverter converter = getConverter(description);
+        String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:false}"))));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:false}", data);
+        ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:true}");
+        Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
+        Assert.assertEquals("${this.should.not.exist.!!!!!:true}", newNode.asString());
+        assertToArray(converter, "true", "${this.should.not.exist.!!!!!:false}");
     }
 
     @Test
     public void testDoubleExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.DOUBLE);
-        TypeConverter converter = getOldConverter(description);
-        Double data = assertCast(Double.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
-        Assert.assertEquals(Double.valueOf(1), data);
-        try {
-            converter.toModelNode("${this.should.not.exist.!!!!!:2}");
-            Assert.fail("Should not have been able to convert to a model node");
-        } catch (IllegalArgumentException expexted) {
-            //expected
-        }
+        TypeConverter converter = getConverter(description);
+        String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
+        ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
+        Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
+        Assert.assertEquals("${this.should.not.exist.!!!!!:2}", newNode.asString());
+        assertToArray(converter, "1", "${this.should.not.exist.!!!!!:2}");
     }
 
     @Test
     public void testStringExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.STRING);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:A}"))));
-        Assert.assertEquals("A", data);
+        Assert.assertEquals("${this.should.not.exist.!!!!!:A}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:B}");
         Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
         Assert.assertEquals("${this.should.not.exist.!!!!!:B}", newNode.asString());
+        assertToArray(converter, "A", "${this.should.not.exist.!!!!!:B}");
     }
 
     @Test
     public void testStringVaultExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.STRING);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${VAULT::keystore_pass::password::xxx}"))));
         Assert.assertEquals("${VAULT::keystore_pass::password::xxx}", data);
-        ModelNode newNode = converter.toModelNode("${VAULT::keystore_pass::password::yyyy}");
+        ModelNode newNode = converter.toModelNode("${VAULT::keystore_pass::password::xxx}");
         Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
-        Assert.assertEquals("${VAULT::keystore_pass::password::yyyy}", newNode.asString());
+        Assert.assertEquals("${VAULT::keystore_pass::password::xxx}", newNode.asString());
 
     }
 
     @Test
     public void testLongExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.LONG);
-        TypeConverter converter = getOldConverter(description);
-        Long data = assertCast(Long.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
-        Assert.assertEquals(Long.valueOf(1), data);
-        try {
-            converter.toModelNode("${this.should.not.exist.!!!!!:2}");
-            Assert.fail("Should not have been able to convert to a model node");
-        } catch (IllegalArgumentException expexted) {
-            //expected
-        }
+        TypeConverter converter = getConverter(description);
+        String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
+        ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
+        Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
+        Assert.assertEquals("${this.should.not.exist.!!!!!:2}", newNode.asString());
+        assertToArray(converter, "1", "${this.should.not.exist.!!!!!:2}");
     }
 
     @Test
     public void testTypeExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.TYPE);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:OBJECT}"))));
-        Assert.assertEquals(ModelType.OBJECT, ModelType.valueOf(data));
-        try {
-            converter.toModelNode("${this.should.not.exist.!!!!!:LONG}");
-            Assert.fail("Should not have been able to convert to a model node");
-        } catch (IllegalArgumentException expexted) {
-            //expected
-        }
+        Assert.assertEquals("${this.should.not.exist.!!!!!:OBJECT}", data);
+        ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:LONG}");
+        Assert.assertEquals(ModelType.EXPRESSION, newNode.getType());
+        Assert.assertEquals("${this.should.not.exist.!!!!!:LONG}", newNode.asString());
+        assertToArray(converter, "BOOLEAN", "${this.should.not.exist.!!!!!:LONG}");
     }
 
     @Test
     public void testUndefinedTypeExpressionConverter() throws Exception {
         ModelNode description = new ModelNode();
         description.get(EXPRESSIONS_ALLOWED).set(true);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
         ModelNode node = new ModelNode();
         node.get("abc").set(new ValueExpression("${this.should.not.exist.!!!!!:10}"));
@@ -673,46 +643,9 @@ public class LegacyTypeConverterUnitTestCase {
     }
 
     @Test
-    public void testPropertyTypeExpressionConverter() throws OperationFailedException {
+    public void testPropertyTypeExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY);
-        TypeConverter converter = getOldConverter(description);
-
-        ModelNode node = new ModelNode();
-        node.set("name", "${this.should.not.exist.!!!!!:value}");
-        node.protect();
-
-        ModelNode expected = ExpressionResolver.TEST_RESOLVER.resolveExpressions(node.clone());
-
-        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
-        String dmr = assertCast(String.class, converter.fromModelNode(node));
-        Assert.assertEquals(expected, ModelNode.fromString(dmr));
-        Assert.assertEquals(dmr, assertCast(String.class, converter.fromModelNode(expected)));
-        assertToArray(converter, dmr);
-    }
-
-
-    @Test
-    public void testPropertyValueTypeExpressionConverter() throws Exception {
-        ModelNode description = createDescription(ModelType.PROPERTY, ModelType.INT);
-        TypeConverter converter = getOldConverter(description);
-
-        ModelNode node = new ModelNode();
-        node.set("name", "${this.should.not.exist.!!!!!:1}");
-        node.protect();
-
-        ModelNode expected = ExpressionResolver.TEST_RESOLVER.resolveExpressions(node.clone());
-
-        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
-        String dmr = assertCast(String.class, converter.fromModelNode(node));
-        Assert.assertEquals(expected, ModelNode.fromString(dmr));
-        Assert.assertEquals(dmr, assertCast(String.class, converter.fromModelNode(expected)));
-        assertToArray(converter, dmr);
-    }
-
-    @Test
-    public void testProperPropertyTypeExpressionConverter() throws Exception {
-        ModelNode description = createDescription(ModelType.PROPERTY);
-        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, () -> description);
+        TypeConverter converter = getConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -723,63 +656,66 @@ public class LegacyTypeConverterUnitTestCase {
         CompositeData data = assertCast(CompositeData.class, converter.fromModelNode(new ModelNode().set("one", new ValueExpression("${this.should.not.exist.!!!!!:uno}"))));
         Assert.assertEquals(type, data.getCompositeType());
         Assert.assertEquals("one", data.get("name"));
-        Assert.assertEquals("uno", data.get("value"));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:uno}", data.get("value"));
 
-        data = new CompositeDataSupport(type, new String[] {"name", "value"}, new String[] {"two", "dos"});
+        data = new CompositeDataSupport(type, new String[] {"name", "value"}, new String[] {"two", "${this.should.not.exist.!!!!!:dos}"});
         ModelNode newNode = converter.toModelNode(data);
         Assert.assertEquals(ModelType.PROPERTY, newNode.getType());
-        Assert.assertEquals(new ModelNode().set("two", "dos"), newNode);
+        Assert.assertEquals(new ModelNode().set("two", new ValueExpression("${this.should.not.exist.!!!!!:dos}")), newNode);
 
         assertToArray(converter, data);
     }
 
     @Test
-    public void testProperPropertyValueTypeExpressionConverter() throws Exception {
+    public void testPropertyValueTypeExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY, ModelType.INT);
-        TypeConverter converter = TypeConverters.createLegacyTypeConverters(true).getConverter(null, () -> description);
+        TypeConverter converter = getConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
         Assert.assertEquals(2, keys.size());
         assertCompositeType(type, "name", String.class.getName(), JmxLogger.ROOT_LOGGER.propertyName());
-        assertCompositeType(type, "value", Integer.class.getName(), JmxLogger.ROOT_LOGGER.propertyValue());
+        assertCompositeType(type, "value", String.class.getName(), JmxLogger.ROOT_LOGGER.propertyValue());
 
-        CompositeData data = assertCast(CompositeData.class, converter.fromModelNode(new ModelNode().set("one", new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
+        CompositeData data = assertCast(CompositeData.class, converter.fromModelNode(new ModelNode().set("one", "${this.should.not.exist.!!!!!:1}")));
         Assert.assertEquals(type, data.getCompositeType());
         Assert.assertEquals("one", data.get("name"));
-        Assert.assertEquals(1, data.get("value"));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data.get("value"));
 
-        data = new CompositeDataSupport(type, new String[] {"name", "value"}, new Object[] {"two", 2});
+        data = new CompositeDataSupport(type, new String[] {"name", "value"}, new String[] {"two", "${this.should.not.exist.!!!!!:2}"});
         ModelNode newNode = converter.toModelNode(data);
         Assert.assertEquals(ModelType.PROPERTY, newNode.getType());
-        Assert.assertEquals(new ModelNode().set("two", 2), newNode);
+        Assert.assertEquals(new ModelNode().set("two", new ValueExpression("${this.should.not.exist.!!!!!:2}")), newNode);
 
         assertToArray(converter, data);
     }
+
     @Test
     public void testSimpleTypeExpressionList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.INT);
         description.get(EXPRESSIONS_ALLOWED).set(true);
-        TypeConverter converter = getOldConverter(description);
-        ArrayType<?> arrayType = assertCast(ArrayType.class, converter.getOpenType());
-        Assert.assertEquals(SimpleType.INTEGER, arrayType.getElementOpenType());
+        TypeConverter converter = getConverter(description);
+        assertCast(ArrayType.class, converter.getOpenType());
 
         ModelNode node = new ModelNode();
         node.add().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"));
         node.add().set(new ValueExpression("${this.should.not.exist.!!!!!:2}"));
 
-        Integer[] data = assertCast(Integer[].class, converter.fromModelNode(node));
-        Assert.assertEquals(Integer.valueOf(1), data[0]);
-        Assert.assertEquals(Integer.valueOf(2), data[1]);
+        String[] data = assertCast(String[].class, converter.fromModelNode(node));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data[0]);
+        Assert.assertEquals("${this.should.not.exist.!!!!!:2}", data[1]);
+
+        ModelNode newNode = converter.toModelNode(data);
+        Assert.assertEquals(node, newNode);
     }
 
     @Test
     public void testSimpleTypeObjectExpressions() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT, ModelType.LONG);
         description.get(EXPRESSIONS_ALLOWED).set(true);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
-        assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.LONG);
+        assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.STRING);
 
         ModelNode node = new ModelNode();
         node.get("one").set(new ValueExpression("${this.should.not.exist.!!!!!:1}"));
@@ -787,54 +723,56 @@ public class LegacyTypeConverterUnitTestCase {
 
         TabularData tabularData = assertCast(TabularData.class, converter.fromModelNode(node));
         Assert.assertEquals(2, tabularData.size());
-        Assert.assertEquals((long) 1, tabularData.get(new Object[] {"one"}).get("value"));
-        Assert.assertEquals((long) 2, tabularData.get(new Object[] {"two"}).get("value"));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:1}", tabularData.get(new Object[] {"one"}).get("value"));
+        Assert.assertEquals("${this.should.not.exist.!!!!!:2}", tabularData.get(new Object[] {"two"}).get("value"));
+
+        Assert.assertEquals(node, converter.toModelNode(tabularData));
     }
 
     @Test
     public void testBigIntegerEmptyConverter() {
         ModelNode description = createDescription(ModelType.BIG_INTEGER);
-        TypeConverter converter = getOldConverter(description);
-        Assert.assertEquals(SimpleType.BIGINTEGER, converter.getOpenType());
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
 
     @Test
     public void testBigDecimalEmptyConverter() {
         ModelNode description = createDescription(ModelType.BIG_DECIMAL);
-        TypeConverter converter = getOldConverter(description);
-        Assert.assertEquals(SimpleType.BIGDECIMAL, converter.getOpenType());
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
 
     @Test
     public void testIntEmptyConverter() {
         ModelNode description = createDescription(ModelType.INT);
-        TypeConverter converter = getOldConverter(description);
-        Assert.assertEquals(SimpleType.INTEGER, converter.getOpenType());
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
 
     @Test
     public void testBooleanEmptyConverter() {
         ModelNode description = createDescription(ModelType.BOOLEAN);
-        TypeConverter converter = getOldConverter(description);
-        Assert.assertEquals(SimpleType.BOOLEAN, converter.getOpenType());
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
 
     @Test
     public void testDoubleEmptyConverter() {
         ModelNode description = createDescription(ModelType.DOUBLE);
-        TypeConverter converter = getOldConverter(description);
-        Assert.assertEquals(SimpleType.DOUBLE, converter.getOpenType());
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
 
     @Test
     public void testStringEmptyConverter() {
         ModelNode description = createDescription(ModelType.STRING);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
@@ -842,22 +780,22 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testLongEmptyConverter() {
         ModelNode description = createDescription(ModelType.LONG);
-        TypeConverter converter = getOldConverter(description);
-        Assert.assertEquals(SimpleType.LONG, converter.getOpenType());
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
 
     @Test
     public void testTypeEmptyConverter() {
         ModelNode description = createDescription(ModelType.TYPE);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
 
     @Test
     public void testUndefinedTypeEmptyConverter() throws OperationFailedException {
-        TypeConverter converter = getOldConverter(new ModelNode());
+        TypeConverter converter = getConverter(new ModelNode());
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
 
         ModelNode node = new ModelNode();
@@ -874,20 +812,20 @@ public class LegacyTypeConverterUnitTestCase {
     @Test
     public void testSimpleTypeEmptyList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.INT);
-        TypeConverter converter = getOldConverter(description);
-        Assert.assertEquals(ArrayType.getArrayType(SimpleType.INTEGER), converter.getOpenType());
+        TypeConverter converter = getConverter(description);
+        Assert.assertEquals(ArrayType.getArrayType(SimpleType.STRING), converter.getOpenType());
         ModelNode node = new ModelNode();
         node.add("");
         node.add("");
-        Assert.assertTrue(Arrays.equals(new Integer[] {null, null} , assertCast(Integer[].class, converter.fromModelNode(node))));
+        Assert.assertTrue(Arrays.equals(new Integer[] {null, null} , assertCast(String[].class, converter.fromModelNode(node))));
     }
 
     @Test
     public void testSimpleTypeObjectEmpty() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT, ModelType.LONG);
-        TypeConverter converter = getOldConverter(description);
+        TypeConverter converter = getConverter(description);
 
-        assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.LONG);
+        assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.STRING);
 
         ModelNode node = new ModelNode();
         node.get("one").set("");
@@ -920,9 +858,9 @@ public class LegacyTypeConverterUnitTestCase {
                                         .setAllowExpression(true)
                                         .build()
                         ).build())
-                .build();
+                        .build();
         ModelNode desc = def.addResourceAttributeDescription(new ModelNode(), new NonResolvingResourceDescriptionResolver(), Locale.ENGLISH, null);
-        TypeConverter converter = getOldConverter(def, desc);
+        TypeConverter converter = getConverter(def, desc);
 
         ModelNode node = new ModelNode();
         node.get("A", "one").set(100L);
@@ -933,14 +871,14 @@ public class LegacyTypeConverterUnitTestCase {
 
         TabularData tabularData = assertCast(TabularData.class, converter.fromModelNode(node));
         Assert.assertEquals(2, tabularData.size());
-        checkMapOfMapsEntry(100, "a", tabularData, "A");
-        checkMapOfMapsEntry(102, "b", tabularData, "B");
+        checkMapOfMapsEntry("100", "a", tabularData, "A");
+        checkMapOfMapsEntry("102", "b", tabularData, "B");
 
         ModelNode convertedNode = converter.toModelNode(tabularData);
         Assert.assertEquals(node, convertedNode);
     }
 
-    private void checkMapOfMapsEntry(long expectedOne, String expectedTwo, TabularData tabularData, String key) {
+    private void checkMapOfMapsEntry(String expectedOne, String expectedTwo, TabularData tabularData, String key) {
         CompositeData mapEntry = assertCast(CompositeData.class, tabularData.get(new Object[]{key}));
         CompositeData valueEntry = assertCast(CompositeData.class, mapEntry.get("value"));
         Assert.assertEquals(expectedOne, valueEntry.get("one"));
@@ -964,7 +902,7 @@ public class LegacyTypeConverterUnitTestCase {
                         ).build())
                         .build();
         ModelNode desc = def.addResourceAttributeDescription(new ModelNode(), new NonResolvingResourceDescriptionResolver(), Locale.ENGLISH, null);
-        TypeConverter converter = getOldConverter(def, desc);
+        TypeConverter converter = getConverter(def, desc);
 
         ModelNode node = new ModelNode();
         ModelNode v1 = new ModelNode();
@@ -977,14 +915,11 @@ public class LegacyTypeConverterUnitTestCase {
         node.add(v2);
         node.protect();
 
-        System.out.println(converter.fromModelNode(node));
-
-        Object o = converter.fromModelNode(node);
         CompositeData[] listData = assertCast(CompositeData[].class, converter.fromModelNode(node));
         Assert.assertEquals(2, listData.length);
-        Assert.assertEquals(100L, listData[0].get("one"));
+        Assert.assertEquals("100", listData[0].get("one"));
         Assert.assertEquals("a", listData[0].get("two"));
-        Assert.assertEquals(102L, listData[1].get("one"));
+        Assert.assertEquals("102", listData[1].get("one"));
         Assert.assertEquals("b", listData[1].get("two"));
 
         ModelNode convertedNode = converter.toModelNode(listData);
@@ -1036,40 +971,24 @@ public class LegacyTypeConverterUnitTestCase {
         return list;
     }
 
-    private TypeConverter getOldConverter(ModelNode description) {
-        return getOldConverter(null, description);
+    private TypeConverter getConverter(ModelNode description) {
+        return getConverter(null, description);
     }
 
-    private TypeConverter getOldConverter(AttributeDefinition attrDef, ModelNode description) {
-        return TypeConverters.createLegacyTypeConverters(false).getConverter(attrDef, () -> description);
-    }
-
-    private TypeConverter getOldConverter(AttributeDefinition attrDef) {
-        return getOldConverter(attrDef, null);
-    }
-
-    private TypeConverter getConverter(AttributeDefinition attrDef) {
-        return TypeConverters.createLegacyTypeConverters(false).newGetConverter(attrDef);
+    private TypeConverter getConverter(AttributeDefinition attrDef, ModelNode description) {
+        return TypeConverters.createExpressionTypeConverters().getConverter(attrDef, () -> description);
     }
 
     private ModelNode createDescription(ModelType type) {
-        return createDescription(type, (ModelNode)null);
+        return createDescription(type, null);
     }
 
     private ModelNode createDescription(ModelType type, ModelType valueType) {
-        return createDescription(type, new ModelNode(valueType));
-    }
-
-    private ModelNode createDescription(ModelType type, ModelNode valueType) {
         ModelNode node = new ModelNode();
         node.get(TYPE).set(type);
         if (valueType != null) {
             node.get(VALUE_TYPE).set(valueType);
         }
         return node;
-    }
-
-    private AttributeDefinition createSimpleDefinition(ModelType type) {
-        return SimpleAttributeDefinitionBuilder.create("test", type, false).build();
     }
 }

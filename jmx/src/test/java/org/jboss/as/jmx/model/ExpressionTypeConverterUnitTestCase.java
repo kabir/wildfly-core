@@ -71,8 +71,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testBigIntegerConverter() {
-        ModelNode description = createDescription(ModelType.BIG_INTEGER);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.BIG_INTEGER);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set(BigInteger.valueOf(1)))));
         ModelNode newNode = converter.toModelNode("2");
@@ -83,8 +83,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testBigDecimalConverter() {
-        ModelNode description = createDescription(ModelType.BIG_DECIMAL);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.BIG_DECIMAL);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set(BigDecimal.valueOf(1)))));
         ModelNode newNode = converter.toModelNode("2");
@@ -95,8 +95,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testIntConverter() {
-        ModelNode description = createDescription(ModelType.INT);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.INT);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set(Integer.valueOf(1)))));
         ModelNode newNode = converter.toModelNode("2");
@@ -107,8 +107,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testBooleanConverter() {
-        ModelNode description = createDescription(ModelType.BOOLEAN);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.BOOLEAN);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertEquals("false", assertCast(String.class, converter.fromModelNode(new ModelNode().set(Boolean.FALSE))));
         ModelNode newNode = converter.toModelNode("true");
@@ -119,8 +119,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testBytesConverter() {
-        ModelNode description = createDescription(ModelType.BYTES);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.BYTES);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(ArrayType.getPrimitiveArrayType(byte[].class), converter.getOpenType());
         Assert.assertTrue(Arrays.equals(new byte[] {1,2,3}, assertCast(byte[].class, converter.fromModelNode(new ModelNode().set(new byte[] {1,2,3})))));
         Assert.assertTrue(Arrays.equals(new byte[] {1,2,3}, converter.toModelNode(new byte[] {1,2,3}).asBytes()));
@@ -132,8 +132,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testDoubleConverter() {
-        ModelNode description = createDescription(ModelType.DOUBLE);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.DOUBLE);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertEquals("1.0", assertCast(String.class, converter.fromModelNode(new ModelNode().set((double) 1))));
         ModelNode newNode = converter.toModelNode("2");
@@ -144,8 +144,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testStringConverter() {
-        ModelNode description = createDescription(ModelType.STRING);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.STRING);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set("1"))));
         ModelNode newNode = converter.toModelNode("2");
@@ -156,8 +156,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testLongConverter() {
-        ModelNode description = createDescription(ModelType.LONG);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.LONG);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertEquals("1", assertCast(String.class, converter.fromModelNode(new ModelNode().set(Long.valueOf(1)))));
         ModelNode newNode = converter.toModelNode("2");
@@ -168,8 +168,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testTypeConverter() {
-        ModelNode description = createDescription(ModelType.TYPE);
-        TypeConverter converter = getConverter(description);
+        AttributeDefinition def = createSimpleDefinition(ModelType.TYPE);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertEquals(ModelType.OBJECT, ModelType.valueOf(assertCast(String.class, converter.fromModelNode(new ModelNode().set(ModelType.OBJECT)))));
         ModelNode newNode = converter.toModelNode(ModelType.INT.toString());
@@ -180,7 +180,8 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testUndefinedTypeConverter() {
-        TypeConverter converter = getConverter(new ModelNode());
+        AttributeDefinition def = createSimpleDefinition(ModelType.UNDEFINED);
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
 
         ModelNode node = new ModelNode();
@@ -201,7 +202,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testPropertyTypeConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -222,10 +223,11 @@ public class ExpressionTypeConverterUnitTestCase {
         assertToArray(converter, data);
     }
 
+    // TODO - not sure this is a valid combination
     @Test
     public void testPropertyValueTypeConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY, ModelType.INT);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -249,7 +251,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testSimpleTypeList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.INT);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(ArrayType.getArrayType(SimpleType.STRING), converter.getOpenType());
         ModelNode node = new ModelNode();
         node.add(1);
@@ -261,7 +263,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testByteArrayList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.BYTES);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(ArrayType.getArrayType(ArrayType.getPrimitiveArrayType(byte[].class)), converter.getOpenType());
         ModelNode node = new ModelNode();
         node.add(new byte[] {1,2});
@@ -276,7 +278,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testSimpleTypeObject() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT, ModelType.LONG);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.STRING);
 
@@ -301,7 +303,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testByteArrayObject() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT, ModelType.BYTES);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, ArrayType.getPrimitiveArrayType(byte[].class));
 
@@ -351,7 +353,7 @@ public class ExpressionTypeConverterUnitTestCase {
         complexValueType.get("map-int-value", VALUE_TYPE).set(ModelType.INT);
         description.get(VALUE_TYPE).set(complexValueType);
 
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -412,7 +414,7 @@ public class ExpressionTypeConverterUnitTestCase {
         complexValueType.get("list-int-value", VALUE_TYPE).set(ModelType.INT);
         description.get(VALUE_TYPE).set(complexValueType);
 
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         ArrayType<CompositeType> arrayType = assertCast(ArrayType.class, converter.getOpenType());
         CompositeType type = assertCast(CompositeType.class, arrayType.getElementOpenType());
@@ -444,7 +446,7 @@ public class ExpressionTypeConverterUnitTestCase {
     public void testJsonObject() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT);
 
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
 
@@ -465,7 +467,7 @@ public class ExpressionTypeConverterUnitTestCase {
     public void testJsonObjectInList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.OBJECT);
 
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         ArrayType<String> arrayType = assertCast(ArrayType.class, converter.getOpenType());
         Assert.assertEquals(SimpleType.STRING, assertCast(SimpleType.class, arrayType.getElementOpenType()));
@@ -499,7 +501,7 @@ public class ExpressionTypeConverterUnitTestCase {
         complexValueType.get("value", TYPE).set(ModelType.OBJECT);
         description.get(VALUE_TYPE).set(complexValueType);
 
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -520,7 +522,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testBigIntegerExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.BIG_INTEGER);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
         Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
@@ -533,7 +535,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testBigDecimalExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.BIG_DECIMAL);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
         Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
@@ -545,7 +547,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testIntExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.INT);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
         Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
@@ -557,7 +559,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testBooleanExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.BOOLEAN);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:false}"))));
         Assert.assertEquals("${this.should.not.exist.!!!!!:false}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:true}");
@@ -569,7 +571,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testDoubleExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.DOUBLE);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
         Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
@@ -581,7 +583,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testStringExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.STRING);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:A}"))));
         Assert.assertEquals("${this.should.not.exist.!!!!!:A}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:B}");
@@ -593,7 +595,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testStringVaultExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.STRING);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${VAULT::keystore_pass::password::xxx}"))));
         Assert.assertEquals("${VAULT::keystore_pass::password::xxx}", data);
         ModelNode newNode = converter.toModelNode("${VAULT::keystore_pass::password::xxx}");
@@ -605,7 +607,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testLongExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.LONG);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:1}"))));
         Assert.assertEquals("${this.should.not.exist.!!!!!:1}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:2}");
@@ -617,7 +619,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testTypeExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.TYPE);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         String data = assertCast(String.class, converter.fromModelNode(new ModelNode().set(new ValueExpression("${this.should.not.exist.!!!!!:OBJECT}"))));
         Assert.assertEquals("${this.should.not.exist.!!!!!:OBJECT}", data);
         ModelNode newNode = converter.toModelNode("${this.should.not.exist.!!!!!:LONG}");
@@ -630,7 +632,7 @@ public class ExpressionTypeConverterUnitTestCase {
     public void testUndefinedTypeExpressionConverter() throws Exception {
         ModelNode description = new ModelNode();
         description.get(EXPRESSIONS_ALLOWED).set(true);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         ModelNode node = new ModelNode();
         node.get("abc").set(new ValueExpression("${this.should.not.exist.!!!!!:10}"));
@@ -645,7 +647,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testPropertyTypeExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -669,7 +671,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testPropertyValueTypeExpressionConverter() throws Exception {
         ModelNode description = createDescription(ModelType.PROPERTY, ModelType.INT);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         CompositeType type = assertCast(CompositeType.class, converter.getOpenType());
         Set<String> keys = type.keySet();
@@ -694,7 +696,7 @@ public class ExpressionTypeConverterUnitTestCase {
     public void testSimpleTypeExpressionList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.INT);
         description.get(EXPRESSIONS_ALLOWED).set(true);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         assertCast(ArrayType.class, converter.getOpenType());
 
         ModelNode node = new ModelNode();
@@ -713,7 +715,7 @@ public class ExpressionTypeConverterUnitTestCase {
     public void testSimpleTypeObjectExpressions() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT, ModelType.LONG);
         description.get(EXPRESSIONS_ALLOWED).set(true);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.STRING);
 
@@ -732,7 +734,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testBigIntegerEmptyConverter() {
         ModelNode description = createDescription(ModelType.BIG_INTEGER);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
@@ -740,7 +742,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testBigDecimalEmptyConverter() {
         ModelNode description = createDescription(ModelType.BIG_DECIMAL);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
@@ -748,7 +750,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testIntEmptyConverter() {
         ModelNode description = createDescription(ModelType.INT);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
@@ -756,7 +758,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testBooleanEmptyConverter() {
         ModelNode description = createDescription(ModelType.BOOLEAN);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
@@ -764,7 +766,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testDoubleEmptyConverter() {
         ModelNode description = createDescription(ModelType.DOUBLE);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
@@ -772,7 +774,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testStringEmptyConverter() {
         ModelNode description = createDescription(ModelType.STRING);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
@@ -780,7 +782,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testLongEmptyConverter() {
         ModelNode description = createDescription(ModelType.LONG);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
@@ -788,14 +790,14 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testTypeEmptyConverter() {
         ModelNode description = createDescription(ModelType.TYPE);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
         Assert.assertNull(converter.fromModelNode(new ModelNode().set("")));
     }
 
     @Test
     public void testUndefinedTypeEmptyConverter() throws OperationFailedException {
-        TypeConverter converter = getConverter(new ModelNode());
+        TypeConverter converter = getOldConverter(new ModelNode());
         Assert.assertEquals(SimpleType.STRING, converter.getOpenType());
 
         ModelNode node = new ModelNode();
@@ -812,7 +814,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testSimpleTypeEmptyList() throws Exception {
         ModelNode description = createDescription(ModelType.LIST, ModelType.INT);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
         Assert.assertEquals(ArrayType.getArrayType(SimpleType.STRING), converter.getOpenType());
         ModelNode node = new ModelNode();
         node.add("");
@@ -823,7 +825,7 @@ public class ExpressionTypeConverterUnitTestCase {
     @Test
     public void testSimpleTypeObjectEmpty() throws Exception {
         ModelNode description = createDescription(ModelType.OBJECT, ModelType.LONG);
-        TypeConverter converter = getConverter(description);
+        TypeConverter converter = getOldConverter(description);
 
         assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.STRING);
 
@@ -860,7 +862,7 @@ public class ExpressionTypeConverterUnitTestCase {
                         ).build())
                         .build();
         ModelNode desc = def.addResourceAttributeDescription(new ModelNode(), new NonResolvingResourceDescriptionResolver(), Locale.ENGLISH, null);
-        TypeConverter converter = getConverter(def, desc);
+        TypeConverter converter = getOldConverter(def, desc);
 
         ModelNode node = new ModelNode();
         node.get("A", "one").set(100L);
@@ -902,7 +904,7 @@ public class ExpressionTypeConverterUnitTestCase {
                         ).build())
                         .build();
         ModelNode desc = def.addResourceAttributeDescription(new ModelNode(), new NonResolvingResourceDescriptionResolver(), Locale.ENGLISH, null);
-        TypeConverter converter = getConverter(def, desc);
+        TypeConverter converter = getOldConverter(def, desc);
 
         ModelNode node = new ModelNode();
         ModelNode v1 = new ModelNode();
@@ -971,12 +973,20 @@ public class ExpressionTypeConverterUnitTestCase {
         return list;
     }
 
-    private TypeConverter getConverter(ModelNode description) {
-        return getConverter(null, description);
+    private TypeConverter getOldConverter(ModelNode description) {
+        return getOldConverter(null, description);
     }
 
-    private TypeConverter getConverter(AttributeDefinition attrDef, ModelNode description) {
+    private TypeConverter getOldConverter(AttributeDefinition attrDef) {
+        return getOldConverter(attrDef, null);
+    }
+
+    private TypeConverter getOldConverter(AttributeDefinition attrDef, ModelNode description) {
         return TypeConverters.createExpressionTypeConverters().getConverter(attrDef, () -> description);
+    }
+
+    private TypeConverter getConverter(AttributeDefinition attrDef) {
+        return TypeConverters.createExpressionTypeConverters().newGetConverter(attrDef);
     }
 
     private ModelNode createDescription(ModelType type) {
@@ -990,5 +1000,9 @@ public class ExpressionTypeConverterUnitTestCase {
             node.get(VALUE_TYPE).set(valueType);
         }
         return node;
+    }
+
+    private AttributeDefinition createSimpleDefinition(ModelType type) {
+        return SimpleAttributeDefinitionBuilder.create("test", type, false).build();
     }
 }
