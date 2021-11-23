@@ -54,6 +54,7 @@ import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.SimpleListAttributeDefinition;
+import org.jboss.as.controller.SimpleMapAttributeDefinition;
 import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.jmx.logging.JmxLogger;
 import org.jboss.as.jmx.model.TypeConverters.TypeConverter;
@@ -283,8 +284,9 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testSimpleTypeObject() throws Exception {
-        ModelNode description = createDescription(ModelType.OBJECT, ModelType.LONG);
-        TypeConverter converter = getOldConverter(description);
+        AttributeDefinition def =
+                new SimpleMapAttributeDefinition.Builder("test", ModelType.LONG, true).build();
+        TypeConverter converter = getConverter(def);
 
         assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, SimpleType.STRING);
 

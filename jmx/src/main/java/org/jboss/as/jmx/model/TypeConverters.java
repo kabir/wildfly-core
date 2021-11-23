@@ -1125,7 +1125,7 @@ class TypeConverters {
 
         @Override
         public TypeConverter visitObjectType(MapAttributeDefinition attr, Context<TypeConverter> context) {
-            return null;
+            return new Ne;
         }
 
         @Override
