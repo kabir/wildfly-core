@@ -152,16 +152,16 @@ class TypeConverters {
                 description.hasDefined(VALUE_TYPE) ? description.get(VALUE_TYPE) : null);
     }
 
-
-    TypeConverter newGetConverter(AttributeDefinition attributeDefinition) {
-        return attributeDefinition.accept(new TypeConverterVisitor());
-    }
-
     private boolean isSimpleType(AttributeDefinition attributeDefinition) {
         if (attributeDefinition != null) {
             return !ModelControllerMBeanHelper.COMPLEX_TYPES.contains(attributeDefinition.getType());
         }
         return false;
+    }
+
+
+    TypeConverter newGetConverter(AttributeDefinition attributeDefinition) {
+        return attributeDefinition.accept(new TypeConverterVisitor());
     }
 
     TypeConverter getConverter(AttributeDefinition attributeDefinition, ModelType modelType, ModelNode valueTypeNode) {
@@ -576,7 +576,7 @@ class TypeConverters {
         @Override
         public OpenType<?> getOpenType() {
             try {
-                return ArrayType.getArrayType(getConverter(attributeDefinition, valueTypeNode, null).getOpenType());
+                return ArrayType.getArrayType(getValueTypeConverter().getOpenType());
             } catch (OpenDataException e) {
                 throw new RuntimeException(e);
             }
@@ -588,7 +588,7 @@ class TypeConverters {
                 return null;
             }
             final List<Object> list = new ArrayList<Object>();
-            final TypeConverter converter = getConverter(attributeDefinition, valueTypeNode, null);
+            final TypeConverter converter = getValueTypeConverter();
             for (ModelNode element : node.asList()) {
                 list.add(converter.fromModelNode(element));
             }
@@ -601,7 +601,7 @@ class TypeConverters {
                 return new ModelNode();
             }
             ModelNode node = new ModelNode();
-            final TypeConverter converter = getConverter(attributeDefinition, valueTypeNode, null);
+            final TypeConverter converter = getValueTypeConverter();
             for (Object value : (Object[])o) {
                 node.add(converter.toModelNode(value));
             }
@@ -612,7 +612,26 @@ class TypeConverters {
         public Object[] toArray(List<Object> list) {
             return null;
         }
+
+        protected TypeConverter getValueTypeConverter() {
+            return getConverter(attributeDefinition, valueTypeNode, null);
+        }
     }
+
+    private class NewListTypeConverter extends ListTypeConverter implements NewTypeConverter {
+        private TypeConverter valueTypeConverter;
+
+        public NewListTypeConverter(AttributeDefinition attributeDefinition, TypeConverter valueTypeConverter) {
+            super(attributeDefinition, null);
+            this.valueTypeConverter = valueTypeConverter;
+        }
+
+        @Override
+        protected TypeConverter getValueTypeConverter() {
+            return valueTypeConverter;
+        }
+    }
+
 
     private class ComplexTypeConverter implements TypeConverter {
         private final AttributeDefinition attributeDefinition;
@@ -1096,7 +1115,7 @@ class TypeConverters {
 
         @Override
         public TypeConverter visitListType(ListAttributeDefinition attr, Context<TypeConverter> context) {
-            return null;
+            return new NewListTypeConverter(attr, context.getChildResult());
         }
 
         @Override

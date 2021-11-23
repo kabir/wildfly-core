@@ -53,6 +53,7 @@ import org.jboss.as.controller.ObjectMapAttributeDefinition;
 import org.jboss.as.controller.ObjectTypeAttributeDefinition;
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
+import org.jboss.as.controller.SimpleListAttributeDefinition;
 import org.jboss.as.controller.descriptions.NonResolvingResourceDescriptionResolver;
 import org.jboss.as.jmx.logging.JmxLogger;
 import org.jboss.as.jmx.model.TypeConverters.TypeConverter;
@@ -250,8 +251,10 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testSimpleTypeList() throws Exception {
-        ModelNode description = createDescription(ModelType.LIST, ModelType.INT);
-        TypeConverter converter = getOldConverter(description);
+        AttributeDefinition def =
+                SimpleListAttributeDefinition.Builder.of("test", createSimpleDefinition(ModelType.INT))
+                        .build();
+        TypeConverter converter = getConverter(def);
         Assert.assertEquals(ArrayType.getArrayType(SimpleType.STRING), converter.getOpenType());
         ModelNode node = new ModelNode();
         node.add(1);
@@ -262,8 +265,11 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testByteArrayList() throws Exception {
-        ModelNode description = createDescription(ModelType.LIST, ModelType.BYTES);
-        TypeConverter converter = getOldConverter(description);
+        AttributeDefinition def =
+                SimpleListAttributeDefinition.Builder.of("test", createSimpleDefinition(ModelType.BYTES))
+                        .build();
+        TypeConverter converter = getConverter(def);
+
         Assert.assertEquals(ArrayType.getArrayType(ArrayType.getPrimitiveArrayType(byte[].class)), converter.getOpenType());
         ModelNode node = new ModelNode();
         node.add(new byte[] {1,2});
