@@ -564,6 +564,219 @@ class TypeConverters {
         }
     }
 
+    private class MapTypeConverter implements NewTypeConverter {
+        private final AttributeDefinition attributeDefinition;
+        private final TypeConverter valueTypeConverter;
+        private final boolean mapOfMaps = false;
+        private OpenType<?> openType;
+
+        MapTypeConverter(AttributeDefinition attributeDefinition, TypeConverter valueTypeConverter) {
+            this.attributeDefinition = attributeDefinition;
+            this.valueTypeConverter = valueTypeConverter;
+        }
+
+
+        @Override
+        public OpenType<?>  getOpenType() {
+            if (openType != null) {
+                return openType;
+            }
+
+            openType = valueTypeConverter.getOpenType();
+            if ((/*valueType == null && */!mapOfMaps) && (openType instanceof CompositeType/* || !valueTypeNode.isDefined()*/)) {
+                //For complex value types that are not maps of maps just return the composite type
+                return openType;
+            }
+            try {
+
+                if (!(openType instanceof CompositeType)) {
+                    CompositeType rowType = new CompositeType(
+                            JmxLogger.ROOT_LOGGER.compositeEntryTypeName(),
+                            JmxLogger.ROOT_LOGGER.compositeEntryTypeDescription(),
+                            new String[]{"key", "value"},
+                            new String[]{JmxLogger.ROOT_LOGGER.compositeEntryKeyDescription(), JmxLogger.ROOT_LOGGER.compositeEntryValueDescription()},
+                            new OpenType[]{SimpleType.STRING, openType});
+                    openType = new TabularType(JmxLogger.ROOT_LOGGER.compositeMapName(), JmxLogger.ROOT_LOGGER.compositeMapDescription(), rowType, new String[]{"key"});
+                } else if (mapOfMaps) {
+                    CompositeType rowType = (CompositeType) openType;
+                    CompositeType wrapperType = new CompositeType(
+                            JmxLogger.ROOT_LOGGER.compositeEntryTypeName(),
+                            JmxLogger.ROOT_LOGGER.compositeEntryTypeDescription(),
+                            new String[]{"key", "value"},
+                            new String[]{JmxLogger.ROOT_LOGGER.compositeEntryKeyDescription(), JmxLogger.ROOT_LOGGER.compositeEntryValueDescription()},
+                            new OpenType[]{SimpleType.STRING, rowType});
+                    openType = new TabularType(JmxLogger.ROOT_LOGGER.compositeMapName(), JmxLogger.ROOT_LOGGER.compositeMapDescription(), wrapperType, new String[]{"key"});
+                } else {
+                    JmxLogger.ROOT_LOGGER.debugf("Attribute is not a composite type, or a mapOfMaps: %s", openType);
+                }
+                return openType;
+            } catch (OpenDataException e1) {
+                throw new RuntimeException(e1);
+            }
+        }
+
+
+        @Override
+        public Object fromModelNode(final ModelNode node) {
+            if (node == null || !node.isDefined()) {
+                return null;
+            }
+            if (valueTypeConverter != null) {
+                return fromSimpleModelNode(node);
+            } else {
+                if (mapOfMaps) {
+                    return fromMapOfMapsModelNode(node);
+                } else {
+                    return valueTypeConverter.fromModelNode(node);
+                }
+            }
+        }
+
+        Object fromSimpleModelNode(final ModelNode node) {
+            final TabularType tabularType = (TabularType)getOpenType();
+            final TabularDataSupport tabularData = new TabularDataSupport(tabularType);
+            final Map<String, ModelNode> values = new HashMap<String, ModelNode>();
+            final List<Property> properties = node.isDefined() ? node.asPropertyList() : null;
+            if (properties != null) {
+                for (Property prop : properties) {
+                    values.put(prop.getName(), prop.getValue());
+                }
+            }
+
+            for (Map.Entry<String, ModelNode> prop : values.entrySet()) {
+                Map<String, Object> rowData = new HashMap<String, Object>();
+                rowData.put("key", prop.getKey());
+                rowData.put("value", valueTypeConverter.fromModelNode(prop.getValue()));
+                try {
+                    tabularData.put(new CompositeDataSupport(tabularType.getRowType(), rowData));
+                } catch (OpenDataException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return tabularData;
+        }
+
+        Object fromMapOfMapsModelNode(ModelNode node) {
+            final TabularType tabularType = (TabularType)getOpenType();
+            final TabularDataSupport tabularData = new TabularDataSupport(tabularType);
+            final Map<String, ModelNode> values = new HashMap<String, ModelNode>();
+            final List<Property> properties = node.isDefined() ? node.asPropertyList() : null;
+            if (properties != null) {
+                for (Property prop : properties) {
+                    values.put(prop.getName(), prop.getValue());
+                }
+            }
+
+            for (Map.Entry<String, ModelNode> prop : values.entrySet()) {
+                String key = prop.getKey();
+                ModelNode value = prop.getValue();
+
+                CompositeData valueData = (CompositeData)valueTypeConverter.fromModelNode(value);
+
+                Map<String, Object> rowData = new HashMap<>();
+                rowData.put("key", key);
+                rowData.put("value", valueData);
+
+                try {
+                    tabularData.put(new CompositeDataSupport(tabularType.getRowType(), rowData));
+                } catch (OpenDataException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return tabularData;
+        }
+
+        @Override
+        public ModelNode toModelNode(Object o) {
+            if (o == null) {
+                return new ModelNode();
+            }
+
+            //if (valueType == null) {
+            if (valueTypeConverter == null) {
+                //complex
+                if (mapOfMaps) {
+                    final ModelNode node = new ModelNode();
+                    for (Map.Entry<String, Object> entry : ((Map<String, Object>) o).entrySet()) {
+                        entry = convertTabularTypeEntryToMapEntry(entry);
+                        String mapKey = entry.getKey();
+                        CompositeDataSupport data = (CompositeDataSupport) entry.getValue();
+                        ModelNode valueNode = valueTypeConverter.toModelNode(entry.getValue());
+                        node.get(mapKey).set(valueNode);
+                    }
+                    return node;
+
+                } else {
+                    return valueTypeConverter.toModelNode(o);
+                }
+            } else {
+                //map
+                final ModelNode node = new ModelNode();
+                for (Map.Entry<String, Object> entry : ((Map<String, Object>)o).entrySet()) {
+                    entry = convertTabularTypeEntryToMapEntry(entry);
+                    node.get(entry.getKey()).set(valueTypeConverter.toModelNode(entry.getValue()));
+                }
+                return node;
+            }
+        }
+
+        @Override
+        public Object[] toArray(List<Object> list) {
+            if (getOpenType() == SimpleType.STRING) {
+                return list.toArray(new String[list.size()]);
+            }
+            return list.toArray(new Object[list.size()]);
+        }
+
+        //TODO this may go depending on if we want to force tabular types only
+        private Map.Entry<String, Object> convertTabularTypeEntryToMapEntry(final Map.Entry<?, Object> entry) {
+            if (entry.getKey() instanceof List) {
+                //It comes from a TabularType
+                return new Map.Entry<String, Object>() {
+
+                    @Override
+                    public String getKey() {
+                        List<?> keyList = (List<?>)entry.getKey();
+                        if (keyList.size() != 1) {
+                            throw JmxLogger.ROOT_LOGGER.invalidKey(keyList, entry);
+                        }
+                        return (String)keyList.get(0);
+                    }
+
+                    @Override
+                    public Object getValue() {
+                        return ((CompositeDataSupport)entry.getValue()).get("value");
+                    }
+
+                    @Override
+                    public Object setValue(Object value) {
+                        throw new UnsupportedOperationException();
+                    }
+
+                };
+            } else {
+                return new Map.Entry<String, Object>() {
+
+                    @Override
+                    public String getKey() {
+                        return (String)entry.getKey();
+                    }
+
+                    @Override
+                    public Object getValue() {
+                        return entry.getValue();
+                    }
+
+                    @Override
+                    public Object setValue(Object value) {
+                        throw new UnsupportedOperationException();
+                    }
+                };
+            }
+
+        }
+    }
+
     private class ListTypeConverter implements TypeConverter {
         private final AttributeDefinition attributeDefinition;
         final ModelNode valueTypeNode;
@@ -1125,7 +1338,7 @@ class TypeConverters {
 
         @Override
         public TypeConverter visitObjectType(MapAttributeDefinition attr, Context<TypeConverter> context) {
-            return new Ne;
+            return new MapTypeConverter(attr, context.getChildResult());
         }
 
         @Override

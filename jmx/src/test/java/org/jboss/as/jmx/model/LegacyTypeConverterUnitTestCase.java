@@ -325,8 +325,9 @@ public class LegacyTypeConverterUnitTestCase {
 
     @Test
     public void testByteArrayObject() throws Exception {
-        ModelNode description = createDescription(ModelType.OBJECT, ModelType.BYTES);
-        TypeConverter converter = getOldConverter(description);
+        AttributeDefinition def =
+                new SimpleMapAttributeDefinition.Builder("test", ModelType.BYTES, true).build();
+        TypeConverter converter = getConverter(def);
 
         assertMapType(assertCast(TabularType.class, converter.getOpenType()), SimpleType.STRING, ArrayType.getPrimitiveArrayType(byte[].class));
 
