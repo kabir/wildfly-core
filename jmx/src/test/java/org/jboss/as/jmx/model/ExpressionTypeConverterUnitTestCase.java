@@ -407,23 +407,28 @@ public class ExpressionTypeConverterUnitTestCase {
 
     @Test
     public void testComplexList() throws Exception {
-        ModelNode description = createDescription(ModelType.LIST);
-        ModelNode complexValueType = new ModelNode();
-        complexValueType.get("int-value", DESCRIPTION).set("An int value");
-        complexValueType.get("int-value", TYPE).set(ModelType.INT);
-        complexValueType.get("list-int-value", DESCRIPTION).set("An int list value");
-        complexValueType.get("list-int-value", TYPE).set(ModelType.LIST);
-        complexValueType.get("list-int-value", VALUE_TYPE).set(ModelType.INT);
-        description.get(VALUE_TYPE).set(complexValueType);
+        // TODO We need to set the descriptions again, probably in a resolver
+        AttributeDefinition def = ObjectListAttributeDefinition.Builder.of(
+                        "test",
+                        ObjectTypeAttributeDefinition.create("test",
+                                createSimpleDefinition("int-value", ModelType.INT),
+                                SimpleListAttributeDefinition.Builder.of(
+                                                "list-int-value",
+                                                createSimpleDefinition(ModelType.INT))
+                                        .build()
+                        ).build())
+                .build();
 
-        TypeConverter converter = getOldConverter(description);
+
+
+        TypeConverter converter = getConverter(def);
 
         ArrayType<CompositeType> arrayType = assertCast(ArrayType.class, converter.getOpenType());
         CompositeType type = assertCast(CompositeType.class, arrayType.getElementOpenType());
         Set<String> keys = type.keySet();
         Assert.assertEquals(2, keys.size());
-        assertCompositeType(type, "int-value", String.class.getName(), "An int value");
-        assertCompositeType(type, "list-int-value", String[].class.getName(), "An int list value");
+        _tempAssertCompositeType(type, "int-value", String.class.getName(), "An int value");
+        _tempAssertCompositeType(type, "list-int-value", String[].class.getName(), "An int list value");
 
         ModelNode node = new ModelNode();
         ModelNode entry = new ModelNode();
