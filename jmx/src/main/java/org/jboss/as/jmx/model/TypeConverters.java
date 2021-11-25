@@ -777,6 +777,93 @@ class TypeConverters {
         }
     }
 
+    private class ObjectTypeTypeConverter implements TypeConverter {
+
+        private ObjectTypeAttributeDefinition attr;
+        private Map<String, TypeConverter> childResults;
+
+        public ObjectTypeTypeConverter(ObjectTypeAttributeDefinition attr, Map<String, TypeConverter> childResults) {
+            this.attr = attr;
+            this.childResults = childResults;
+        }
+
+        @Override
+        public OpenType<?> getOpenType() {
+            List<String> itemNames = new ArrayList<String>();
+            List<String> itemDescriptions = new ArrayList<String>();
+            List<OpenType<?>> itemTypes = new ArrayList<OpenType<?>>();
+
+            for (Map.Entry<String, TypeConverter> entry : childResults.entrySet()) {
+                itemNames.add(entry.getKey());
+                // TODO figure out how to add this ('-' was the old value if no description was provided)
+                itemDescriptions.add("-");
+                itemTypes.add(entry.getValue().getOpenType());
+            }
+
+            try {
+                return new CompositeType(JmxLogger.ROOT_LOGGER.complexCompositeEntryTypeName(),
+                        JmxLogger.ROOT_LOGGER.complexCompositeEntryTypeDescription(),
+                        itemNames.toArray(new String[itemNames.size()]),
+                        itemDescriptions.toArray(new String[itemDescriptions.size()]),
+                        itemTypes.toArray(new OpenType[itemTypes.size()]));
+            } catch (OpenDataException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public Object fromModelNode(ModelNode node) {
+            if (node == null || !node.isDefined()) {
+                return null;
+            }
+
+            final OpenType<?> openType = getOpenType();
+            if (openType instanceof CompositeType) {
+                final CompositeType compositeType = (CompositeType)openType;
+                //Create a composite
+                final Map<String, Object> items = new HashMap<String, Object>();
+                for (Map.Entry<String, TypeConverter> entry : childResults.entrySet()) {
+                    items.put(entry.getKey(), entry.getValue().fromModelNode(node.get(entry.getKey())));
+                }
+
+                try {
+                    return new CompositeDataSupport(compositeType, items);
+                } catch (OpenDataException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                return node.toJSONString(false);
+            }
+        }
+
+        @Override
+        public ModelNode toModelNode(Object o) {
+            if (o == null) {
+                return new ModelNode();
+            }
+            if (o instanceof CompositeData) {
+                final ModelNode node = new ModelNode();
+                final CompositeData composite = (CompositeData)o;
+                for (String key : composite.getCompositeType().keySet()) {
+                    TypeConverter converter = childResults.get(key);
+                    if (converter == null){
+                        throw JmxLogger.ROOT_LOGGER.unknownValue(key);
+                    }
+                    node.get(key).set(converter.toModelNode(composite.get(key)));
+                }
+                return node;
+            } else {
+                return ModelNode.fromJSONString((String)o);
+            }
+
+        }
+
+        @Override
+        public Object[] toArray(List<Object> list) {
+            return list.toArray(new CompositeData[list.size()]);
+        }
+    }
+
     private class ListTypeConverter implements TypeConverter {
         private final AttributeDefinition attributeDefinition;
         final ModelNode valueTypeNode;
@@ -1333,7 +1420,7 @@ class TypeConverters {
 
         @Override
         public TypeConverter visitObjectType(ObjectTypeAttributeDefinition attr, Context<TypeConverter> context) {
-            return null;
+            return new ObjectTypeTypeConverter(attr, context.getChildResults());//new MapAttributeDefinition(attr, context.getChildResults());
         }
 
         @Override
