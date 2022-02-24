@@ -927,8 +927,22 @@ public class CommandContextImpl implements CommandContext, ModelControllerClient
 
     // Single execute method to handle exceptions.
     private <T> T execute(Callable<T> c, String msg) throws CommandLineException {
+        // There seem to be two things executed (that we care about)
+        // model operations and CLI commands. How they are handled seems a bit different.
         try {
-            return c.call();
+            T result =  c.call();
+            // Has a few call paths leading here, some which are void/null
+            // But when executing model operations e.g.
+            // /system-property=test:add(value=true)
+            // I see the expected ModelNode {"outcome" => "success"}
+            // Then when running
+            // /system-property=test:read-resource
+            // I see the following expected output
+            //{
+            //    "outcome" => "success",
+            //    "result" => {"value" => "true"}
+            //}
+            return result;
         } catch (IOException ex) {
             throw new CommandLineException("IO exception for " + msg, ex);
         } catch (TimeoutException ex) {
@@ -937,9 +951,16 @@ public class CommandContextImpl implements CommandContext, ModelControllerClient
             Thread.currentThread().interrupt();
             throw new CommandLineException("Interrupt exception for " + msg);
         } catch (ExecutionException ex) {
+            // Kabir: if running a command, it seems like it will fail here. Examples of commands are 'deploy'.
+            // So if I do:
+            //deploy my.war
+            //# The above works, and returns no output.
+            //If I run the command again (so it should fail) I get a CommandFormatException which
+            // seems to be thrown below.
+
             // Part of command parsing can occur at execution time.
             if(ex.getCause() instanceof CommandFormatException) {
-                 throw new CommandFormatException(ex);
+                 throw new CommandFormatException(ex); // What gets thrown to the user
             } else {
                 throw new CommandLineException(ex);
             }
