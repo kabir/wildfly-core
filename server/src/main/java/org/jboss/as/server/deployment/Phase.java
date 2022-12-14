@@ -248,7 +248,13 @@ public enum Phase {
     public static final int PARSE_COMPOSITE_ANNOTATION_INDEX            = 0x0301;
     public static final int PARSE_EXTENSION_LIST                        = 0x0700;
     public static final int PARSE_EXTENSION_NAME                        = 0x0800;
+    public static final int PARSE_CHECK_EXPERIMENTAL_ANNOTATIONS        = 0x0880;
 
+    /**
+     * @deprecated there is no phase processing associated with this constant - it was used for OSGi integration
+     */
+    @Deprecated
+    public static final int PARSE_OSGI_BUNDLE_INFO                      = 0x0900;
     public static final int PARSE_WEB_DEPLOYMENT                        = 0x0B00;
     public static final int PARSE_WEB_DEPLOYMENT_FRAGMENT               = 0x0C00;
     public static final int PARSE_JSF_VERSION                           = 0x0C50;

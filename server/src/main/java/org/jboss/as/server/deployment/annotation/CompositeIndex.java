@@ -52,6 +52,17 @@ public class CompositeIndex {
         return Collections.unmodifiableList(allInstances);
     }
 
+    public List<AnnotationInstance> getAnnotations(final String annotationName) {
+        final List<AnnotationInstance> allInstances = new ArrayList<AnnotationInstance>();
+        for (Index index : indexes) {
+            final Collection<AnnotationInstance> list = index.getAnnotations(annotationName);
+            if (list != null) {
+                allInstances.addAll(list);
+            }
+        }
+        return Collections.unmodifiableList(allInstances);
+    }
+
     /**
      * @see {@link Index#getKnownDirectSubclasses(org.jboss.jandex.DotName)}
      */
