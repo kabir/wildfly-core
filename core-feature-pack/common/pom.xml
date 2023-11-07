@@ -267,6 +267,10 @@
             <artifactId>wildfly-core-security</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.wildfly.experimental.api</groupId>
+            <artifactId>experimental-api-classpath-indexer</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.wildfly.security</groupId>
             <artifactId>wildfly-elytron-asn1</artifactId>
         </dependency>
