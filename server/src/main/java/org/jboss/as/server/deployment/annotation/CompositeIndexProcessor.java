@@ -63,6 +63,9 @@ public class CompositeIndexProcessor implements DeploymentUnitProcessor {
 
         Map<ModuleIdentifier, DeploymentUnit> subdeploymentDependencies = buildSubdeploymentDependencyMap(deploymentUnit);
 
+        long start = System.currentTimeMillis();
+        ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex (composite) " + start);
+
         for (final ModuleIdentifier moduleIdentifier : additionalModuleIndexes) {
             AdditionalModuleSpecification additional = additionalModuleSpecificationMap.get(moduleIdentifier);
             if(additional != null) {
@@ -70,7 +73,7 @@ public class CompositeIndexProcessor implements DeploymentUnitProcessor {
                 // or jboss-deployment-structure.xml or equivalent jboss-all.xml content. Obtain indexes from its resources.
                 final List<Index> moduleIndexes = new ArrayList<>();
                 for(ResourceRoot resource : additional.getResourceRoots()) {
-                    ResourceRootIndexer.indexResourceRoot(resource);
+                    ResourceRootIndexer.indexResourceRoot(deploymentUnit, resource);
                     Index indexAttachment = resource.getAttachment(Attachments.ANNOTATION_INDEX);
                     if(indexAttachment != null) {
                         indexes.add(indexAttachment);
@@ -118,6 +121,10 @@ public class CompositeIndexProcessor implements DeploymentUnitProcessor {
                 additionalAnnotationIndexes.put(moduleIdentifier, externalModuleIndexes);
             }
         }
+        long end = System.currentTimeMillis();
+        ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex (manifest) " + end);
+        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start));
+
         deploymentUnit.putAttachment(Attachments.ADDITIONAL_ANNOTATION_INDEXES_BY_MODULE, additionalAnnotationIndexes);
 
         final List<ResourceRoot> allResourceRoots = new ArrayList<ResourceRoot>();

@@ -34,7 +34,7 @@ public class AnnotationIndexProcessor implements DeploymentUnitProcessor {
         ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex " + start);
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         for (ResourceRoot resourceRoot : DeploymentUtils.allResourceRoots(deploymentUnit)) {
-            ResourceRootIndexer.indexResourceRoot(resourceRoot);
+            ResourceRootIndexer.indexResourceRoot(deploymentUnit, resourceRoot);
         }
         long end = System.currentTimeMillis();
         ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex " + end);

@@ -55,7 +55,8 @@ public class ScanExperimentalAnnotationsProcessors {
         if ("1".equals(poc)) {
             return new ScanExperimentalAnnotationsProcessorPoc1(runningMode);
         } else if ("2".equals(poc)) {
-            return new ScanExperimentalAnnotationsProcessorPoc2(runningMode);
+            //return new ScanExperimentalAnnotationsProcessorPoc2(runningMode);
+            return new NullAnnotationsProcessor();
         } else if ("3".equals(poc)) {
             return new ScanExperimentalAnnotationsProcessorPoc3(runningMode);
         } else {

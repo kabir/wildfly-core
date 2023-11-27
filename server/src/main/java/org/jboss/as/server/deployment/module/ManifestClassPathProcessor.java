@@ -268,7 +268,13 @@ public final class ManifestClassPathProcessor implements DeploymentUnitProcessor
             final MountHandle mountHandle = MountHandle.create(closable);
             final ResourceRoot resourceRoot = new ResourceRoot(file, mountHandle);
             ModuleRootMarker.mark(resourceRoot);
-            ResourceRootIndexer.indexResourceRoot(resourceRoot);
+            long start = System.currentTimeMillis();
+            ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex (structure) " + start);
+            ResourceRootIndexer.indexResourceRoot(deploymentUnit, resourceRoot);
+            long end = System.currentTimeMillis();
+            ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex (manifest) " + end);
+            ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start));
+
             return resourceRoot;
         } catch (IOException e) {
             throw new RuntimeException(e);

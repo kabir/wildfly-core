@@ -4,29 +4,7 @@
  */
 package org.jboss.as.server.deployment.module.descriptor;
 
-import java.io.Closeable;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.xml.namespace.QName;
-import javax.xml.stream.XMLInputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-
 import org.jboss.as.server.DeployerChainAddHandler;
-import org.jboss.as.server.deployment.module.ModuleAliasChecker;
-import org.jboss.as.server.deployment.module.ModuleAliasChecker.MessageContext;
-import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.as.server.ServerService;
 import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
@@ -40,15 +18,36 @@ import org.jboss.as.server.deployment.SubDeploymentMarker;
 import org.jboss.as.server.deployment.annotation.ResourceRootIndexer;
 import org.jboss.as.server.deployment.jbossallxml.JBossAllXmlParserRegisteringProcessor;
 import org.jboss.as.server.deployment.module.AdditionalModuleSpecification;
+import org.jboss.as.server.deployment.module.ModuleAliasChecker;
+import org.jboss.as.server.deployment.module.ModuleAliasChecker.MessageContext;
 import org.jboss.as.server.deployment.module.ModuleDependency;
 import org.jboss.as.server.deployment.module.ModuleRootMarker;
 import org.jboss.as.server.deployment.module.ModuleSpecification;
 import org.jboss.as.server.deployment.module.ResourceRoot;
+import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.as.server.moduleservice.ServiceModuleLoader;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.modules.ModuleLoader;
 import org.jboss.staxmapper.XMLMapper;
 import org.jboss.vfs.VirtualFile;
+
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import java.io.Closeable;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Parses <code>jboss-deployment-structure.xml</code>, and merges the result with the deployment.
@@ -176,9 +175,15 @@ public class DeploymentStructureDescriptorParser implements DeploymentUnitProces
                 additional.addSystemDependencies(additionalModule.getModuleDependencies());
                 additionalModules.put(additional.getModuleIdentifier(), additional);
                 deploymentUnit.addToAttachmentList(Attachments.ADDITIONAL_MODULES, additional);
+                long start = System.currentTimeMillis();
+                ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex (structure) " + start);
                 for (final ResourceRoot root : additionalModuleResourceRoots) {
-                    ResourceRootIndexer.indexResourceRoot(root);
+                    ResourceRootIndexer.indexResourceRoot(deploymentUnit, root);
                 }
+                long end = System.currentTimeMillis();
+                ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex (structure)" + end);
+                ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start));
+
             }
 
             final ModuleSpecification moduleSpec = deploymentUnit.getAttachment(Attachments.MODULE_SPECIFICATION);
@@ -256,6 +261,8 @@ public class DeploymentStructureDescriptorParser implements DeploymentUnitProces
         moduleSpec.addExclusions(rootDeploymentSpecification.getExclusions());
         moduleSpec.addAliases(rootDeploymentSpecification.getAliases());
         moduleSpec.addModuleSystemDependencies(rootDeploymentSpecification.getSystemDependencies());
+        long start = System.currentTimeMillis();
+        ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex (structure 2) " + start);
         for (final ResourceRoot additionalResourceRoot : rootDeploymentSpecification.getResourceRoots()) {
 
             final ResourceRoot existingRoot = resourceRoots.get(additionalResourceRoot.getRoot());
@@ -268,10 +275,14 @@ public class DeploymentStructureDescriptorParser implements DeploymentUnitProces
             } else {
                 deploymentUnit.addToAttachmentList(Attachments.RESOURCE_ROOTS, additionalResourceRoot);
                 //compute the annotation index for the root
-                ResourceRootIndexer.indexResourceRoot(additionalResourceRoot);
+                ResourceRootIndexer.indexResourceRoot(deploymentUnit, additionalResourceRoot);
                 ModuleRootMarker.mark(additionalResourceRoot);
             }
         }
+        long end = System.currentTimeMillis();
+        ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex (Structure 2) " + end);
+        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start));
+
         for (final String classTransformer : rootDeploymentSpecification.getClassTransformers()) {
             moduleSpec.addClassTransformer(classTransformer);
         }

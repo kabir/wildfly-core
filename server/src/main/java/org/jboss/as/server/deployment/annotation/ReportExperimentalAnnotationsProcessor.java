@@ -77,7 +77,9 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         CompositeIndex index = du.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
         reporter.checkAnnotationIndex(annotationName -> index.getAnnotations(annotationName));
         ExperimentalAnnotationsAttachment attachment = top.getAttachment(ATTACHMENT);
-
+        if (attachment == null) {
+            return;
+        }
         ServerLogger.DEPLOYMENT_LOGGER.infof("===> Scan took %d ms, and scanned %d classes",
                 System.currentTimeMillis() - attachment.startTime,
                 attachment.classesScannedCount);

@@ -5,34 +5,49 @@
 
 package org.jboss.as.server.deployment.annotation;
 
-import java.io.InputStream;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.as.server.deployment.Attachments;
+import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
+import org.jboss.as.server.deployment.DeploymentUtils;
 import org.jboss.as.server.deployment.module.ResourceRoot;
+import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.as.server.moduleservice.ModuleIndexBuilder;
 import org.jboss.jandex.Index;
 import org.jboss.jandex.IndexReader;
 import org.jboss.jandex.Indexer;
+import org.jboss.modules.Module;
+import org.jboss.modules.ModuleClassLoader;
+import org.jboss.modules.ModuleLoadException;
+import org.jboss.modules.ModuleLoader;
 import org.jboss.vfs.VFSUtils;
 import org.jboss.vfs.VirtualFile;
 import org.jboss.vfs.VirtualFileFilter;
 import org.jboss.vfs.VisitorAttributes;
 import org.jboss.vfs.util.SuffixMatchFilter;
+import org.wildfly.experimental.api.classpath.index.ByteRuntimeIndex;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.JandexCollector;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Utility class for indexing a resource root
  */
 public class ResourceRootIndexer {
+    private static final String BASE_MODULE_NAME = "org.wildfly._internal.experimental-api-index";
+    private static final String INDEX_FILE = "index.txt";
 
     /**
      * Creates and attaches the annotation index to a resource root, if it has not already been attached
      */
-    public static void indexResourceRoot(final ResourceRoot resourceRoot) throws DeploymentUnitProcessingException {
+    public static void indexResourceRoot(final DeploymentUnit tempUnit, final ResourceRoot resourceRoot) throws DeploymentUnitProcessingException {
         if (resourceRoot.getAttachment(Attachments.ANNOTATION_INDEX) != null) {
             return;
         }
@@ -63,8 +78,26 @@ public class ResourceRootIndexer {
             indexIgnorePaths = null;
         }
 
+        JandexCollector collector = null;
+        String poc = System.getProperty("scan.poc");
+        if ("2".equals(poc)) {
+            DeploymentUnit top = DeploymentUtils.getTopDeploymentUnit(tempUnit);
+            // Hacky cast, only because we are switching between different POCs
+            collector = (JandexCollector) top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
+            if (collector == null) {
+                collector = new JandexCollector(loadRuntimeIndex());
+                top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER, collector);
+            }
+            ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment processor = top.getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
+            if (processor == null) {
+                processor = new ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment();
+                top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
+            }
+        }
+
+
         final VirtualFile virtualFile = resourceRoot.getRoot();
-        final Indexer indexer = new Indexer();
+        final Indexer indexer = new Indexer(collector);
         try {
             final VisitorAttributes visitorAttributes = new VisitorAttributes();
             visitorAttributes.setLeavesOnly(true);
@@ -92,5 +125,34 @@ public class ResourceRootIndexer {
         } catch (Throwable t) {
             throw ServerLogger.ROOT_LOGGER.deploymentIndexingFailed(t);
         }
+    }
+
+    private static ByteRuntimeIndex loadRuntimeIndex() {
+        ModuleLoader moduleLoader = ((ModuleClassLoader) ResourceRootIndexer.class.getClassLoader()).getModule().getModuleLoader();
+        Module module = null;
+        try {
+            module = moduleLoader.loadModule(BASE_MODULE_NAME);
+        } catch (ModuleLoadException e) {
+            // TODO make this module part of core so it is always there
+        }
+        if (module != null) {
+            URL url = module.getExportedResource(INDEX_FILE);
+            List<URL> urls = new ArrayList<>();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
+                String fileName = reader.readLine();
+                while (fileName != null) {
+                    if (!fileName.isEmpty()) {
+                        urls.add(module.getExportedResource(fileName));
+                    }
+                    fileName = reader.readLine();
+                }
+
+                return ByteRuntimeIndex.load(urls);
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return null;
     }
 }
