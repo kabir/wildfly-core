@@ -11,6 +11,7 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.DeploymentUtils;
 import org.jboss.as.server.deployment.module.ResourceRoot;
+import org.jboss.as.server.logging.ServerLogger;
 
 /**
  * Deployment unit processor responsible for creating and attaching an annotation index for a resource root
@@ -29,10 +30,15 @@ public class AnnotationIndexProcessor implements DeploymentUnitProcessor {
      *
      */
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
+        long start = System.currentTimeMillis();
+        ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex " + start);
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
         for (ResourceRoot resourceRoot : DeploymentUtils.allResourceRoots(deploymentUnit)) {
             ResourceRootIndexer.indexResourceRoot(resourceRoot);
         }
+        long end = System.currentTimeMillis();
+        ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex " + end);
+        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start));
     }
 
 }

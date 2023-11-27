@@ -19,22 +19,40 @@
 
 package org.jboss.as.server.deployment.annotation;
 
+import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.logging.ServerLogger;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassBytecodeInspector;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassBytecodeInspector.AnnotatedFieldReference;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassBytecodeInspector.AnnotatedMethodReference;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassBytecodeInspector.AnnotationUsage;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassBytecodeInspector.ExtendsAnnotatedClass;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassBytecodeInspector.ImplementsAnnotatedInterface;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedAnnotation;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedClassUsage;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedFieldReference;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedMethodReference;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotationUsage;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotationUsageReporter;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.ExtendsAnnotatedClass;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.ImplementsAnnotatedInterface;
 
 import java.util.Set;
 
 public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitProcessor {
+
+    static final AttachmentKey<ExperimentalAnnotationsAttachment> ATTACHMENT = AttachmentKey.create(ExperimentalAnnotationsAttachment.class);
+    public static class ExperimentalAnnotationsAttachment {
+        private final long startTime = System.currentTimeMillis();
+
+        private volatile int classesScannedCount = 0;
+
+        public ExperimentalAnnotationsAttachment() {
+            ServerLogger.DEPLOYMENT_LOGGER.infof("TMP - creating attachment");
+        }
+
+        void incrementClassesScannedCount() {
+            classesScannedCount++;
+        }
+    }
 
 
     /**
@@ -48,8 +66,8 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit du = phaseContext.getDeploymentUnit();
         DeploymentUnit top = du.getParent() == null ? du : du.getParent();
-        ClassBytecodeInspector inspector = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_INSPECTOR);
-        if (inspector == null) {
+        AnnotationUsageReporter reporter = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
+        if (reporter == null) {
             return;
         }
 
@@ -57,14 +75,22 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         // parts have been annotated with an annotation flagged as experimental.
         // The finale part is to check the annotations indexed by Jandex
         CompositeIndex index = du.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
-        inspector.checkAnnotationIndex(annotationName -> index.getAnnotations(annotationName));
+        reporter.checkAnnotationIndex(annotationName -> index.getAnnotations(annotationName));
+        ExperimentalAnnotationsAttachment attachment = top.getAttachment(ATTACHMENT);
 
-
+        ServerLogger.DEPLOYMENT_LOGGER.infof("===> Scan took %d ms, and scanned %d classes",
+                System.currentTimeMillis() - attachment.startTime,
+                attachment.classesScannedCount);
 
         // TODO We could do something here to group things a bit more ordered
-        Set<AnnotationUsage> usages = inspector.getUsages();
+        Set<AnnotationUsage> usages = reporter.getUsages();
 
         if (usages.size() > 0) {
+
+            System.out.println();
+            System.out.println("=========>>>>>>>> OUTPUT FOR DEMO <<<<<<<<=========");
+            System.out.println();
+
             // TODO Configure whether to give an error or warn
 
             // TODO i18n here and for the other messages
@@ -96,15 +122,15 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
                     }
                     break;
                     case CLASS_USAGE: {
-                        ClassBytecodeInspector.AnnotatedClassUsage ref = usage.asAnnotatedClassUsage();
+                        AnnotatedClassUsage ref = usage.asAnnotatedClassUsage();
                         ServerLogger.DEPLOYMENT_LOGGER.infof(
                                 "%s references class %s which has been annotated with %s", ref.getSourceClass(), ref.getReferencedClass(), ref.getAnnotations());
                     }
                     break;
                     case ANNOTATION_USAGE: {
-                        ClassBytecodeInspector.AnnotatedAnnotation ref = usage.asAnnotatedAnnotation();
+                        AnnotatedAnnotation ref = usage.asAnnotatedAnnotation();
                         ServerLogger.DEPLOYMENT_LOGGER.infof(
-                                "The deployment also uses the following unsupported annotations %s", ref.getAnnotations());
+                                "The deployment uses the following unsupported annotations %s", ref.getAnnotations());
                     }
                     break;
                 }

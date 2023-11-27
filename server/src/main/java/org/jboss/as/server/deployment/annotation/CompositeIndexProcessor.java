@@ -27,6 +27,7 @@ import org.jboss.as.server.deployment.module.AdditionalModuleSpecification;
 import org.jboss.as.server.deployment.module.ModuleDependency;
 import org.jboss.as.server.deployment.module.ModuleRootMarker;
 import org.jboss.as.server.deployment.module.ResourceRoot;
+import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.jandex.Index;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.modules.ModuleLoader;
@@ -147,6 +148,7 @@ public class CompositeIndexProcessor implements DeploymentUnitProcessor {
             }
         }
         deploymentUnit.putAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX, new CompositeIndex(indexes));
+        ServerLogger.DEPLOYMENT_LOGGER.infof("====> End of Jandex " + System.currentTimeMillis());
     }
 
     private Map<ModuleIdentifier, DeploymentUnit> buildSubdeploymentDependencyMap(DeploymentUnit deploymentUnit) {

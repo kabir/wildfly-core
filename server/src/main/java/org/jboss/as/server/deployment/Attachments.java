@@ -34,7 +34,7 @@ import org.jboss.modules.ModuleIdentifier;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.vfs.VirtualFile;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassBytecodeInspector;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotationUsageReporter;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
@@ -330,7 +330,7 @@ public final class Attachments {
      */
     public static final AttachmentKey<AttachmentList<ServiceName>> DEPLOYMENT_COMPLETE_SERVICES = AttachmentKey.createList(ServiceName.class);
 
-    public static final AttachmentKey<ClassBytecodeInspector> EXPERIMENTAL_ANNOTATION_INSPECTOR = AttachmentKey.create(ClassBytecodeInspector.class);
+    public static final AttachmentKey<AnnotationUsageReporter> EXPERIMENTAL_ANNOTATION_USAGE_REPORTER = AttachmentKey.create(AnnotationUsageReporter.class);
 
     //
     // CLEANUP
