@@ -38,7 +38,16 @@ public class AnnotationIndexProcessor implements DeploymentUnitProcessor {
         }
         long end = System.currentTimeMillis();
         ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex " + end);
-        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start));
+
+
+        int classes = 0;
+        ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment processor = DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
+        if (processor != null) {
+            classes = processor.getClassesScannedCount();
+        }
+
+
+        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start) + " and scanned " + classes + " classes");
     }
 
 }

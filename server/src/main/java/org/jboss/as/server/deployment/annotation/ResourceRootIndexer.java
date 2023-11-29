@@ -9,6 +9,7 @@ import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUtils;
+import org.jboss.as.server.deployment.annotation.ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.as.server.moduleservice.ModuleIndexBuilder;
@@ -78,22 +79,39 @@ public class ResourceRootIndexer {
             indexIgnorePaths = null;
         }
 
-        JandexCollector collector = null;
+        JandexCollector collector = null; // POC 2
+        //FastClassInfoScanner scanner = null; // POC 3
+        ExperimentalAnnotationsAttachment processor = null;
         String poc = System.getProperty("scan.poc");
-        if ("2".equals(poc)) {
+        if ("2".equals(poc) || "3".equals(poc)) {
             DeploymentUnit top = DeploymentUtils.getTopDeploymentUnit(tempUnit);
-            // Hacky cast, only because we are switching between different POCs
-            collector = (JandexCollector) top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
-            if (collector == null) {
-                collector = new JandexCollector(loadRuntimeIndex());
-                top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER, collector);
-            }
-            ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment processor = top.getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
-            if (processor == null) {
-                processor = new ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment();
-                top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
+            if ("2".equals(poc)) {
+                // Hacky cast, only because we are switching between different POCs
+                collector = (JandexCollector) top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
+                if (collector == null) {
+                    collector = new JandexCollector(loadRuntimeIndex());
+                    top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER, collector);
+                }
+                processor = top.getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
+                if (processor == null) {
+                    processor = new ExperimentalAnnotationsAttachment();
+                    top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
+                }
+//            } else if ("3".equals(poc)) {
+//                // Hacky cast, only because we are switching between different POCs
+//                scanner = (FastClassInfoScanner) top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
+//                if (scanner == null) {
+//                    collector = new JandexCollector(loadRuntimeIndex());
+//                    top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER, scanner);
+//                }
+//                processor = top.getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
+//                if (processor == null) {
+//                    processor = new ExperimentalAnnotationsAttachment();
+//                    top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
+//                }
             }
         }
+
 
 
         final VirtualFile virtualFile = resourceRoot.getRoot();
@@ -117,6 +135,19 @@ public class ResourceRootIndexer {
                     ServerLogger.DEPLOYMENT_LOGGER.cannotIndexClass(classFile.getPathNameRelativeTo(virtualFile), virtualFile.getPathName(), e);
                 } finally {
                     VFSUtils.safeClose(inputStream);
+                }
+//                if ("3".equals(poc)) {
+//                    try {
+//                        inputStream = classFile.openStream();
+//                        indexer.index(inputStream);
+//                    } catch (Exception e) {
+//                        ServerLogger.DEPLOYMENT_LOGGER.cannotIndexClass(classFile.getPathNameRelativeTo(virtualFile), virtualFile.getPathName(), e);
+//                    } finally {
+//                        VFSUtils.safeClose(inputStream);
+//                    }
+//                }
+                if (processor != null) {
+                    processor.incrementClassesScannedCount();
                 }
             }
             final Index index = indexer.complete();

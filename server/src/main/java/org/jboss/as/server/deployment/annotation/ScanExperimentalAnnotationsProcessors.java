@@ -55,6 +55,7 @@ public class ScanExperimentalAnnotationsProcessors {
         if ("1".equals(poc)) {
             return new ScanExperimentalAnnotationsProcessorPoc1(runningMode);
         } else if ("2".equals(poc)) {
+            // POC 2 runs from the Jandex Indexer directly
             //return new ScanExperimentalAnnotationsProcessorPoc2(runningMode);
             return new NullAnnotationsProcessor();
         } else if ("3".equals(poc)) {
@@ -234,6 +235,8 @@ public class ScanExperimentalAnnotationsProcessors {
                 top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
             }
 
+
+            long start = System.currentTimeMillis();
             Indexer indexer = new Indexer(collector);
             // TODO the Jandex scanning scans a lot more stuff, do we need to do that too?
             ServerLogger.DEPLOYMENT_LOGGER.infof("=====> Scanning deployment with POC 2");
@@ -253,6 +256,7 @@ public class ScanExperimentalAnnotationsProcessors {
                     throw new RuntimeException(e);
                 }
             }
+
         }
     }
 
@@ -326,6 +330,7 @@ public class ScanExperimentalAnnotationsProcessors {
                 top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
             }
 
+            long start = System.currentTimeMillis();
             // TODO the Jandex scanning scans a lot more stuff, do we need to do that too?
             ServerLogger.DEPLOYMENT_LOGGER.infof("=====> Scanning deployment with POC 3");
             List<ResourceRoot> resourceRoots = DeploymentUtils.allResourceRoots(du);
@@ -344,6 +349,10 @@ public class ScanExperimentalAnnotationsProcessors {
                     throw new RuntimeException(e);
                 }
             }
+
+            long time = (System.currentTimeMillis() - start);
+            ServerLogger.DEPLOYMENT_LOGGER.infof("==== POC 3 took %d ms to scan %d classes", time, processor.getClassesScannedCount());
+
         }
     }
 }

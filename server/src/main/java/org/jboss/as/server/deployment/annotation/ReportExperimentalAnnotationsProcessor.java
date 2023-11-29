@@ -52,6 +52,10 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         void incrementClassesScannedCount() {
             classesScannedCount++;
         }
+
+        public int getClassesScannedCount() {
+            return classesScannedCount;
+        }
     }
 
 
