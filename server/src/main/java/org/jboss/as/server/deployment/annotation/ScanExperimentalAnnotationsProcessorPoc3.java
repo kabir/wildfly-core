@@ -33,6 +33,8 @@ import org.jboss.modules.ModuleClassLoader;
 import org.jboss.modules.ModuleLoadException;
 import org.jboss.modules.ModuleLoader;
 import org.jboss.vfs.VirtualFile;
+import org.jboss.vfs.VisitorAttributes;
+import org.jboss.vfs.util.SuffixMatchFilter;
 import org.wildfly.experimental.api.classpath.index.ByteRuntimeIndex;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.FastClassInfoScanner;
 
@@ -120,9 +122,22 @@ public class ScanExperimentalAnnotationsProcessorPoc3 implements DeploymentUnitP
         ServerLogger.DEPLOYMENT_LOGGER.infof("=====> Scanning deployment with POC 3");
         List<ResourceRoot> resourceRoots = DeploymentUtils.allResourceRoots(du);
         for (ResourceRoot root : resourceRoots) {
+
+            if (root.getAttachment(Attachments.ANNOTATION_INDEX) != null) {
+                // Taken from ResourceRootIndexer.
+                // During my tests for a war with a lot of nested WEB-INF/lib archives and some classes in WEB-INF/classes
+                // the classes from the nested archives were counted twice if I did not ignore this file
+                // The WEB-INF/lib archives and WEB-INF/classes are available as other resource roots so they will
+                // get scanned anyway
+                break;
+            }
+            final VisitorAttributes visitorAttributes = new VisitorAttributes();
+            visitorAttributes.setLeavesOnly(true);
+            visitorAttributes.setRecurseFilter(f-> true);
+
             try {
-                List<VirtualFile> files = root.getRoot().getChildrenRecursively();
-                for (VirtualFile file : files) {
+                final List<VirtualFile> classChildren = root.getRoot().getChildren(new SuffixMatchFilter(".class", visitorAttributes));
+                for (VirtualFile file : classChildren) {
                     if (file.isFile() && file.getName().endsWith(".class")) {
                         try (InputStream in = file.openStream()) {
                             scanner.scanClass(in);
