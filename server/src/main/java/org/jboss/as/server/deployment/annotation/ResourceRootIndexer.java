@@ -5,35 +5,22 @@
 
 package org.jboss.as.server.deployment.annotation;
 
+import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
-import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
-import org.jboss.as.server.deployment.DeploymentUtils;
-import org.jboss.as.server.deployment.annotation.ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.as.server.moduleservice.ModuleIndexBuilder;
 import org.jboss.jandex.Index;
 import org.jboss.jandex.IndexReader;
 import org.jboss.jandex.Indexer;
-import org.jboss.modules.Module;
-import org.jboss.modules.ModuleClassLoader;
-import org.jboss.modules.ModuleLoadException;
-import org.jboss.modules.ModuleLoader;
 import org.jboss.vfs.VFSUtils;
 import org.jboss.vfs.VirtualFile;
 import org.jboss.vfs.VirtualFileFilter;
 import org.jboss.vfs.VisitorAttributes;
 import org.jboss.vfs.util.SuffixMatchFilter;
-import org.wildfly.experimental.api.classpath.index.ByteRuntimeIndex;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.JandexCollector;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,10 +32,11 @@ public class ResourceRootIndexer {
     private static final String BASE_MODULE_NAME = "org.wildfly._internal.experimental-api-index";
     private static final String INDEX_FILE = "index.txt";
 
+
     /**
      * Creates and attaches the annotation index to a resource root, if it has not already been attached
      */
-    public static void indexResourceRoot(final DeploymentUnit tempUnit, final ResourceRoot resourceRoot) throws DeploymentUnitProcessingException {
+    public static void indexResourceRoot(final ResourceRoot resourceRoot) throws DeploymentUnitProcessingException {
         if (resourceRoot.getAttachment(Attachments.ANNOTATION_INDEX) != null) {
             return;
         }
@@ -79,43 +67,9 @@ public class ResourceRootIndexer {
             indexIgnorePaths = null;
         }
 
-        JandexCollector collector = null; // POC 2
-        //FastClassInfoScanner scanner = null; // POC 3
-        ExperimentalAnnotationsAttachment processor = null;
-        String poc = System.getProperty("scan.poc");
-        if ("2".equals(poc) || "3".equals(poc)) {
-            DeploymentUnit top = DeploymentUtils.getTopDeploymentUnit(tempUnit);
-            if ("2".equals(poc)) {
-                // Hacky cast, only because we are switching between different POCs
-                collector = (JandexCollector) top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
-                if (collector == null) {
-                    collector = new JandexCollector(loadRuntimeIndex());
-                    top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER, collector);
-                }
-                processor = top.getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
-                if (processor == null) {
-                    processor = new ExperimentalAnnotationsAttachment();
-                    top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
-                }
-//            } else if ("3".equals(poc)) {
-//                // Hacky cast, only because we are switching between different POCs
-//                scanner = (FastClassInfoScanner) top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
-//                if (scanner == null) {
-//                    collector = new JandexCollector(loadRuntimeIndex());
-//                    top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER, scanner);
-//                }
-//                processor = top.getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
-//                if (processor == null) {
-//                    processor = new ExperimentalAnnotationsAttachment();
-//                    top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
-//                }
-            }
-        }
-
-
-
+        TempClassCounter counter = TempClassCounter.get(resourceRoot);
         final VirtualFile virtualFile = resourceRoot.getRoot();
-        final Indexer indexer = new Indexer(collector);
+        final Indexer indexer = new Indexer();
         try {
             final VisitorAttributes visitorAttributes = new VisitorAttributes();
             visitorAttributes.setLeavesOnly(true);
@@ -131,23 +85,13 @@ public class ResourceRootIndexer {
                 try {
                     inputStream = classFile.openStream();
                     indexer.index(inputStream);
+                    if (counter != null) {
+                        counter.incrementClasses();
+                    }
                 } catch (Exception e) {
                     ServerLogger.DEPLOYMENT_LOGGER.cannotIndexClass(classFile.getPathNameRelativeTo(virtualFile), virtualFile.getPathName(), e);
                 } finally {
                     VFSUtils.safeClose(inputStream);
-                }
-//                if ("3".equals(poc)) {
-//                    try {
-//                        inputStream = classFile.openStream();
-//                        indexer.index(inputStream);
-//                    } catch (Exception e) {
-//                        ServerLogger.DEPLOYMENT_LOGGER.cannotIndexClass(classFile.getPathNameRelativeTo(virtualFile), virtualFile.getPathName(), e);
-//                    } finally {
-//                        VFSUtils.safeClose(inputStream);
-//                    }
-//                }
-                if (processor != null) {
-                    processor.incrementClassesScannedCount();
                 }
             }
             final Index index = indexer.complete();
@@ -158,32 +102,34 @@ public class ResourceRootIndexer {
         }
     }
 
-    private static ByteRuntimeIndex loadRuntimeIndex() {
-        ModuleLoader moduleLoader = ((ModuleClassLoader) ResourceRootIndexer.class.getClassLoader()).getModule().getModuleLoader();
-        Module module = null;
-        try {
-            module = moduleLoader.loadModule(BASE_MODULE_NAME);
-        } catch (ModuleLoadException e) {
-            // TODO make this module part of core so it is always there
-        }
-        if (module != null) {
-            URL url = module.getExportedResource(INDEX_FILE);
-            List<URL> urls = new ArrayList<>();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
-                String fileName = reader.readLine();
-                while (fileName != null) {
-                    if (!fileName.isEmpty()) {
-                        urls.add(module.getExportedResource(fileName));
-                    }
-                    fileName = reader.readLine();
-                }
+    public static class TempClassCounter {
 
-                return ByteRuntimeIndex.load(urls);
+        private static final AttachmentKey<TempClassCounter> KEY = AttachmentKey.create(TempClassCounter.class);
+        private final long start = System.currentTimeMillis();
+        private volatile int classes;
 
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        void incrementClasses() {
+            classes++;
         }
-        return null;
+
+        public long getTimeMs() {
+            return System.currentTimeMillis() - start;
+        }
+
+        public int getClasses() {
+            return classes;
+        }
+
+        public void attach(ResourceRoot root) {
+            root.putAttachment(KEY, this);
+        }
+
+        public void detach(ResourceRoot root) {
+            root.removeAttachment(KEY);
+        }
+
+        static TempClassCounter get(ResourceRoot root) {
+            return root.getAttachment(KEY);
+        }
     }
 }

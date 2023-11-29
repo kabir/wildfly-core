@@ -10,6 +10,7 @@ import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.DeploymentUtils;
+import org.jboss.as.server.deployment.annotation.ResourceRootIndexer.TempClassCounter;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.server.logging.ServerLogger;
 
@@ -30,24 +31,19 @@ public class AnnotationIndexProcessor implements DeploymentUnitProcessor {
      *
      */
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
+
         long start = System.currentTimeMillis();
-        ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex " + start);
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
+        TempClassCounter tempCounter = new TempClassCounter();
         for (ResourceRoot resourceRoot : DeploymentUtils.allResourceRoots(deploymentUnit)) {
-            ResourceRootIndexer.indexResourceRoot(deploymentUnit, resourceRoot);
+            tempCounter.attach(resourceRoot);
+            try {
+                ResourceRootIndexer.indexResourceRoot(resourceRoot);
+            } finally {
+                tempCounter.detach(resourceRoot);
+            }
         }
-        long end = System.currentTimeMillis();
-        ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex " + end);
-
-
-        int classes = 0;
-        ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment processor = DeploymentUtils.getTopDeploymentUnit(deploymentUnit).getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
-        if (processor != null) {
-            classes = processor.getClassesScannedCount();
-        }
-
-
-        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start) + " and scanned " + classes + " classes");
+        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took %d to scan %d classes", tempCounter.getTimeMs(), tempCounter.getClasses());
     }
 
 }

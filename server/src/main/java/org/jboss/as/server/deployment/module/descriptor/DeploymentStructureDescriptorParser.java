@@ -175,14 +175,9 @@ public class DeploymentStructureDescriptorParser implements DeploymentUnitProces
                 additional.addSystemDependencies(additionalModule.getModuleDependencies());
                 additionalModules.put(additional.getModuleIdentifier(), additional);
                 deploymentUnit.addToAttachmentList(Attachments.ADDITIONAL_MODULES, additional);
-                long start = System.currentTimeMillis();
-                ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex (structure) " + start);
                 for (final ResourceRoot root : additionalModuleResourceRoots) {
-                    ResourceRootIndexer.indexResourceRoot(deploymentUnit, root);
+                    ResourceRootIndexer.indexResourceRoot(root);
                 }
-                long end = System.currentTimeMillis();
-                ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex (structure)" + end);
-                ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start));
 
             }
 
@@ -261,8 +256,6 @@ public class DeploymentStructureDescriptorParser implements DeploymentUnitProces
         moduleSpec.addExclusions(rootDeploymentSpecification.getExclusions());
         moduleSpec.addAliases(rootDeploymentSpecification.getAliases());
         moduleSpec.addModuleSystemDependencies(rootDeploymentSpecification.getSystemDependencies());
-        long start = System.currentTimeMillis();
-        ServerLogger.DEPLOYMENT_LOGGER.infof("====> Start of Jandex (structure 2) " + start);
         for (final ResourceRoot additionalResourceRoot : rootDeploymentSpecification.getResourceRoots()) {
 
             final ResourceRoot existingRoot = resourceRoots.get(additionalResourceRoot.getRoot());
@@ -275,13 +268,10 @@ public class DeploymentStructureDescriptorParser implements DeploymentUnitProces
             } else {
                 deploymentUnit.addToAttachmentList(Attachments.RESOURCE_ROOTS, additionalResourceRoot);
                 //compute the annotation index for the root
-                ResourceRootIndexer.indexResourceRoot(deploymentUnit, additionalResourceRoot);
+                ResourceRootIndexer.indexResourceRoot(additionalResourceRoot);
                 ModuleRootMarker.mark(additionalResourceRoot);
             }
         }
-        long end = System.currentTimeMillis();
-        ServerLogger.DEPLOYMENT_LOGGER.infof("----> End of Jandex (Structure 2) " + end);
-        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took " + (end - start));
 
         for (final String classTransformer : rootDeploymentSpecification.getClassTransformers()) {
             moduleSpec.addClassTransformer(classTransformer);
