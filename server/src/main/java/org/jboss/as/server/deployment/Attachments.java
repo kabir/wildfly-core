@@ -5,14 +5,6 @@
 
 package org.jboss.as.server.deployment;
 
-import java.lang.ref.Reference;
-import java.security.PermissionCollection;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
-import java.util.jar.Manifest;
-
 import org.jboss.as.controller.capability.CapabilityServiceSupport;
 import org.jboss.as.controller.services.path.PathManager;
 import org.jboss.as.server.deployment.annotation.AnnotationIndexSupport;
@@ -34,7 +26,15 @@ import org.jboss.modules.ModuleIdentifier;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.vfs.VirtualFile;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotationUsageReporter;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassInfoScanner;
+
+import java.lang.ref.Reference;
+import java.security.PermissionCollection;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
+import java.util.jar.Manifest;
 
 /**
  * @author <a href="mailto:david.lloyd@redhat.com">David M. Lloyd</a>
@@ -330,7 +330,7 @@ public final class Attachments {
      */
     public static final AttachmentKey<AttachmentList<ServiceName>> DEPLOYMENT_COMPLETE_SERVICES = AttachmentKey.createList(ServiceName.class);
 
-    public static final AttachmentKey<AnnotationUsageReporter> EXPERIMENTAL_ANNOTATION_USAGE_REPORTER = AttachmentKey.create(AnnotationUsageReporter.class);
+    public static final AttachmentKey<ClassInfoScanner> EXPERIMENTAL_ANNOTATION_SCANNER = AttachmentKey.create(ClassInfoScanner.class);
 
     //
     // CLEANUP

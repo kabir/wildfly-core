@@ -31,7 +31,7 @@ import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedClassUsa
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedFieldReference;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedMethodReference;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotationUsage;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotationUsageReporter;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassInfoScanner;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.ExtendsAnnotatedClass;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.ImplementsAnnotatedInterface;
 
@@ -70,7 +70,7 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit du = phaseContext.getDeploymentUnit();
         DeploymentUnit top = du.getParent() == null ? du : du.getParent();
-        AnnotationUsageReporter reporter = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
+        ClassInfoScanner reporter = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER);
         if (reporter == null) {
             return;
         }

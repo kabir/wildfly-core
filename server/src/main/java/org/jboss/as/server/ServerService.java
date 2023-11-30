@@ -83,7 +83,7 @@ import org.jboss.as.server.deployment.annotation.AnnotationIndexProcessor;
 import org.jboss.as.server.deployment.annotation.ReportExperimentalAnnotationsProcessor;
 import org.jboss.as.server.deployment.annotation.CleanupAnnotationIndexProcessor;
 import org.jboss.as.server.deployment.annotation.CompositeIndexProcessor;
-import org.jboss.as.server.deployment.annotation.ScanExperimentalAnnotationsProcessorPoc3;
+import org.jboss.as.server.deployment.annotation.ScanExperimentalAnnotationsProcessor;
 import org.jboss.as.server.deployment.dependencies.DeploymentDependenciesProcessor;
 import org.jboss.as.server.deployment.jbossallxml.JBossAllXMLParsingProcessor;
 import org.jboss.as.server.deployment.module.ClassTransformerProcessor;
@@ -357,7 +357,7 @@ public final class ServerService extends AbstractControllerService {
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_EXTENSION_LIST, new ManifestExtensionListProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_EXTENSION_NAME, new ManifestExtensionNameProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_SERVICE_LOADER_DEPLOYMENT, new ServiceLoaderProcessor());
-            DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_SCAN_EXPERIMENTAL_ANNOTATIONS, new ScanExperimentalAnnotationsProcessorPoc3(runningModeControl.getRunningMode()));
+            DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_SCAN_EXPERIMENTAL_ANNOTATIONS, new ScanExperimentalAnnotationsProcessor(runningModeControl.getRunningMode()));
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_REPORT_EXPERIMENTAL_ANNOTATIONS, new ReportExperimentalAnnotationsProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_MODULE, new ModuleDependencyProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_SAR_MODULE, new ServiceActivatorDependencyProcessor());

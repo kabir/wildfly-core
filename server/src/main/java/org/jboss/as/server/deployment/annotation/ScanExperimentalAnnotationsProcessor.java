@@ -36,7 +36,7 @@ import org.jboss.vfs.VirtualFile;
 import org.jboss.vfs.VisitorAttributes;
 import org.jboss.vfs.util.SuffixMatchFilter;
 import org.wildfly.experimental.api.classpath.index.ByteRuntimeIndex;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.FastClassInfoScanner;
+import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassInfoScanner;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -46,7 +46,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ScanExperimentalAnnotationsProcessorPoc3 implements DeploymentUnitProcessor {
+public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProcessor {
 
     private final ByteRuntimeIndex runtimeIndex;
 
@@ -54,34 +54,32 @@ public class ScanExperimentalAnnotationsProcessorPoc3 implements DeploymentUnitP
     private static final String INDEX_FILE = "index.txt";
 
 
-    public ScanExperimentalAnnotationsProcessorPoc3(RunningMode runningMode) {
+    public ScanExperimentalAnnotationsProcessor(RunningMode runningMode) {
         ByteRuntimeIndex runtimeIndex = null;
-        if ("3".equals(System.getProperty("scan.poc"))) {
-            if (runningMode != RunningMode.ADMIN_ONLY) {
-                ModuleLoader moduleLoader = ((ModuleClassLoader) this.getClass().getClassLoader()).getModule().getModuleLoader();
-                Module module = null;
-                try {
-                    module = moduleLoader.loadModule(BASE_MODULE_NAME);
-                } catch (ModuleLoadException e) {
-                    // TODO make this module part of core so it is always there
-                }
-                if (module != null) {
-                    URL url = module.getExportedResource(INDEX_FILE);
-                    List<URL> urls = new ArrayList<>();
-                    try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
-                        String fileName = reader.readLine();
-                        while (fileName != null) {
-                            if (!fileName.isEmpty()) {
-                                urls.add(module.getExportedResource(fileName));
-                            }
-                            fileName = reader.readLine();
+        if (runningMode != RunningMode.ADMIN_ONLY) {
+            ModuleLoader moduleLoader = ((ModuleClassLoader) this.getClass().getClassLoader()).getModule().getModuleLoader();
+            Module module = null;
+            try {
+                module = moduleLoader.loadModule(BASE_MODULE_NAME);
+            } catch (ModuleLoadException e) {
+                // TODO make this module part of core so it is always there
+            }
+            if (module != null) {
+                URL url = module.getExportedResource(INDEX_FILE);
+                List<URL> urls = new ArrayList<>();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
+                    String fileName = reader.readLine();
+                    while (fileName != null) {
+                        if (!fileName.isEmpty()) {
+                            urls.add(module.getExportedResource(fileName));
                         }
-
-                        runtimeIndex = ByteRuntimeIndex.load(urls);
-
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
+                        fileName = reader.readLine();
                     }
+
+                    runtimeIndex = ByteRuntimeIndex.load(urls);
+
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
@@ -105,11 +103,10 @@ public class ScanExperimentalAnnotationsProcessorPoc3 implements DeploymentUnitP
 
 
 
-        // Hacky cast, only because we are switching between different POCs
-        FastClassInfoScanner scanner = (FastClassInfoScanner) top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER);
+        ClassInfoScanner scanner = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER);
         if (scanner == null) {
-            scanner = new FastClassInfoScanner(runtimeIndex);
-            top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_USAGE_REPORTER, scanner);
+            scanner = new ClassInfoScanner(runtimeIndex);
+            top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER, scanner);
         }
         ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment processor = top.getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
         if (processor == null) {
