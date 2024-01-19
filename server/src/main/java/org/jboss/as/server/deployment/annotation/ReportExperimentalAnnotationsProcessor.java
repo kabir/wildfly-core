@@ -19,6 +19,10 @@
 
 package org.jboss.as.server.deployment.annotation;
 
+import org.jboss.as.controller.ModelController;
+import org.jboss.as.controller.PathAddress;
+import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.server.Services;
 import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
@@ -26,6 +30,7 @@ import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.logging.ServerLogger;
+import org.jboss.dmr.ModelNode;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedAnnotation;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedClassUsage;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedFieldReference;
@@ -36,6 +41,8 @@ import org.wildfly.experimental.api.classpath.runtime.bytecode.ExtendsAnnotatedC
 import org.wildfly.experimental.api.classpath.runtime.bytecode.ImplementsAnnotatedInterface;
 
 import java.util.Set;
+
+import static org.jboss.as.server.logging.ServerLogger.UNSUPPORTED_ANNOTATION_LOGGER;
 
 public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitProcessor {
 
@@ -70,8 +77,8 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit du = phaseContext.getDeploymentUnit();
         DeploymentUnit top = du.getParent() == null ? du : du.getParent();
-        ClassInfoScanner reporter = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER);
-        if (reporter == null) {
+        ClassInfoScanner scanner = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER);
+        if (scanner == null) {
             return;
         }
 
@@ -79,7 +86,7 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         // parts have been annotated with an annotation flagged as experimental.
         // The finale part is to check the annotations indexed by Jandex
         CompositeIndex index = du.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
-        reporter.checkAnnotationIndex(annotationName -> index.getAnnotations(annotationName));
+        scanner.checkAnnotationIndex(annotationName -> index.getAnnotations(annotationName));
         ExperimentalAnnotationsAttachment attachment = top.getAttachment(ATTACHMENT);
         if (attachment == null) {
             return;
@@ -89,60 +96,134 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
                 attachment.classesScannedCount);
 
         // TODO We could do something here to group things a bit more ordered
-        Set<AnnotationUsage> usages = reporter.getUsages();
+        Set<AnnotationUsage> usages = scanner.getUsages();
 
-        if (usages.size() > 0) {
+        if (!usages.isEmpty()) {
 
-            System.out.println();
-            System.out.println("=========>>>>>>>> OUTPUT FOR DEMO <<<<<<<<=========");
-            System.out.println();
+            AnnotationUsageReporter reporter = getAnnotationUsageReporter(top);
 
-            // TODO Configure whether to give an error or warn
+            reporter.header(UNSUPPORTED_ANNOTATION_LOGGER.deploymentContainsUnsupportedAnnotations(top.getName()));
 
-            // TODO i18n here and for the other messages
-            ServerLogger.DEPLOYMENT_LOGGER.warn(top.getName() + " contains usage of annotations which indicate not fully supported API.");
 
             for (AnnotationUsage usage : usages) {
                 switch (usage.getType()) {
                     case EXTENDS_CLASS: {
                         ExtendsAnnotatedClass ext = usage.asExtendsAnnotatedClass();
-                        ServerLogger.DEPLOYMENT_LOGGER.infof(
-                                "%s extends %s which has been annotated with %s", ext.getSourceClass(), ext.getSuperClass(), ext.getAnnotations());
+                        reporter.reportAnnotationUsage(
+                                UNSUPPORTED_ANNOTATION_LOGGER.isDebugEnabled()
+                                UNSUPPORTED_ANNOTATION_LOGGER.classExtendsClassWithUnsupportedAnnotations(
+                                        ext.getSourceClass(),
+                                        ext.getSuperClass(),
+                                        ext.getAnnotations()));
                     } break;
                     case IMPLEMENTS_INTERFACE: {
                         ImplementsAnnotatedInterface imp = usage.asImplementsAnnotatedInterface();
-                        ServerLogger.DEPLOYMENT_LOGGER.infof(
-                                "%s implements %s which has been annotated with", imp.getSourceClass(), imp.getInterface(), imp.getAnnotations());
+                        reporter.reportAnnotationUsage(
+                                UNSUPPORTED_ANNOTATION_LOGGER.classImplementsInterfaceWithUnsupportedAnnotations(
+                                        imp.getSourceClass(),
+                                        imp.getInterface(),
+                                        imp.getAnnotations()));
                     }
                     break;
                     case FIELD_REFERENCE: {
                         AnnotatedFieldReference ref = usage.asAnnotatedFieldReference();
-                        ServerLogger.DEPLOYMENT_LOGGER.infof(
-                                "%s references field %s.%s which has been annotated with %s", ref.getSourceClass(), ref.getFieldClass(), ref.getFieldName(), ref.getAnnotations());
+                        reporter.reportAnnotationUsage(
+                                UNSUPPORTED_ANNOTATION_LOGGER.classReferencesFieldWithUnsupportedAnnotations(
+                                        ref.getSourceClass(),
+                                        ref.getFieldClass(),
+                                        ref.getFieldName(),
+                                        ref.getAnnotations()));
                     }
                     break;
                     case METHOD_REFERENCE: {
                         AnnotatedMethodReference ref = usage.asAnnotatedMethodReference();
-                        ServerLogger.DEPLOYMENT_LOGGER.infof(
-                                "%s references method %s.%s%s which has been annotated with %s", ref.getSourceClass(), ref.getMethodClass(), ref.getMethodName(), ref.getDescriptor(), ref.getAnnotations());
+                        reporter.reportAnnotationUsage(
+                                UNSUPPORTED_ANNOTATION_LOGGER.classReferencesMethodWithUnsupportedAnnotations(
+                                        ref.getSourceClass(),
+                                        ref.getMethodClass(),
+                                        ref.getMethodName(),
+                                        ref.getDescriptor(),
+                                        ref.getAnnotations()));
                     }
                     break;
                     case CLASS_USAGE: {
                         AnnotatedClassUsage ref = usage.asAnnotatedClassUsage();
-                        ServerLogger.DEPLOYMENT_LOGGER.infof(
-                                "%s references class %s which has been annotated with %s", ref.getSourceClass(), ref.getReferencedClass(), ref.getAnnotations());
+                        reporter.reportAnnotationUsage(
+                                UNSUPPORTED_ANNOTATION_LOGGER.classReferencesClassWithUnsupportedAnnotations(
+                                        ref.getSourceClass(),
+                                        ref.getReferencedClass(),
+                                        ref.getAnnotations()));
                     }
                     break;
                     case ANNOTATION_USAGE: {
                         AnnotatedAnnotation ref = usage.asAnnotatedAnnotation();
-                        ServerLogger.DEPLOYMENT_LOGGER.infof(
-                                "The deployment uses the following unsupported annotations %s", ref.getAnnotations());
+                        reporter.reportAnnotationUsage(
+                                UNSUPPORTED_ANNOTATION_LOGGER.deploymentClassesAnnotatedWithUnsupportedAnnotations(ref.getAnnotations()));
                     }
                     break;
                 }
 
             }
+            reporter.complete();
         }
     }
 
+
+    private AnnotationUsageReporter getAnnotationUsageReporter(DeploymentUnit top) {
+        ModelController controller = (ModelController) top.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
+        // Temporary experiment at reading the model until I add the model attribute
+        ///core-service=management/access=authorization:read-attribute(name=permission-combination-policy)
+        ModelNode op = Util.getReadAttributeOperation(PathAddress.pathAddress("core-service", "management").append("access", "authorization"), "permission-combination-policy");
+        ModelNode result = controller.execute(op, null, ModelController.OperationTransactionControl.COMMIT, null);
+        System.out.println("===== Reading model");
+        System.out.println(result);
+        // TODO return the value read from the model
+        return new WarningAnnotationUsageReporter();
+    }
+
+    private interface AnnotationUsageReporter {
+        void header(String message);
+
+        void reportAnnotationUsage(String message);
+
+        void complete() throws DeploymentUnitProcessingException;
+
+    }
+
+    private class WarningAnnotationUsageReporter implements AnnotationUsageReporter {
+        @Override
+        public void header(String message) {
+            UNSUPPORTED_ANNOTATION_LOGGER.warn(message);
+        }
+
+        @Override
+        public void reportAnnotationUsage(String message) {
+            UNSUPPORTED_ANNOTATION_LOGGER.warn(message);
+        }
+
+        @Override
+        public void complete() throws DeploymentUnitProcessingException {
+
+        }
+    }
+
+    private class ErrorAnnotationUsageReporter implements AnnotationUsageReporter {
+        private final StringBuilder sb = new StringBuilder();
+        @Override
+        public void header(String message) {
+            sb.append(message);
+        }
+
+        @Override
+        public void reportAnnotationUsage(String message) {
+            sb.append("\n");
+            sb.append("-");
+            sb.append(message);
+        }
+
+        @Override
+        public void complete() throws DeploymentUnitProcessingException {
+            throw new DeploymentUnitProcessingException(sb.toString());
+        }
+    }
 }

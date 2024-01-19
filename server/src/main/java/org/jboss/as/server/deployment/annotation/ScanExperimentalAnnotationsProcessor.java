@@ -19,7 +19,11 @@
 
 package org.jboss.as.server.deployment.annotation;
 
+import org.jboss.as.controller.ModelController;
+import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.RunningMode;
+import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.server.Services;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -28,6 +32,8 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.DeploymentUtils;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.server.logging.ServerLogger;
+import org.jboss.as.version.Stability;
+import org.jboss.dmr.ModelNode;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleClassLoader;
 import org.jboss.modules.ModuleLoadException;
@@ -52,9 +58,11 @@ public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProce
 
     private static final String BASE_MODULE_NAME = "org.wildfly._internal.experimental-api-index";
     private static final String INDEX_FILE = "index.txt";
+    private final Stability stability;
 
 
-    public ScanExperimentalAnnotationsProcessor(RunningMode runningMode) {
+    public ScanExperimentalAnnotationsProcessor(RunningMode runningMode, Stability stability) {
+        this.stability = stability;
         ByteRuntimeIndex runtimeIndex = null;
         if (runningMode != RunningMode.ADMIN_ONLY) {
             ModuleLoader moduleLoader = ((ModuleClassLoader) this.getClass().getClassLoader()).getModule().getModuleLoader();
@@ -97,10 +105,14 @@ public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProce
         if (runtimeIndex == null) {
             return;
         }
+        if (stability.enables(Stability.EXPERIMENTAL)) {
+            // If running with Stability.EXPERIMENTAL we don't care if the user is using experimental annotations
+            return;
+        }
 
         final DeploymentUnit du = phaseContext.getDeploymentUnit();
         DeploymentUnit top = DeploymentUtils.getTopDeploymentUnit(du);
-
+        readValueFromModel(top);
 
 
         ClassInfoScanner scanner = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER);
@@ -149,7 +161,16 @@ public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProce
 
         long time = (System.currentTimeMillis() - start);
         ServerLogger.DEPLOYMENT_LOGGER.infof("==== POC 3 took %d ms to scan %d classes", time, processor.getClassesScannedCount());
-
     }
 
+    private String readValueFromModel(DeploymentUnit top) {
+        ModelController controller = (ModelController) top.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
+        // Temporary experiment at reading the model until I add the model attribute
+        ///core-service=management/access=authorization:read-attribute(name=permission-combination-policy)
+        ModelNode op = Util.getReadAttributeOperation(PathAddress.pathAddress("core-service", "management").append("access", "authorization"), "permission-combination-policy");
+        ModelNode result = controller.execute(op, null, ModelController.OperationTransactionControl.COMMIT, null);
+        System.out.println("===== Reading model");
+        System.out.println(result);
+        return null;
+    }
 }
