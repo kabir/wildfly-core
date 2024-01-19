@@ -31,6 +31,7 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.dmr.ModelNode;
+import org.jboss.logging.Logger;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedAnnotation;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedClassUsage;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedFieldReference;
@@ -101,70 +102,70 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         if (!usages.isEmpty()) {
 
             AnnotationUsageReporter reporter = getAnnotationUsageReporter(top);
+            if (reporter.isEnabled()) {
+                reporter.header(UNSUPPORTED_ANNOTATION_LOGGER.deploymentContainsUnsupportedAnnotations(top.getName()));
 
-            reporter.header(UNSUPPORTED_ANNOTATION_LOGGER.deploymentContainsUnsupportedAnnotations(top.getName()));
 
+                for (AnnotationUsage usage : usages) {
+                    switch (usage.getType()) {
+                        case EXTENDS_CLASS: {
+                            ExtendsAnnotatedClass ext = usage.asExtendsAnnotatedClass();
+                            reporter.reportAnnotationUsage(
+                                    UNSUPPORTED_ANNOTATION_LOGGER.classExtendsClassWithUnsupportedAnnotations(
+                                            ext.getSourceClass(),
+                                            ext.getSuperClass(),
+                                            ext.getAnnotations()));
+                        } break;
+                        case IMPLEMENTS_INTERFACE: {
+                            ImplementsAnnotatedInterface imp = usage.asImplementsAnnotatedInterface();
+                            reporter.reportAnnotationUsage(
+                                    UNSUPPORTED_ANNOTATION_LOGGER.classImplementsInterfaceWithUnsupportedAnnotations(
+                                            imp.getSourceClass(),
+                                            imp.getInterface(),
+                                            imp.getAnnotations()));
+                        }
+                        break;
+                        case FIELD_REFERENCE: {
+                            AnnotatedFieldReference ref = usage.asAnnotatedFieldReference();
+                            reporter.reportAnnotationUsage(
+                                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesFieldWithUnsupportedAnnotations(
+                                            ref.getSourceClass(),
+                                            ref.getFieldClass(),
+                                            ref.getFieldName(),
+                                            ref.getAnnotations()));
+                        }
+                        break;
+                        case METHOD_REFERENCE: {
+                            AnnotatedMethodReference ref = usage.asAnnotatedMethodReference();
+                            reporter.reportAnnotationUsage(
+                                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesMethodWithUnsupportedAnnotations(
+                                            ref.getSourceClass(),
+                                            ref.getMethodClass(),
+                                            ref.getMethodName(),
+                                            ref.getDescriptor(),
+                                            ref.getAnnotations()));
+                        }
+                        break;
+                        case CLASS_USAGE: {
+                            AnnotatedClassUsage ref = usage.asAnnotatedClassUsage();
+                            reporter.reportAnnotationUsage(
+                                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesClassWithUnsupportedAnnotations(
+                                            ref.getSourceClass(),
+                                            ref.getReferencedClass(),
+                                            ref.getAnnotations()));
+                        }
+                        break;
+                        case ANNOTATION_USAGE: {
+                            AnnotatedAnnotation ref = usage.asAnnotatedAnnotation();
+                            reporter.reportAnnotationUsage(
+                                    UNSUPPORTED_ANNOTATION_LOGGER.deploymentClassesAnnotatedWithUnsupportedAnnotations(ref.getAnnotations()));
+                        }
+                        break;
+                    }
 
-            for (AnnotationUsage usage : usages) {
-                switch (usage.getType()) {
-                    case EXTENDS_CLASS: {
-                        ExtendsAnnotatedClass ext = usage.asExtendsAnnotatedClass();
-                        reporter.reportAnnotationUsage(
-                                UNSUPPORTED_ANNOTATION_LOGGER.isDebugEnabled()
-                                UNSUPPORTED_ANNOTATION_LOGGER.classExtendsClassWithUnsupportedAnnotations(
-                                        ext.getSourceClass(),
-                                        ext.getSuperClass(),
-                                        ext.getAnnotations()));
-                    } break;
-                    case IMPLEMENTS_INTERFACE: {
-                        ImplementsAnnotatedInterface imp = usage.asImplementsAnnotatedInterface();
-                        reporter.reportAnnotationUsage(
-                                UNSUPPORTED_ANNOTATION_LOGGER.classImplementsInterfaceWithUnsupportedAnnotations(
-                                        imp.getSourceClass(),
-                                        imp.getInterface(),
-                                        imp.getAnnotations()));
-                    }
-                    break;
-                    case FIELD_REFERENCE: {
-                        AnnotatedFieldReference ref = usage.asAnnotatedFieldReference();
-                        reporter.reportAnnotationUsage(
-                                UNSUPPORTED_ANNOTATION_LOGGER.classReferencesFieldWithUnsupportedAnnotations(
-                                        ref.getSourceClass(),
-                                        ref.getFieldClass(),
-                                        ref.getFieldName(),
-                                        ref.getAnnotations()));
-                    }
-                    break;
-                    case METHOD_REFERENCE: {
-                        AnnotatedMethodReference ref = usage.asAnnotatedMethodReference();
-                        reporter.reportAnnotationUsage(
-                                UNSUPPORTED_ANNOTATION_LOGGER.classReferencesMethodWithUnsupportedAnnotations(
-                                        ref.getSourceClass(),
-                                        ref.getMethodClass(),
-                                        ref.getMethodName(),
-                                        ref.getDescriptor(),
-                                        ref.getAnnotations()));
-                    }
-                    break;
-                    case CLASS_USAGE: {
-                        AnnotatedClassUsage ref = usage.asAnnotatedClassUsage();
-                        reporter.reportAnnotationUsage(
-                                UNSUPPORTED_ANNOTATION_LOGGER.classReferencesClassWithUnsupportedAnnotations(
-                                        ref.getSourceClass(),
-                                        ref.getReferencedClass(),
-                                        ref.getAnnotations()));
-                    }
-                    break;
-                    case ANNOTATION_USAGE: {
-                        AnnotatedAnnotation ref = usage.asAnnotatedAnnotation();
-                        reporter.reportAnnotationUsage(
-                                UNSUPPORTED_ANNOTATION_LOGGER.deploymentClassesAnnotatedWithUnsupportedAnnotations(ref.getAnnotations()));
-                    }
-                    break;
                 }
-
+                reporter.complete();
             }
-            reporter.complete();
         }
     }
 
@@ -188,6 +189,7 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
 
         void complete() throws DeploymentUnitProcessingException;
 
+        boolean isEnabled();
     }
 
     private class WarningAnnotationUsageReporter implements AnnotationUsageReporter {
@@ -204,6 +206,11 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         @Override
         public void complete() throws DeploymentUnitProcessingException {
 
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return UNSUPPORTED_ANNOTATION_LOGGER.isEnabled(Logger.Level.WARN);
         }
     }
 
@@ -224,6 +231,11 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         @Override
         public void complete() throws DeploymentUnitProcessingException {
             throw new DeploymentUnitProcessingException(sb.toString());
+        }
+
+        @Override
+        public boolean isEnabled() {
+            return true;
         }
     }
 }
