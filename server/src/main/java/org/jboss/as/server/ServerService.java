@@ -5,29 +5,6 @@
 
 package org.jboss.as.server;
 
-import static java.security.AccessController.doPrivileged;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_OPERATIONS;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVICE;
-import static org.jboss.as.domain.http.server.ConsoleAvailability.CONSOLE_AVAILABILITY_CAPABILITY;
-
-import java.io.File;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ServiceLoader;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
-
 import org.jboss.as.controller.AbstractControllerService;
 import org.jboss.as.controller.BootContext;
 import org.jboss.as.controller.CapabilityRegistry;
@@ -80,10 +57,8 @@ import org.jboss.as.server.deployment.Phase;
 import org.jboss.as.server.deployment.ServiceLoaderProcessor;
 import org.jboss.as.server.deployment.SubDeploymentProcessor;
 import org.jboss.as.server.deployment.annotation.AnnotationIndexProcessor;
-import org.jboss.as.server.deployment.annotation.ReportExperimentalAnnotationsProcessor;
 import org.jboss.as.server.deployment.annotation.CleanupAnnotationIndexProcessor;
 import org.jboss.as.server.deployment.annotation.CompositeIndexProcessor;
-import org.jboss.as.server.deployment.annotation.ScanExperimentalAnnotationsProcessor;
 import org.jboss.as.server.deployment.dependencies.DeploymentDependenciesProcessor;
 import org.jboss.as.server.deployment.jbossallxml.JBossAllXMLParsingProcessor;
 import org.jboss.as.server.deployment.module.ClassTransformerProcessor;
@@ -128,6 +103,29 @@ import org.jboss.msc.value.InjectedValue;
 import org.jboss.threads.EnhancedQueueExecutor;
 import org.jboss.threads.JBossThreadFactory;
 import org.wildfly.security.manager.WildFlySecurityManager;
+
+import java.io.File;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.ServiceLoader;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+import static java.security.AccessController.doPrivileged;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CORE_SERVICE;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.MANAGEMENT_OPERATIONS;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SERVICE;
+import static org.jboss.as.domain.http.server.ConsoleAvailability.CONSOLE_AVAILABILITY_CAPABILITY;
 
 /**
  * Service for the {@link org.jboss.as.controller.ModelController} for an AS server instance.
@@ -357,8 +355,6 @@ public final class ServerService extends AbstractControllerService {
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_EXTENSION_LIST, new ManifestExtensionListProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_EXTENSION_NAME, new ManifestExtensionNameProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_SERVICE_LOADER_DEPLOYMENT, new ServiceLoaderProcessor());
-            DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_SCAN_EXPERIMENTAL_ANNOTATIONS, new ScanExperimentalAnnotationsProcessor(runningModeControl.getRunningMode(), stability));
-            DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.PARSE, Phase.PARSE_REPORT_EXPERIMENTAL_ANNOTATIONS, new ReportExperimentalAnnotationsProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_MODULE, new ModuleDependencyProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_SAR_MODULE, new ServiceActivatorDependencyProcessor());
             DeployerChainAddHandler.addDeploymentProcessor(SERVER_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_CLASS_PATH, new ModuleClassPathProcessor());

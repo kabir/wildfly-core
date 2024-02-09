@@ -15,6 +15,8 @@ import org.jboss.logging.annotations.LogMessage;
 import org.jboss.logging.annotations.Message;
 import org.jboss.logging.annotations.MessageLogger;
 
+import java.util.Set;
+
 /**
  *
  * @author Emmanuel Hugonnet (c) 2016 Red Hat, inc.
@@ -26,6 +28,8 @@ public interface CoreManagementLogger extends BasicLogger {
      * A logger with a category of the package name.
      */
     CoreManagementLogger ROOT_LOGGER = Logger.getMessageLogger(CoreManagementLogger.class, "org.wildfly.extension.core.management");
+
+    CoreManagementLogger UNSUPPORTED_ANNOTATION_LOGGER = Logger.getMessageLogger(CoreManagementLogger.class, "org.wildfly.annotation.unsupported");
 
 //    @Message(id = 1, value = "The resource %s wasn't working properly and has been removed.")
 //    String removedOutOfOrderResource(final String address);
@@ -53,4 +57,25 @@ public interface CoreManagementLogger extends BasicLogger {
 
     @Message(id = 8, value = "Error to instantiate instance of class %s from module %s")
     OperationFailedException errorToInstantiateClassInstanceFromModule(String className, String moduleID);
+
+    @Message(id = 9, value = "%s contains usage of annotations which indicate unstable API.")
+    String deploymentContainsUnstableApiAnnotations(String deployment);
+
+    @Message(id = 10, value = "%s extends %s which has been annotated with %s")
+    String classExtendsClassWithUnstableApiAnnotations(String sourceClass, String superClass, Set<String> annotations);
+
+    @Message(id = 11, value = "%s implements %s which has been annotated with %s")
+    String classImplementsInterfaceWithUnstableApiAnnotations(String sourceClass, String superClass, Set<String> annotations);
+
+    @Message(id = 12, value = "%s references field %s.%s which has been annotated with %s")
+    String classReferencesFieldWithUnstableApiAnnotations(String sourceClass, String fieldClass, String fieldName, Set<String> annotations);
+
+    @Message(id = 13, value = "%s references method %s.%s%s which has been annotated with %s")
+    String classReferencesMethodWithUnstableApiAnnotations(String sourceClass, String methodClass, String methodName, String methodSignature, Set<String> annotations);
+
+    @Message(id = 14, value = "%s references class %s which has been annotated with %s")
+    String classReferencesClassWithUnstableApiAnnotations(String sourceClass, String referencedClass, Set<String> annotations);
+
+    @Message(id = 15, value = "Classes in the deployment use the following unsupported annotations %s")
+    String deploymentClassesAnnotatedWithUnstableApiAnnotations(Set<String> annotations);
 }

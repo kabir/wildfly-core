@@ -568,6 +568,7 @@ public class ModelDescriptionConstants {
     public static final String TYPE = "type";
     public static final String UDP = "udp";
     public static final String UNDEFINE_ATTRIBUTE_OPERATION = "undefine-attribute";
+    public static final String UNSTABLE_AI_ANNOTATIONS = "unstable-api-annotations";
     public static final String UNDEPLOY = "undeploy";
     public static final String UNREADABLE_CHILDREN = "unreadable-children";
     public static final String UPLOAD_DEPLOYMENT_BYTES = "upload-deployment-bytes";

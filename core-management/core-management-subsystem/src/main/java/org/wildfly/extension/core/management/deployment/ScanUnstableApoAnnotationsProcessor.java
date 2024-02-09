@@ -1,6 +1,6 @@
 /*
  *  JBoss, Home of Professional Open Source.
- *  Copyright 2023 Red Hat, Inc., and individual contributors
+ *  Copyright 2024 Red Hat, Inc., and individual contributors
  *  as indicated by the @author tags.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,13 +17,9 @@
  *
  */
 
-package org.jboss.as.server.deployment.annotation;
+package org.wildfly.extension.core.management.deployment;
 
-import org.jboss.as.controller.ModelController;
-import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.RunningMode;
-import org.jboss.as.controller.operations.common.Util;
-import org.jboss.as.server.Services;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -33,7 +29,6 @@ import org.jboss.as.server.deployment.DeploymentUtils;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.server.logging.ServerLogger;
 import org.jboss.as.version.Stability;
-import org.jboss.dmr.ModelNode;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleClassLoader;
 import org.jboss.modules.ModuleLoadException;
@@ -52,7 +47,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProcessor {
+public class ScanUnstableApoAnnotationsProcessor implements DeploymentUnitProcessor {
 
     private final ByteRuntimeIndex runtimeIndex;
 
@@ -61,7 +56,7 @@ public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProce
     private final Stability stability;
 
 
-    public ScanExperimentalAnnotationsProcessor(RunningMode runningMode, Stability stability) {
+    public ScanUnstableApoAnnotationsProcessor(RunningMode runningMode, Stability stability) {
         this.stability = stability;
         ByteRuntimeIndex runtimeIndex = null;
         if (runningMode != RunningMode.ADMIN_ONLY) {
@@ -112,23 +107,15 @@ public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProce
 
         final DeploymentUnit du = phaseContext.getDeploymentUnit();
         DeploymentUnit top = DeploymentUtils.getTopDeploymentUnit(du);
-        readValueFromModel(top);
 
-
-        ClassInfoScanner scanner = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER);
+        ClassInfoScanner scanner = top.getAttachment(UnstableApiAnnotationAttachments.UNSTABLE_API_ANNOTATION_SCANNER);
         if (scanner == null) {
             scanner = new ClassInfoScanner(runtimeIndex);
-            top.putAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER, scanner);
+            top.putAttachment(UnstableApiAnnotationAttachments.UNSTABLE_API_ANNOTATION_SCANNER, scanner);
         }
-        ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment processor = top.getAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT);
-        if (processor == null) {
-            processor = new ReportExperimentalAnnotationsProcessor.ExperimentalAnnotationsAttachment();
-            top.putAttachment(ReportExperimentalAnnotationsProcessor.ATTACHMENT, processor);
-        }
+        ProcessedClassCounter counter = new ProcessedClassCounter();
 
-        long start = System.currentTimeMillis();
-        // TODO the Jandex scanning scans a lot more stuff, do we need to do that too?
-        ServerLogger.DEPLOYMENT_LOGGER.infof("=====> Scanning deployment with POC 3");
+        ServerLogger.DEPLOYMENT_LOGGER.debug("Scanning deployment for unstable api annotations");
         List<ResourceRoot> resourceRoots = DeploymentUtils.allResourceRoots(du);
         for (ResourceRoot root : resourceRoots) {
 
@@ -150,7 +137,7 @@ public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProce
                     if (file.isFile() && file.getName().endsWith(".class")) {
                         try (InputStream in = file.openStream()) {
                             scanner.scanClass(in);
-                            processor.incrementClassesScannedCount();
+                            counter.incrementClassesScannedCount();
                         }
                     }
                 }
@@ -159,18 +146,21 @@ public class ScanExperimentalAnnotationsProcessor implements DeploymentUnitProce
             }
         }
 
-        long time = (System.currentTimeMillis() - start);
-        ServerLogger.DEPLOYMENT_LOGGER.infof("==== POC 3 took %d ms to scan %d classes", time, processor.getClassesScannedCount());
+        long time = (System.currentTimeMillis() - counter.startTime);
+        ServerLogger.DEPLOYMENT_LOGGER.debugf("Unstable annotation api scan took %d ms to scan %d classes", time, counter.getClassesScannedCount());
     }
 
-    private String readValueFromModel(DeploymentUnit top) {
-        ModelController controller = (ModelController) top.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
-        // Temporary experiment at reading the model until I add the model attribute
-        ///core-service=management/access=authorization:read-attribute(name=permission-combination-policy)
-        ModelNode op = Util.getReadAttributeOperation(PathAddress.pathAddress("core-service", "management").append("access", "authorization"), "permission-combination-policy");
-        ModelNode result = controller.execute(op, null, ModelController.OperationTransactionControl.COMMIT, null);
-        System.out.println("===== Reading model");
-        System.out.println(result);
-        return null;
+    public static class ProcessedClassCounter {
+        private final long startTime = System.currentTimeMillis();
+
+        private volatile int classesScannedCount = 0;
+
+        void incrementClassesScannedCount() {
+            classesScannedCount++;
+        }
+
+        public int getClassesScannedCount() {
+            return classesScannedCount;
+        }
     }
 }

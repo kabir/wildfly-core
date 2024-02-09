@@ -5,13 +5,6 @@
 
 package org.jboss.as.subsystem.test;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -22,6 +15,13 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.AssumptionViolatedException;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 /**
  * A test routine every subsystem should go through.

@@ -19,10 +19,14 @@
         <module name="java.desktop"/>
         <module name="org.jboss.as.controller"/>
         <module name="org.jboss.as.server" />
+        <module name="org.jboss.as.version" />
+        <module name="org.jboss.jandex"/>
         <module name="org.jboss.logging"/>
         <module name="org.jboss.modules"/>
         <module name="org.jboss.msc"/>
         <module name="org.jboss.staxmapper"/>
+        <module name="org.jboss.vfs" services="import"/>
+        <module name="org.wildfly.experimental-api-index"/>
         <module name="org.wildfly.extension.core-management-client"/>
         <module name="org.wildfly.security.elytron-private"/>
     </dependencies>

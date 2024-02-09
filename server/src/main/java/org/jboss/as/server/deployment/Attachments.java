@@ -26,7 +26,6 @@ import org.jboss.modules.ModuleIdentifier;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
 import org.jboss.vfs.VirtualFile;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassInfoScanner;
 
 import java.lang.ref.Reference;
 import java.security.PermissionCollection;
@@ -330,7 +329,7 @@ public final class Attachments {
      */
     public static final AttachmentKey<AttachmentList<ServiceName>> DEPLOYMENT_COMPLETE_SERVICES = AttachmentKey.createList(ServiceName.class);
 
-    public static final AttachmentKey<ClassInfoScanner> EXPERIMENTAL_ANNOTATION_SCANNER = AttachmentKey.create(ClassInfoScanner.class);
+
 
     //
     // CLEANUP

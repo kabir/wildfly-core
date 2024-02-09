@@ -1,6 +1,6 @@
 /*
  *  JBoss, Home of Professional Open Source.
- *  Copyright 2022 Red Hat, Inc., and individual contributors
+ *  Copyright 2024 Red Hat, Inc., and individual contributors
  *  as indicated by the @author tags.
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,19 +17,19 @@
  *
  */
 
-package org.jboss.as.server.deployment.annotation;
+package org.wildfly.extension.core.management.deployment;
 
 import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.operations.common.Util;
+import org.jboss.as.domain.management.CoreManagementResourceDefinition;
 import org.jboss.as.server.Services;
-import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
-import org.jboss.as.server.logging.ServerLogger;
+import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedAnnotation;
@@ -40,34 +40,21 @@ import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotationUsage;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassInfoScanner;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.ExtendsAnnotatedClass;
 import org.wildfly.experimental.api.classpath.runtime.bytecode.ImplementsAnnotatedInterface;
+import org.wildfly.extension.core.management.UnstableApiAnnotationResourceDefinition;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
-import static org.jboss.as.server.logging.ServerLogger.UNSUPPORTED_ANNOTATION_LOGGER;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.LEVEL;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
+import static org.wildfly.extension.core.management.logging.CoreManagementLogger.UNSUPPORTED_ANNOTATION_LOGGER;
 
-public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitProcessor {
-
-    static final AttachmentKey<ExperimentalAnnotationsAttachment> ATTACHMENT = AttachmentKey.create(ExperimentalAnnotationsAttachment.class);
-    public static class ExperimentalAnnotationsAttachment {
-        private final long startTime = System.currentTimeMillis();
-
-        private volatile int classesScannedCount = 0;
-
-        public ExperimentalAnnotationsAttachment() {
-            ServerLogger.DEPLOYMENT_LOGGER.infof("TMP - creating attachment");
-        }
-
-        void incrementClassesScannedCount() {
-            classesScannedCount++;
-        }
-
-        public int getClassesScannedCount() {
-            return classesScannedCount;
-        }
-    }
+public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProcessor {
 
 
     /**
@@ -81,7 +68,7 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit du = phaseContext.getDeploymentUnit();
         DeploymentUnit top = du.getParent() == null ? du : du.getParent();
-        ClassInfoScanner scanner = top.getAttachment(Attachments.EXPERIMENTAL_ANNOTATION_SCANNER);
+        ClassInfoScanner scanner = top.getAttachment(UnstableApiAnnotationAttachments.UNSTABLE_API_ANNOTATION_SCANNER);
         if (scanner == null) {
             return;
         }
@@ -91,20 +78,13 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         // The finale part is to check the annotations indexed by Jandex
         CompositeIndex index = du.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
         scanner.checkAnnotationIndex(annotationName -> index.getAnnotations(annotationName));
-        ExperimentalAnnotationsAttachment attachment = top.getAttachment(ATTACHMENT);
-        if (attachment == null) {
-            return;
-        }
-        ServerLogger.DEPLOYMENT_LOGGER.infof("===> Scan took %d ms, and scanned %d classes",
-                System.currentTimeMillis() - attachment.startTime,
-                attachment.classesScannedCount);
 
         Set<AnnotationUsage> usages = scanner.getUsages();
 
 
         if (!usages.isEmpty()) {
             AnnotationUsages annotationUsages = AnnotationUsages.parseAndGroup(scanner.getUsages());
-            AnnotationUsageReporter reporter = getAnnotationUsageReporter(top);
+            AnnotationUsageReporter reporter = getAnnotationUsageReporter(phaseContext, top);
             if (reporter.isEnabled()) {
                 reportAnnotationUsages(top, annotationUsages, reporter);
             }
@@ -112,24 +92,24 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
     }
 
     private void reportAnnotationUsages(DeploymentUnit top, AnnotationUsages annotationUsages, AnnotationUsageReporter reporter) throws DeploymentUnitProcessingException {
-        reporter.header(UNSUPPORTED_ANNOTATION_LOGGER.deploymentContainsUnsupportedAnnotations(top.getName()));
+        reporter.header(UNSUPPORTED_ANNOTATION_LOGGER.deploymentContainsUnstableApiAnnotations(top.getName()));
         for (ExtendsAnnotatedClass ext : annotationUsages.extendsAnnotatedClasses) {
             reporter.reportAnnotationUsage(
-                    UNSUPPORTED_ANNOTATION_LOGGER.classExtendsClassWithUnsupportedAnnotations(
+                    UNSUPPORTED_ANNOTATION_LOGGER.classExtendsClassWithUnstableApiAnnotations(
                             ext.getSourceClass(),
                             ext.getSuperClass(),
                             ext.getAnnotations()));
         }
         for (ImplementsAnnotatedInterface imp : annotationUsages.implementsAnnotatedInterfaces) {
             reporter.reportAnnotationUsage(
-                    UNSUPPORTED_ANNOTATION_LOGGER.classImplementsInterfaceWithUnsupportedAnnotations(
+                    UNSUPPORTED_ANNOTATION_LOGGER.classImplementsInterfaceWithUnstableApiAnnotations(
                             imp.getSourceClass(),
                             imp.getInterface(),
                             imp.getAnnotations()));
         }
         for (AnnotatedFieldReference ref : annotationUsages.annotatedFieldReferences) {
             reporter.reportAnnotationUsage(
-                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesFieldWithUnsupportedAnnotations(
+                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesFieldWithUnstableApiAnnotations(
                             ref.getSourceClass(),
                             ref.getFieldClass(),
                             ref.getFieldName(),
@@ -137,7 +117,7 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         }
         for (AnnotatedMethodReference ref : annotationUsages.annotatedMethodReferences) {
             reporter.reportAnnotationUsage(
-                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesMethodWithUnsupportedAnnotations(
+                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesMethodWithUnstableApiAnnotations(
                             ref.getSourceClass(),
                             ref.getMethodClass(),
                             ref.getMethodName(),
@@ -146,29 +126,43 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
         }
         for (AnnotatedClassUsage ref : annotationUsages.annotatedClassUsages) {
             reporter.reportAnnotationUsage(
-                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesClassWithUnsupportedAnnotations(
+                    UNSUPPORTED_ANNOTATION_LOGGER.classReferencesClassWithUnstableApiAnnotations(
                             ref.getSourceClass(),
                             ref.getReferencedClass(),
                             ref.getAnnotations()));
         }
         for (AnnotatedAnnotation ref : annotationUsages.annotatedAnnotationUsages) {
             reporter.reportAnnotationUsage(
-                    UNSUPPORTED_ANNOTATION_LOGGER.deploymentClassesAnnotatedWithUnsupportedAnnotations(ref.getAnnotations()));
+                    UNSUPPORTED_ANNOTATION_LOGGER.deploymentClassesAnnotatedWithUnstableApiAnnotations(ref.getAnnotations()));
         }
 
         reporter.complete();
     }
 
-    private AnnotationUsageReporter getAnnotationUsageReporter(DeploymentUnit top) {
+    private AnnotationUsageReporter getAnnotationUsageReporter(DeploymentPhaseContext ctx, DeploymentUnit top) throws DeploymentUnitProcessingException {
         ModelController controller = (ModelController) top.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
-        // Temporary experiment at reading the model until I add the model attribute
-        ///core-service=management/access=authorization:read-attribute(name=permission-combination-policy)
-        ModelNode op = Util.getReadAttributeOperation(PathAddress.pathAddress("core-service", "management").append("access", "authorization"), "permission-combination-policy");
-        ModelNode result = controller.execute(op, null, ModelController.OperationTransactionControl.COMMIT, null);
-        System.out.println("===== Reading model");
-        System.out.println(result);
-        // TODO return the value read from the model
+        String level = readLevelFromModel(ctx);
+        if (level.equals("ERROR")) {
+            return new ErrorAnnotationUsageReporter();
+        }
         return new WarningAnnotationUsageReporter();
+    }
+
+    private String readLevelFromModel(DeploymentPhaseContext ctx) throws DeploymentUnitProcessingException {
+        // TODO See the commented out code at the bottom of this class for a better approach
+        ModelController controller = (ModelController) ctx.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
+        PathAddress addr = PathAddress.pathAddress(
+                CoreManagementResourceDefinition.PATH_ELEMENT,
+                UnstableApiAnnotationResourceDefinition.PATH);
+
+        ModelNode op = Util.getReadAttributeOperation(addr, LEVEL);
+        ModelNode result = controller.execute(op, null, ModelController.OperationTransactionControl.COMMIT, null);
+
+        if (!result.get(OUTCOME).asString().equals(SUCCESS)) {
+            throw new DeploymentUnitProcessingException(result.get(FAILURE_DESCRIPTION).asString());
+        }
+
+        return result.get(RESULT).asString();
     }
 
     private static class AnnotationUsages {
@@ -362,4 +356,75 @@ public class ReportExperimentalAnnotationsProcessor implements DeploymentUnitPro
             return true;
         }
     }
+
+    // TODO The below is the 'proper' way to get access to the ModelController, but seems to not be working
+    /*
+    private String readLevelFromModel(DeploymentPhaseContext ctx) {
+        ServiceName serviceName = Services.JBOSS_SERVER_CONTROLLER.append("accessor").append(Long.valueOf(System.currentTimeMillis()).toString());
+
+        //ModelController controller = (ModelController) ctx.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
+        ServerControllerAccessor accessor = ServerControllerAccessor.create(serviceName, ctx);
+        // Temporary experiment at reading the model until I add the model attribute
+        ///core-service=management/access=authorization:read-attribute(name=permission-combination-policy)
+        ModelNode op = Util.getReadAttributeOperation(PathAddress.pathAddress(CoreManagementResourceDefinition.PATH_ELEMENT).append(UnstableApiAnnotationResourceDefinition.PATH), LEVEL);
+        ModelNode result = accessor.execute(op);
+
+        // TODO - Need to remove the temporary service
+
+        return result.get(RESULT).asString();
+    }
+
+    // Service to get the server
+    private static final class ServerControllerAccessor implements Service {
+        private final Consumer<ModelController> consumer;
+        private final Supplier<ModelController> modelControllerSupplier;
+
+        private final CompletableFuture<ServerControllerAccessor> future = new CompletableFuture<>();
+
+
+        public ServerControllerAccessor(Consumer<ModelController> consumer, Supplier<ModelController> modelControllerSupplier) {
+            this.consumer = consumer;
+            this.modelControllerSupplier = modelControllerSupplier;
+        }
+
+        @Override
+        public void start(StartContext startContext) throws StartException {
+            consumer.accept(modelControllerSupplier.get());
+            future.complete(this);
+        }
+
+        @Override
+        public void stop(StopContext stopContext) {
+            consumer.accept(null);
+            future.isDone();
+        }
+
+        ModelNode execute(ModelNode op) {
+            return modelControllerSupplier.get().execute(op, null, ModelController.OperationTransactionControl.COMMIT, null);
+        }
+
+        static ServerControllerAccessor create(ServiceName serviceName, DeploymentPhaseContext ctx) {
+            // TODO I am told this is the correct way to get hold of the model controller but it isn't working for me
+
+            RequirementServiceBuilder<?> builder = ctx.getRequirementServiceTarget().addService();
+            Supplier<ModelController> modelControllerSupplier = builder.requires(Services.JBOSS_SERVER_CONTROLLER);
+            Consumer<ModelController> consumer = builder.provides(serviceName);
+            ServerControllerAccessor accessor = new ServerControllerAccessor(consumer, modelControllerSupplier);
+            builder.setInstance(accessor);
+            builder.setInitialMode(ACTIVE);
+            builder.install();
+
+
+            try {
+                return accessor.future.get(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException(e);
+            } catch (ExecutionException | TimeoutException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+    }*/
+
 }

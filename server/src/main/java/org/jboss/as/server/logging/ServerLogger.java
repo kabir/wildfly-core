@@ -113,8 +113,6 @@ public interface ServerLogger extends BasicLogger {
      */
     ServerLogger DEPRECATED_DEP_LOGGER = Logger.getMessageLogger(ServerLogger.class, "org.jboss.as.dependency.deprecated");
 
-    ServerLogger UNSUPPORTED_ANNOTATION_LOGGER = Logger.getMessageLogger(ServerLogger.class, "org.jboss.as.annotation.unsupported");
-
     /**
      * Log message for when a jboss-deployment-structure.xml file is ignored
      * @param file name of the ignored file
@@ -1457,27 +1455,6 @@ public interface ServerLogger extends BasicLogger {
 
     @Message(id = 309, value = "%s stability level is not supported in %s")
     IllegalArgumentException unsupportedStability(Stability stability, String name);
-
-    @Message(id = 310, value = "%s contains usage of annotations which indicate not fully supported API.")
-    String deploymentContainsUnsupportedAnnotations(String deployment);
-
-    @Message(id = 311, value = "%s extends %s which has been annotated with %s")
-    String classExtendsClassWithUnsupportedAnnotations(String sourceClass, String superClass, Set<String> annotations);
-
-    @Message(id = 312, value = "%s implements %s which has been annotated with %s")
-    String classImplementsInterfaceWithUnsupportedAnnotations(String sourceClass, String superClass, Set<String> annotations);
-
-    @Message(id = 313, value = "%s references field %s.%s which has been annotated with %s")
-    String classReferencesFieldWithUnsupportedAnnotations(String sourceClass, String fieldClass, String fieldName, Set<String> annotations);
-
-    @Message(id = 314, value = "%s references method %s.%s%s which has been annotated with %s")
-    String classReferencesMethodWithUnsupportedAnnotations(String sourceClass, String methodClass, String methodName, String methodSignature, Set<String> annotations);
-
-    @Message(id = 315, value = "%s references class %s which has been annotated with %s")
-    String classReferencesClassWithUnsupportedAnnotations(String sourceClass, String referencedClass, Set<String> annotations);
-
-    @Message(id = 316, value = "Classes in the deployment use the following unsupported annotations %s")
-    String deploymentClassesAnnotatedWithUnsupportedAnnotations(Set<String> annotations);
 
     ////////////////////////////////////////////////
     //Messages without IDs
