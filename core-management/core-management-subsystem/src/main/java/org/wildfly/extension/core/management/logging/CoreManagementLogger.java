@@ -76,6 +76,14 @@ public interface CoreManagementLogger extends BasicLogger {
     @Message(id = 14, value = "%s references class %s which has been annotated with %s")
     String classReferencesClassWithUnstableApiAnnotations(String sourceClass, String referencedClass, Set<String> annotations);
 
-    @Message(id = 15, value = "Classes in the deployment use the following unsupported annotations %s")
-    String deploymentClassesAnnotatedWithUnstableApiAnnotations(Set<String> annotations);
+    @Message(id = 15, value = "Class %s is annotated with one or more annotations indicating unstable api: %s")
+    String classIsAnnotatedWithUnstableApiAnnotation(String clazz, Set<String> annotations);
+
+    @Message(id = 16, value = "Field %s.%s is annotated with one or more annotations indicating unstable api: %s")
+    String fieldIsAnnotatedWithUnstableApiAnnotation(String clazz, String fieldName, Set<String> annotations);
+
+    @Message(id = 17, value = "Method %s.%s%s is annotated with one or more annotations indicating unstable api: %s")
+    String methodIsAnnotatedWithUnstableApiAnnotation(String clazz, String methodName, String descriptor, Set<String> annotations);
+
+
 }

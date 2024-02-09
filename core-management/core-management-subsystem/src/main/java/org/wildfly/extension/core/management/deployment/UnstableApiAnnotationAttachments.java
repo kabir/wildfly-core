@@ -20,9 +20,11 @@
 package org.wildfly.extension.core.management.deployment;
 
 import org.jboss.as.server.deployment.AttachmentKey;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassInfoScanner;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.ClassInfoScanner;
 
-public class UnstableApiAnnotationAttachments {
+class UnstableApiAnnotationAttachments {
     public static final AttachmentKey<ClassInfoScanner> UNSTABLE_API_ANNOTATION_SCANNER = AttachmentKey.create(ClassInfoScanner.class);
+
+    public static final AttachmentKey<Boolean> UNSTABLE_API_ANNOTATIONS_SCANNED = AttachmentKey.create(Boolean.class);
 
 }

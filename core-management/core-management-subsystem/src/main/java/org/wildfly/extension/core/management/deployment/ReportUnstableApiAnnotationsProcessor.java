@@ -32,15 +32,17 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedAnnotation;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedClassUsage;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedFieldReference;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotatedMethodReference;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.AnnotationUsage;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassInfoScanner;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ExtendsAnnotatedClass;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ImplementsAnnotatedInterface;
 import org.wildfly.extension.core.management.UnstableApiAnnotationResourceDefinition;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotatedClassUsage;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotatedFieldReference;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotatedMethodReference;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotationOnUserClassUsage;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotationOnUserFieldUsage;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotationOnUserMethodUsage;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotationUsage;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.ClassInfoScanner;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.ExtendsAnnotatedClass;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.ImplementsAnnotatedInterface;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -131,9 +133,27 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
                             ref.getReferencedClass(),
                             ref.getAnnotations()));
         }
-        for (AnnotatedAnnotation ref : annotationUsages.annotatedAnnotationUsages) {
+        for (AnnotationOnUserClassUsage ref : annotationUsages.annotationOnUserClassUsages) {
             reporter.reportAnnotationUsage(
-                    UNSUPPORTED_ANNOTATION_LOGGER.deploymentClassesAnnotatedWithUnstableApiAnnotations(ref.getAnnotations()));
+                    UNSUPPORTED_ANNOTATION_LOGGER.classIsAnnotatedWithUnstableApiAnnotation(
+                            ref.getClazz(), ref.getAnnotations()));
+
+        }
+        for (AnnotationOnUserFieldUsage ref : annotationUsages.annotationOnUserFieldUsages) {
+            reporter.reportAnnotationUsage(
+                    UNSUPPORTED_ANNOTATION_LOGGER.fieldIsAnnotatedWithUnstableApiAnnotation(
+                            ref.getClazz(),
+                            ref.getFieldName(),
+                            ref.getAnnotations()));
+
+        }
+        for (AnnotationOnUserMethodUsage ref : annotationUsages.annotationOnUserMethodUsages) {
+            reporter.reportAnnotationUsage(
+                    UNSUPPORTED_ANNOTATION_LOGGER.methodIsAnnotatedWithUnstableApiAnnotation(
+                            ref.getClazz(),
+                            ref.getMethodName(),
+                            ref.getDescriptor(),
+                            ref.getAnnotations()));
         }
 
         reporter.complete();
@@ -173,16 +193,27 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
         private final List<AnnotatedFieldReference> annotatedFieldReferences;
         private final List<AnnotatedMethodReference> annotatedMethodReferences;
         private final List<AnnotatedClassUsage> annotatedClassUsages;
-        private final List<AnnotatedAnnotation> annotatedAnnotationUsages;
+        private final List<AnnotationOnUserClassUsage> annotationOnUserClassUsages;
+        private final List<AnnotationOnUserFieldUsage> annotationOnUserFieldUsages;
+        private final List<AnnotationOnUserMethodUsage> annotationOnUserMethodUsages;
 
-        public AnnotationUsages(List<ExtendsAnnotatedClass> extendsAnnotatedClasses, List<ImplementsAnnotatedInterface> implementsAnnotatedInterfaces, List<AnnotatedFieldReference> annotatedFieldReferences, List<AnnotatedMethodReference> annotatedMethodReferences, List<AnnotatedClassUsage> annotatedClassUsages, List<AnnotatedAnnotation> annotatedAnnotationUsages) {
+        public AnnotationUsages(List<ExtendsAnnotatedClass> extendsAnnotatedClasses,
+                                List<ImplementsAnnotatedInterface> implementsAnnotatedInterfaces,
+                                List<AnnotatedFieldReference> annotatedFieldReferences,
+                                List<AnnotatedMethodReference> annotatedMethodReferences,
+                                List<AnnotatedClassUsage> annotatedClassUsages,
+                                List<AnnotationOnUserClassUsage> annotationOnUserClassUsages,
+                                List<AnnotationOnUserFieldUsage> annotationOnUserFieldUsages,
+                                List<AnnotationOnUserMethodUsage> annotationOnUserMethodUsages) {
 
             this.extendsAnnotatedClasses = extendsAnnotatedClasses;
             this.implementsAnnotatedInterfaces = implementsAnnotatedInterfaces;
             this.annotatedFieldReferences = annotatedFieldReferences;
             this.annotatedMethodReferences = annotatedMethodReferences;
             this.annotatedClassUsages = annotatedClassUsages;
-            this.annotatedAnnotationUsages = annotatedAnnotationUsages;
+            this.annotationOnUserClassUsages = annotationOnUserClassUsages;
+            this.annotationOnUserFieldUsages = annotationOnUserFieldUsages;
+            this.annotationOnUserMethodUsages = annotationOnUserMethodUsages;
         }
 
         static AnnotationUsages parseAndGroup(Set<AnnotationUsage> usages) {
@@ -191,7 +222,9 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
             List<AnnotatedFieldReference> annotatedFieldReferences = new ArrayList<>();
             List<AnnotatedMethodReference> annotatedMethodReferences = new ArrayList<>();
             List<AnnotatedClassUsage> annotatedClassUsages = new ArrayList<>();
-            List<AnnotatedAnnotation> annotatedAnnotationUsages = new ArrayList<>();
+            List<AnnotationOnUserClassUsage> annotationOnUserClassUsages = new ArrayList<>();
+            List<AnnotationOnUserFieldUsage> annotationOnUserFieldUsages = new ArrayList<>();
+            List<AnnotationOnUserMethodUsage> annotationOnUserMethodUsages = new ArrayList<>();
             for (AnnotationUsage usage : usages) {
                 switch (usage.getType()) {
                     case EXTENDS_CLASS: {
@@ -219,9 +252,19 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
                         annotatedClassUsages.add(ref);
                     }
                     break;
-                    case ANNOTATION_USAGE: {
-                        AnnotatedAnnotation ref = usage.asAnnotatedAnnotation();
-                        annotatedAnnotationUsages.add(ref);
+                    case ANNOTATED_USER_CLASS: {
+                        AnnotationOnUserClassUsage ref = usage.asAnnotationOnUserClassUsage();
+                        annotationOnUserClassUsages.add(ref);
+                    }
+                    break;
+                    case ANNOTATED_USER_METHOD: {
+                        AnnotationOnUserMethodUsage ref = usage.asAnnotationOnUserMethodUsage();
+                        annotationOnUserMethodUsages.add(ref);
+                    }
+                    break;
+                    case ANNOTATED_USER_FIELD: {
+                        AnnotationOnUserFieldUsage ref = usage.asAnnotationOnUserFieldUsage();
+                        annotationOnUserFieldUsages.add(ref);
                     }
                     break;
                 }
@@ -287,14 +330,46 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
                     return i;
                 }
             });
-            annotatedAnnotationUsages.sort(new Comparator<AnnotatedAnnotation>() {
+            annotationOnUserClassUsages.sort(new Comparator<>(){
                 @Override
-                public int compare(AnnotatedAnnotation o1, AnnotatedAnnotation o2) {
-                    // We don't really have anything to sort here
-                    return 0;
+                public int compare(AnnotationOnUserClassUsage o1, AnnotationOnUserClassUsage o2) {
+                    return o1.getClazz().compareTo(o2.getClazz());
                 }
             });
-            return new AnnotationUsages(extendsAnnotatedClasses, implementsAnnotatedInterfaces, annotatedFieldReferences, annotatedMethodReferences, annotatedClassUsages, annotatedAnnotationUsages);
+            annotationOnUserFieldUsages.sort(new Comparator<>(){
+                @Override
+                public int compare(AnnotationOnUserFieldUsage o1, AnnotationOnUserFieldUsage o2) {
+                    int i =  o1.getClazz().compareTo(o2.getClazz());
+                    if (i == 0) {
+                        i = o1.getFieldName().compareTo(o2.getFieldName());
+                    }
+                    return i;
+                }
+
+            });
+            annotationOnUserMethodUsages.sort(new Comparator<>(){
+                @Override
+                public int compare(AnnotationOnUserMethodUsage o1, AnnotationOnUserMethodUsage o2) {
+                    int i =  o1.getClazz().compareTo(o2.getClazz());
+                    if (i == 0) {
+                        i = o1.getMethodName().compareTo(o2.getMethodName());
+                    }
+                    if (i == 0) {
+                        i = o1.getDescriptor().compareTo(o2.getDescriptor());
+                    }
+                    return i;
+                }
+
+            });
+
+            return new AnnotationUsages(extendsAnnotatedClasses,
+                    implementsAnnotatedInterfaces,
+                    annotatedFieldReferences,
+                    annotatedMethodReferences,
+                    annotatedClassUsages,
+                    annotationOnUserClassUsages,
+                    annotationOnUserFieldUsages,
+                    annotationOnUserMethodUsages);
         }
     }
 

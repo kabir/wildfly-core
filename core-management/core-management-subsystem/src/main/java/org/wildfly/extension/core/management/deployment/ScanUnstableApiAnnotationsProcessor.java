@@ -36,8 +36,8 @@ import org.jboss.modules.ModuleLoader;
 import org.jboss.vfs.VirtualFile;
 import org.jboss.vfs.VisitorAttributes;
 import org.jboss.vfs.util.SuffixMatchFilter;
-import org.wildfly.experimental.api.classpath.index.ByteRuntimeIndex;
-import org.wildfly.experimental.api.classpath.runtime.bytecode.ClassInfoScanner;
+import org.wildfly.unstable.api.annotation.classpath.index.RuntimeIndex;
+import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.ClassInfoScanner;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -47,18 +47,18 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ScanUnstableApoAnnotationsProcessor implements DeploymentUnitProcessor {
+public class ScanUnstableApiAnnotationsProcessor implements DeploymentUnitProcessor {
 
-    private final ByteRuntimeIndex runtimeIndex;
+    private final RuntimeIndex runtimeIndex;
 
-    private static final String BASE_MODULE_NAME = "org.wildfly._internal.experimental-api-index";
+    private static final String BASE_MODULE_NAME = "org.wildfly._internal.unstable-annotation-api-index";
     private static final String INDEX_FILE = "index.txt";
     private final Stability stability;
 
 
-    public ScanUnstableApoAnnotationsProcessor(RunningMode runningMode, Stability stability) {
+    public ScanUnstableApiAnnotationsProcessor(RunningMode runningMode, Stability stability) {
         this.stability = stability;
-        ByteRuntimeIndex runtimeIndex = null;
+        RuntimeIndex runtimeIndex = null;
         if (runningMode != RunningMode.ADMIN_ONLY) {
             ModuleLoader moduleLoader = ((ModuleClassLoader) this.getClass().getClassLoader()).getModule().getModuleLoader();
             Module module = null;
@@ -73,14 +73,16 @@ public class ScanUnstableApoAnnotationsProcessor implements DeploymentUnitProces
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()))) {
                     String fileName = reader.readLine();
                     while (fileName != null) {
-                        if (!fileName.isEmpty()) {
+                        fileName = fileName.trim();
+                        if (!fileName.isEmpty() && !fileName.startsWith("#")) {
                             urls.add(module.getExportedResource(fileName));
                         }
                         fileName = reader.readLine();
                     }
 
-                    runtimeIndex = ByteRuntimeIndex.load(urls);
-
+                    if (!urls.isEmpty()) {
+                        runtimeIndex = RuntimeIndex.load(urls);
+                    }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -119,13 +121,14 @@ public class ScanUnstableApoAnnotationsProcessor implements DeploymentUnitProces
         List<ResourceRoot> resourceRoots = DeploymentUtils.allResourceRoots(du);
         for (ResourceRoot root : resourceRoots) {
 
-            if (root.getAttachment(Attachments.ANNOTATION_INDEX) != null) {
-                // Taken from ResourceRootIndexer.
-                // During my tests for a war with a lot of nested WEB-INF/lib archives and some classes in WEB-INF/classes
-                // the classes from the nested archives were counted twice if I did not ignore this file
-                // The WEB-INF/lib archives and WEB-INF/classes are available as other resource roots so they will
-                // get scanned anyway
-                break;
+            // The EarStructureProcessor and WarStructureProcessor in full will set this accordingly
+            Boolean shouldIndexResource = root.getAttachment(Attachments.INDEX_RESOURCE_ROOT);
+            if (shouldIndexResource != null && !shouldIndexResource) {
+                return;
+            }
+
+            if (root.getAttachment(UnstableApiAnnotationAttachments.UNSTABLE_API_ANNOTATIONS_SCANNED) != null) {
+                continue;
             }
             final VisitorAttributes visitorAttributes = new VisitorAttributes();
             visitorAttributes.setLeavesOnly(true);
@@ -144,6 +147,7 @@ public class ScanUnstableApoAnnotationsProcessor implements DeploymentUnitProces
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+            root.putAttachment(UnstableApiAnnotationAttachments.UNSTABLE_API_ANNOTATIONS_SCANNED, true);
         }
 
         long time = (System.currentTimeMillis() - counter.startTime);

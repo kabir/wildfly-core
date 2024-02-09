@@ -18,7 +18,7 @@ import org.jboss.as.server.DeploymentProcessorTarget;
 import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
 import org.wildfly.extension.core.management.deployment.ReportUnstableApiAnnotationsProcessor;
-import org.wildfly.extension.core.management.deployment.ScanUnstableApoAnnotationsProcessor;
+import org.wildfly.extension.core.management.deployment.ScanUnstableApiAnnotationsProcessor;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -60,7 +60,7 @@ class CoreManagementRootResourceDefinition extends PersistentResourceDefinition 
                 context.addStep(new AbstractDeploymentChainStep() {
                     @Override
                     protected void execute(DeploymentProcessorTarget processorTarget) {
-                        processorTarget.addDeploymentProcessor(CoreManagementExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_SCAN_EXPERIMENTAL_ANNOTATIONS, new ScanUnstableApoAnnotationsProcessor(context.getRunningMode(), context.getStability()));
+                        processorTarget.addDeploymentProcessor(CoreManagementExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_SCAN_EXPERIMENTAL_ANNOTATIONS, new ScanUnstableApiAnnotationsProcessor(context.getRunningMode(), context.getStability()));
                         processorTarget.addDeploymentProcessor(CoreManagementExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_REPORT_EXPERIMENTAL_ANNOTATIONS, new ReportUnstableApiAnnotationsProcessor());
                     }
                 }, OperationContext.Stage.RUNTIME);
