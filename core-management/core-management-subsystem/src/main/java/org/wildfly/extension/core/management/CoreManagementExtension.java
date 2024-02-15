@@ -23,7 +23,7 @@ import org.jboss.as.controller.registry.ManagementResourceRegistration;
  */
 public class CoreManagementExtension implements Extension {
     public static final String SUBSYSTEM_NAME = "core-management";
-    static final PathElement SUBSYSTEM_PATH = PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME);
+    public static final PathElement SUBSYSTEM_PATH = PathElement.pathElement(SUBSYSTEM, SUBSYSTEM_NAME);
     static final PathElement PROCESS_STATE_LISTENER_PATH = PathElement.pathElement("process-state-listener");
 
     static final String RESOURCE_NAME = CoreManagementExtension.class.getPackage().getName() + ".LocalDescriptions";

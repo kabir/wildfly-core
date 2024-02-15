@@ -57,7 +57,7 @@ public class UnstableApiAnnotationResourceDefinition extends PersistentResourceD
         return Collections.emptyList();
     }
 
-    enum UnstableApiAnnotationLevel {
+    public enum UnstableApiAnnotationLevel {
         LOG,
         ERROR
     }

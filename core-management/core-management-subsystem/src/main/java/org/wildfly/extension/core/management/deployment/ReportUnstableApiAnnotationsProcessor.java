@@ -22,7 +22,6 @@ package org.wildfly.extension.core.management.deployment;
 import org.jboss.as.controller.ModelController;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.operations.common.Util;
-import org.jboss.as.domain.management.CoreManagementResourceDefinition;
 import org.jboss.as.server.Services;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
@@ -32,7 +31,9 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
+import org.wildfly.extension.core.management.CoreManagementExtension;
 import org.wildfly.extension.core.management.UnstableApiAnnotationResourceDefinition;
+import org.wildfly.extension.core.management.UnstableApiAnnotationResourceDefinition.UnstableApiAnnotationLevel;
 import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotatedClassUsage;
 import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotatedFieldReference;
 import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotatedMethodReference;
@@ -49,9 +50,12 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CHILD_TYPE;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.LEVEL;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION;
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESOLVE_EXPRESSIONS;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
 import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.wildfly.extension.core.management.logging.CoreManagementLogger.UNSUPPORTED_ANNOTATION_LOGGER;
@@ -83,14 +87,14 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
 
         Set<AnnotationUsage> usages = scanner.getUsages();
 
-
-        if (!usages.isEmpty()) {
+        // TODO Add the check again
+        //if (!usages.isEmpty()) {
             AnnotationUsages annotationUsages = AnnotationUsages.parseAndGroup(scanner.getUsages());
             AnnotationUsageReporter reporter = getAnnotationUsageReporter(phaseContext, top);
             if (reporter.isEnabled()) {
                 reportAnnotationUsages(top, annotationUsages, reporter);
             }
-        }
+        //}
     }
 
     private void reportAnnotationUsages(DeploymentUnit top, AnnotationUsages annotationUsages, AnnotationUsageReporter reporter) throws DeploymentUnitProcessingException {
@@ -161,28 +165,51 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
 
     private AnnotationUsageReporter getAnnotationUsageReporter(DeploymentPhaseContext ctx, DeploymentUnit top) throws DeploymentUnitProcessingException {
         ModelController controller = (ModelController) top.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
-        String level = readLevelFromModel(ctx);
-        if (level.equals("ERROR")) {
+        UnstableApiAnnotationLevel level = readLevelFromModel(ctx);
+        if (level == UnstableApiAnnotationLevel.ERROR) {
             return new ErrorAnnotationUsageReporter();
         }
         return new WarningAnnotationUsageReporter();
     }
 
-    private String readLevelFromModel(DeploymentPhaseContext ctx) throws DeploymentUnitProcessingException {
-        // TODO See the commented out code at the bottom of this class for a better approach
+    private UnstableApiAnnotationLevel readLevelFromModel(DeploymentPhaseContext ctx) throws DeploymentUnitProcessingException {
+        // TODO See the commented out code at the bottom of this class for a better approach to get the controller
         ModelController controller = (ModelController) ctx.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
-        PathAddress addr = PathAddress.pathAddress(
-                CoreManagementResourceDefinition.PATH_ELEMENT,
-                UnstableApiAnnotationResourceDefinition.PATH);
 
-        ModelNode op = Util.getReadAttributeOperation(addr, LEVEL);
-        ModelNode result = controller.execute(op, null, ModelController.OperationTransactionControl.COMMIT, null);
+        PathAddress subsystemAddr = PathAddress.pathAddress(CoreManagementExtension.SUBSYSTEM_PATH);
+        String level = UnstableApiAnnotationResourceDefinition.LEVEL.getDefaultValue().asString();
+        if (checkHasUnstableApiResource(controller, subsystemAddr)) {
+            PathAddress addr = subsystemAddr.append(UnstableApiAnnotationResourceDefinition.PATH);
+            ModelNode op = Util.getReadAttributeOperation(addr, LEVEL);
+            op.get(RESOLVE_EXPRESSIONS).set(true);
+            ModelNode result = execute(controller, op);
+            level = result.asString();
+        }
 
+        return UnstableApiAnnotationLevel.valueOf(level);
+    }
+
+    private boolean checkHasUnstableApiResource(ModelController controller, PathAddress subsystemAddr) throws DeploymentUnitProcessingException {
+        ModelNode param = new ModelNode();
+        param.get(CHILD_TYPE).set(UnstableApiAnnotationResourceDefinition.PATH.getKey());
+        ModelNode op = Util.getOperation(READ_CHILDREN_NAMES_OPERATION, subsystemAddr, param);
+        ModelNode result = execute(controller, op);
+        List<ModelNode> list = result.asList();
+        for (ModelNode listEntry : list) {
+            if (listEntry.asString().equals(UnstableApiAnnotationResourceDefinition.PATH.getValue())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private ModelNode execute(ModelController controller, ModelNode operation) throws DeploymentUnitProcessingException {
+        ModelNode result = controller.execute(operation, null, ModelController.OperationTransactionControl.COMMIT, null);
         if (!result.get(OUTCOME).asString().equals(SUCCESS)) {
             throw new DeploymentUnitProcessingException(result.get(FAILURE_DESCRIPTION).asString());
         }
 
-        return result.get(RESULT).asString();
+        return result.get(RESULT);
     }
 
     private static class AnnotationUsages {
