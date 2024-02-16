@@ -19,20 +19,13 @@
 
 package org.wildfly.extension.core.management.deployment;
 
-import org.jboss.as.controller.ModelController;
-import org.jboss.as.controller.PathAddress;
-import org.jboss.as.controller.operations.common.Util;
-import org.jboss.as.server.Services;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.annotation.CompositeIndex;
-import org.jboss.dmr.ModelNode;
 import org.jboss.logging.Logger;
-import org.wildfly.extension.core.management.CoreManagementExtension;
-import org.wildfly.extension.core.management.UnstableApiAnnotationResourceDefinition;
 import org.wildfly.extension.core.management.UnstableApiAnnotationResourceDefinition.UnstableApiAnnotationLevel;
 import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotatedClassUsage;
 import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.AnnotatedFieldReference;
@@ -49,19 +42,17 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.CHILD_TYPE;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.FAILURE_DESCRIPTION;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.LEVEL;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.OUTCOME;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.READ_CHILDREN_NAMES_OPERATION;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESOLVE_EXPRESSIONS;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.RESULT;
-import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SUCCESS;
 import static org.wildfly.extension.core.management.logging.CoreManagementLogger.UNSUPPORTED_ANNOTATION_LOGGER;
 
 public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProcessor {
 
+    private final Supplier<UnstableApiAnnotationLevel> levelSupplier;
+
+    public ReportUnstableApiAnnotationsProcessor(Supplier<UnstableApiAnnotationLevel> levelSupplier) {
+        this.levelSupplier = levelSupplier;
+    }
 
     /**
      * Process this deployment for annotations.  This will use an annotation indexer to create an index of all annotations
@@ -87,14 +78,13 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
 
         Set<AnnotationUsage> usages = scanner.getUsages();
 
-        // TODO Add the check again
-        //if (!usages.isEmpty()) {
+        if (!usages.isEmpty()) {
             AnnotationUsages annotationUsages = AnnotationUsages.parseAndGroup(scanner.getUsages());
             AnnotationUsageReporter reporter = getAnnotationUsageReporter(phaseContext, top);
             if (reporter.isEnabled()) {
                 reportAnnotationUsages(top, annotationUsages, reporter);
             }
-        //}
+        }
     }
 
     private void reportAnnotationUsages(DeploymentUnit top, AnnotationUsages annotationUsages, AnnotationUsageReporter reporter) throws DeploymentUnitProcessingException {
@@ -164,53 +154,13 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
     }
 
     private AnnotationUsageReporter getAnnotationUsageReporter(DeploymentPhaseContext ctx, DeploymentUnit top) throws DeploymentUnitProcessingException {
-        ModelController controller = (ModelController) top.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
-        UnstableApiAnnotationLevel level = readLevelFromModel(ctx);
+        UnstableApiAnnotationLevel level = levelSupplier.get();
         if (level == UnstableApiAnnotationLevel.ERROR) {
             return new ErrorAnnotationUsageReporter();
         }
         return new WarningAnnotationUsageReporter();
     }
 
-    private UnstableApiAnnotationLevel readLevelFromModel(DeploymentPhaseContext ctx) throws DeploymentUnitProcessingException {
-        // TODO See the commented out code at the bottom of this class for a better approach to get the controller
-        ModelController controller = (ModelController) ctx.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
-
-        PathAddress subsystemAddr = PathAddress.pathAddress(CoreManagementExtension.SUBSYSTEM_PATH);
-        String level = UnstableApiAnnotationResourceDefinition.LEVEL.getDefaultValue().asString();
-        if (checkHasUnstableApiResource(controller, subsystemAddr)) {
-            PathAddress addr = subsystemAddr.append(UnstableApiAnnotationResourceDefinition.PATH);
-            ModelNode op = Util.getReadAttributeOperation(addr, LEVEL);
-            op.get(RESOLVE_EXPRESSIONS).set(true);
-            ModelNode result = execute(controller, op);
-            level = result.asString();
-        }
-
-        return UnstableApiAnnotationLevel.valueOf(level);
-    }
-
-    private boolean checkHasUnstableApiResource(ModelController controller, PathAddress subsystemAddr) throws DeploymentUnitProcessingException {
-        ModelNode param = new ModelNode();
-        param.get(CHILD_TYPE).set(UnstableApiAnnotationResourceDefinition.PATH.getKey());
-        ModelNode op = Util.getOperation(READ_CHILDREN_NAMES_OPERATION, subsystemAddr, param);
-        ModelNode result = execute(controller, op);
-        List<ModelNode> list = result.asList();
-        for (ModelNode listEntry : list) {
-            if (listEntry.asString().equals(UnstableApiAnnotationResourceDefinition.PATH.getValue())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private ModelNode execute(ModelController controller, ModelNode operation) throws DeploymentUnitProcessingException {
-        ModelNode result = controller.execute(operation, null, ModelController.OperationTransactionControl.COMMIT, null);
-        if (!result.get(OUTCOME).asString().equals(SUCCESS)) {
-            throw new DeploymentUnitProcessingException(result.get(FAILURE_DESCRIPTION).asString());
-        }
-
-        return result.get(RESULT);
-    }
 
     private static class AnnotationUsages {
 
@@ -458,75 +408,4 @@ public class ReportUnstableApiAnnotationsProcessor implements DeploymentUnitProc
             return true;
         }
     }
-
-    // TODO The below is the 'proper' way to get access to the ModelController, but seems to not be working
-    /*
-    private String readLevelFromModel(DeploymentPhaseContext ctx) {
-        ServiceName serviceName = Services.JBOSS_SERVER_CONTROLLER.append("accessor").append(Long.valueOf(System.currentTimeMillis()).toString());
-
-        //ModelController controller = (ModelController) ctx.getServiceRegistry().getService(Services.JBOSS_SERVER_CONTROLLER).getValue();
-        ServerControllerAccessor accessor = ServerControllerAccessor.create(serviceName, ctx);
-        // Temporary experiment at reading the model until I add the model attribute
-        ///core-service=management/access=authorization:read-attribute(name=permission-combination-policy)
-        ModelNode op = Util.getReadAttributeOperation(PathAddress.pathAddress(CoreManagementResourceDefinition.PATH_ELEMENT).append(UnstableApiAnnotationResourceDefinition.PATH), LEVEL);
-        ModelNode result = accessor.execute(op);
-
-        // TODO - Need to remove the temporary service
-
-        return result.get(RESULT).asString();
-    }
-
-    // Service to get the server
-    private static final class ServerControllerAccessor implements Service {
-        private final Consumer<ModelController> consumer;
-        private final Supplier<ModelController> modelControllerSupplier;
-
-        private final CompletableFuture<ServerControllerAccessor> future = new CompletableFuture<>();
-
-
-        public ServerControllerAccessor(Consumer<ModelController> consumer, Supplier<ModelController> modelControllerSupplier) {
-            this.consumer = consumer;
-            this.modelControllerSupplier = modelControllerSupplier;
-        }
-
-        @Override
-        public void start(StartContext startContext) throws StartException {
-            consumer.accept(modelControllerSupplier.get());
-            future.complete(this);
-        }
-
-        @Override
-        public void stop(StopContext stopContext) {
-            consumer.accept(null);
-            future.isDone();
-        }
-
-        ModelNode execute(ModelNode op) {
-            return modelControllerSupplier.get().execute(op, null, ModelController.OperationTransactionControl.COMMIT, null);
-        }
-
-        static ServerControllerAccessor create(ServiceName serviceName, DeploymentPhaseContext ctx) {
-            // TODO I am told this is the correct way to get hold of the model controller but it isn't working for me
-
-            RequirementServiceBuilder<?> builder = ctx.getRequirementServiceTarget().addService();
-            Supplier<ModelController> modelControllerSupplier = builder.requires(Services.JBOSS_SERVER_CONTROLLER);
-            Consumer<ModelController> consumer = builder.provides(serviceName);
-            ServerControllerAccessor accessor = new ServerControllerAccessor(consumer, modelControllerSupplier);
-            builder.setInstance(accessor);
-            builder.setInitialMode(ACTIVE);
-            builder.install();
-
-
-            try {
-                return accessor.future.get(10, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            } catch (ExecutionException | TimeoutException e) {
-                throw new RuntimeException(e);
-            }
-
-        }
-    }*/
-
 }

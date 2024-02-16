@@ -15,8 +15,9 @@ import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
 import org.jboss.as.controller.registry.Resource;
 import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
-import org.jboss.as.server.deployment.Phase;
 import org.jboss.dmr.ModelNode;
+import org.jboss.msc.service.ServiceBuilder;
+import org.wildfly.extension.core.management.UnstableApiAnnotationResourceDefinition.UnstableApiAnnotationLevel;
 import org.wildfly.extension.core.management.deployment.ReportUnstableApiAnnotationsProcessor;
 import org.wildfly.extension.core.management.deployment.ScanUnstableApiAnnotationsProcessor;
 
@@ -24,6 +25,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
+
+import static org.jboss.as.server.deployment.Phase.PARSE;
+import static org.jboss.as.server.deployment.Phase.PARSE_REPORT_EXPERIMENTAL_ANNOTATIONS;
+import static org.jboss.as.server.deployment.Phase.PARSE_SCAN_EXPERIMENTAL_ANNOTATIONS;
+import static org.wildfly.extension.core.management.CoreManagementExtension.SUBSYSTEM_NAME;
 
 /**
  * {@link org.jboss.as.controller.ResourceDefinition} for the core-management subsystem root resource.
@@ -56,15 +63,31 @@ class CoreManagementRootResourceDefinition extends PersistentResourceDefinition 
 
         @Override
         protected void performBoottime(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
+
             if (context.isNormalServer()) {
                 context.addStep(new AbstractDeploymentChainStep() {
                     @Override
                     protected void execute(DeploymentProcessorTarget processorTarget) {
-                        processorTarget.addDeploymentProcessor(CoreManagementExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_SCAN_EXPERIMENTAL_ANNOTATIONS, new ScanUnstableApiAnnotationsProcessor(context.getRunningMode(), context.getStability()));
-                        processorTarget.addDeploymentProcessor(CoreManagementExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_REPORT_EXPERIMENTAL_ANNOTATIONS, new ReportUnstableApiAnnotationsProcessor());
+                        processorTarget.addDeploymentProcessor(SUBSYSTEM_NAME, PARSE, PARSE_SCAN_EXPERIMENTAL_ANNOTATIONS,
+                                new ScanUnstableApiAnnotationsProcessor(context.getRunningMode(), context.getStability()));
+                        processorTarget.addDeploymentProcessor(SUBSYSTEM_NAME, PARSE, PARSE_REPORT_EXPERIMENTAL_ANNOTATIONS,
+                                new ReportUnstableApiAnnotationsProcessor(UnstableAnnotationApiService.LEVEL_SUPPLIER));
                     }
                 }, OperationContext.Stage.RUNTIME);
             }
+
+            Resource unstableApiResource = resource.getChild(UnstableApiAnnotationResourceDefinition.PATH);
+            String level = UnstableApiAnnotationResourceDefinition.LEVEL.getDefaultValue().asString();
+            if (unstableApiResource != null) {
+                ModelNode model = unstableApiResource.getModel();
+                level = UnstableApiAnnotationResourceDefinition.LEVEL.resolveModelAttribute(context, model).asString();
+            }
+            UnstableApiAnnotationLevel levelEnum = UnstableApiAnnotationLevel.valueOf(level);
+
+            ServiceBuilder<?> sb = context.getCapabilityServiceTarget().addService();
+            Consumer<UnstableAnnotationApiService> serviceConsumer = sb.provides(UnstableAnnotationApiService.SERVICE_NAME);
+            sb.setInstance(new UnstableAnnotationApiService(serviceConsumer, levelEnum));
+            sb.install();
         }
     }
 }

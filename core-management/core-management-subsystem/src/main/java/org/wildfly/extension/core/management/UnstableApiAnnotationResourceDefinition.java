@@ -5,11 +5,11 @@
 package org.wildfly.extension.core.management;
 
 import org.jboss.as.controller.AttributeDefinition;
-import org.jboss.as.controller.ModelOnlyAddStepHandler;
-import org.jboss.as.controller.ModelOnlyRemoveStepHandler;
-import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.PersistentResourceDefinition;
+import org.jboss.as.controller.ReloadRequiredAddStepHandler;
+import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
+import org.jboss.as.controller.ReloadRequiredWriteAttributeHandler;
 import org.jboss.as.controller.SimpleAttributeDefinition;
 import org.jboss.as.controller.SimpleAttributeDefinitionBuilder;
 import org.jboss.as.controller.descriptions.ModelDescriptionConstants;
@@ -41,15 +41,15 @@ public class UnstableApiAnnotationResourceDefinition extends PersistentResourceD
 
     private UnstableApiAnnotationResourceDefinition() {
         super(new Parameters(PATH, CoreManagementExtension.getResourceDescriptionResolver(UNSTABLE_AI_ANNOTATIONS))
-                .setAddHandler(ModelOnlyAddStepHandler.INSTANCE)
-                .setRemoveHandler(ModelOnlyRemoveStepHandler.INSTANCE));
+                .setAddHandler(ReloadRequiredAddStepHandler.INSTANCE)
+                .setRemoveHandler(ReloadRequiredRemoveStepHandler.INSTANCE));
     }
 
 
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
         super.registerAttributes(resourceRegistration);
-        resourceRegistration.registerReadWriteAttribute(LEVEL, null, ModelOnlyWriteAttributeHandler.INSTANCE);
+        resourceRegistration.registerReadWriteAttribute(LEVEL, null, ReloadRequiredWriteAttributeHandler.INSTANCE);
     }
 
     @Override
