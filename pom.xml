@@ -234,7 +234,6 @@
         <version.org.wildfly.client.config>1.0.1.Final</version.org.wildfly.client.config>
         <version.org.wildfly.common>1.7.0.Final</version.org.wildfly.common>
         <version.org.wildfly.discovery>1.2.1.Final</version.org.wildfly.discovery>
-        <version.org.wildfly.unstable.api.annotation>1.0.0.Alpha2</version.org.wildfly.unstable.api.annotation>
         <version.org.wildfly.installation-manager.installation-manager-api>1.0.2.Final</version.org.wildfly.installation-manager.installation-manager-api>
         <version.org.wildfly.legacy.test>8.0.1.Final</version.org.wildfly.legacy.test>
         <version.org.wildfly.openssl>2.2.5.Final</version.org.wildfly.openssl>
@@ -246,6 +245,7 @@
         <version.org.wildfly.security.elytron>2.3.1.Final</version.org.wildfly.security.elytron>
         <version.org.wildfly.security.elytron-web>4.1.0.Final</version.org.wildfly.security.elytron-web>
         <version.org.wildfly.security.jakarta.elytron-ee>3.0.3.Final</version.org.wildfly.security.jakarta.elytron-ee>
+        <version.org.wildfly.unstable.api.annotation>1.0.0.Alpha3</version.org.wildfly.unstable.api.annotation>
         <version.org.yaml.snakeyaml>2.2</version.org.yaml.snakeyaml>
     </properties>
 
