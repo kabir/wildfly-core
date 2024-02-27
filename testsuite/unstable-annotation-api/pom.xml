@@ -25,4 +25,16 @@
         <module>tests</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>${project.groupId}</groupId>
+                <artifactId>wildfly-core-testsuite-unstable-annotation-api-feature-pack</artifactId>
+                <type>zip</type>
+                <scope>test</scope>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
 </project>

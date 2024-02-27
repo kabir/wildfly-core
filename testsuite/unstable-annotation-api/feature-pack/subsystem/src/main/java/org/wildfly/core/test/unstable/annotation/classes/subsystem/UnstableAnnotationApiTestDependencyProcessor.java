@@ -38,12 +38,8 @@ public class UnstableAnnotationApiTestDependencyProcessor implements DeploymentU
 
         // This is needed if running with a security manager, and seems to be needed by arquillian in all cases
         moduleSpecification.addSystemDependency(new ModuleDependency(moduleLoader, "org.wildfly.security.manager", false, false, true, false));
-        // TODO use the name of the modules after renaming, and add any other dependencies
-        // In this case we don't need any classes from the subsystem module itself so we don't need to add it to the
-        // deployment's module dependencies
-        // moduleSpecification.addSystemDependency(new ModuleDependency(moduleLoader, "org.wildfly.extension.template-subsystem", false, false, true, false));
         moduleSpecification.addSystemDependency(
-                cdiDependency(new ModuleDependency(moduleLoader, "org.wildfly.template-dependency", false, false, true, false)));
+                cdiDependency(new ModuleDependency(moduleLoader, "org.wildfly.core.test.extension.unstable-annotation-api-test-subsystem", false, false, true, false)));
     }
 
 
