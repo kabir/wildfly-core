@@ -10,9 +10,7 @@ import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.DeploymentUtils;
-import org.jboss.as.server.deployment.annotation.ResourceRootIndexer.TempClassCounter;
 import org.jboss.as.server.deployment.module.ResourceRoot;
-import org.jboss.as.server.logging.ServerLogger;
 
 /**
  * Deployment unit processor responsible for creating and attaching an annotation index for a resource root
@@ -34,16 +32,9 @@ public class AnnotationIndexProcessor implements DeploymentUnitProcessor {
 
         long start = System.currentTimeMillis();
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-        TempClassCounter tempCounter = new TempClassCounter();
         for (ResourceRoot resourceRoot : DeploymentUtils.allResourceRoots(deploymentUnit)) {
-            tempCounter.attach(resourceRoot);
-            try {
-                ResourceRootIndexer.indexResourceRoot(resourceRoot);
-            } finally {
-                tempCounter.detach(resourceRoot);
-            }
+            ResourceRootIndexer.indexResourceRoot(resourceRoot);
         }
-        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex took %d to scan %d classes", tempCounter.getTimeMs(), tempCounter.getClasses());
     }
 
 }

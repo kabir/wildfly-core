@@ -5,7 +5,6 @@
 
 package org.jboss.as.server.deployment.annotation;
 
-import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.module.ResourceRoot;
@@ -67,7 +66,6 @@ public class ResourceRootIndexer {
             indexIgnorePaths = null;
         }
 
-        TempClassCounter counter = TempClassCounter.get(resourceRoot);
         final VirtualFile virtualFile = resourceRoot.getRoot();
         final Indexer indexer = new Indexer();
         try {
@@ -85,9 +83,6 @@ public class ResourceRootIndexer {
                 try {
                     inputStream = classFile.openStream();
                     indexer.index(inputStream);
-                    if (counter != null) {
-                        counter.incrementClasses();
-                    }
                 } catch (Exception e) {
                     ServerLogger.DEPLOYMENT_LOGGER.cannotIndexClass(classFile.getPathNameRelativeTo(virtualFile), virtualFile.getPathName(), e);
                 } finally {
@@ -99,37 +94,6 @@ public class ResourceRootIndexer {
             ServerLogger.DEPLOYMENT_LOGGER.tracef("Generated index for archive %s", virtualFile);
         } catch (Throwable t) {
             throw ServerLogger.ROOT_LOGGER.deploymentIndexingFailed(t);
-        }
-    }
-
-    public static class TempClassCounter {
-
-        private static final AttachmentKey<TempClassCounter> KEY = AttachmentKey.create(TempClassCounter.class);
-        private final long start = System.currentTimeMillis();
-        private volatile int classes;
-
-        void incrementClasses() {
-            classes++;
-        }
-
-        public long getTimeMs() {
-            return System.currentTimeMillis() - start;
-        }
-
-        public int getClasses() {
-            return classes;
-        }
-
-        public void attach(ResourceRoot root) {
-            root.putAttachment(KEY, this);
-        }
-
-        public void detach(ResourceRoot root) {
-            root.removeAttachment(KEY);
-        }
-
-        static TempClassCounter get(ResourceRoot root) {
-            return root.getAttachment(KEY);
         }
     }
 }

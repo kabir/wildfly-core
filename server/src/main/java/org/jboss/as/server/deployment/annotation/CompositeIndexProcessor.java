@@ -5,6 +5,22 @@
 
 package org.jboss.as.server.deployment.annotation;
 
+import org.jboss.as.server.deployment.AttachmentList;
+import org.jboss.as.server.deployment.Attachments;
+import org.jboss.as.server.deployment.DeploymentPhaseContext;
+import org.jboss.as.server.deployment.DeploymentUnit;
+import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
+import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.jboss.as.server.deployment.DeploymentUtils;
+import org.jboss.as.server.deployment.SubDeploymentMarker;
+import org.jboss.as.server.deployment.module.AdditionalModuleSpecification;
+import org.jboss.as.server.deployment.module.ModuleDependency;
+import org.jboss.as.server.deployment.module.ModuleRootMarker;
+import org.jboss.as.server.deployment.module.ResourceRoot;
+import org.jboss.jandex.Index;
+import org.jboss.modules.ModuleIdentifier;
+import org.jboss.modules.ModuleLoader;
+
 import java.lang.ref.Reference;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -14,24 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.jboss.as.server.deployment.AttachmentList;
-import org.jboss.as.server.deployment.Attachments;
-import org.jboss.as.server.deployment.DeploymentPhaseContext;
-import org.jboss.as.server.deployment.DeploymentUnit;
-import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
-import org.jboss.as.server.deployment.DeploymentUnitProcessor;
-import org.jboss.as.server.deployment.DeploymentUtils;
-import org.jboss.as.server.deployment.SubDeploymentMarker;
-import org.jboss.as.server.deployment.annotation.ResourceRootIndexer.TempClassCounter;
-import org.jboss.as.server.deployment.module.AdditionalModuleSpecification;
-import org.jboss.as.server.deployment.module.ModuleDependency;
-import org.jboss.as.server.deployment.module.ModuleRootMarker;
-import org.jboss.as.server.deployment.module.ResourceRoot;
-import org.jboss.as.server.logging.ServerLogger;
-import org.jboss.jandex.Index;
-import org.jboss.modules.ModuleIdentifier;
-import org.jboss.modules.ModuleLoader;
 
 /**
  * Processor responsible for creating and attaching a {@link CompositeIndex} for a deployment.
@@ -64,7 +62,6 @@ public class CompositeIndexProcessor implements DeploymentUnitProcessor {
 
         Map<ModuleIdentifier, DeploymentUnit> subdeploymentDependencies = buildSubdeploymentDependencyMap(deploymentUnit);
 
-        TempClassCounter tempCounter = new TempClassCounter();
         for (final ModuleIdentifier moduleIdentifier : additionalModuleIndexes) {
             AdditionalModuleSpecification additional = additionalModuleSpecificationMap.get(moduleIdentifier);
             if(additional != null) {
@@ -72,12 +69,7 @@ public class CompositeIndexProcessor implements DeploymentUnitProcessor {
                 // or jboss-deployment-structure.xml or equivalent jboss-all.xml content. Obtain indexes from its resources.
                 final List<Index> moduleIndexes = new ArrayList<>();
                 for(ResourceRoot resource : additional.getResourceRoots()) {
-                    tempCounter.attach(resource);
-                    try {
-                        ResourceRootIndexer.indexResourceRoot(resource);
-                    } finally {
-                        tempCounter.detach(resource);
-                    }
+                    ResourceRootIndexer.indexResourceRoot(resource);
                     Index indexAttachment = resource.getAttachment(Attachments.ANNOTATION_INDEX);
                     if(indexAttachment != null) {
                         indexes.add(indexAttachment);
@@ -125,7 +117,6 @@ public class CompositeIndexProcessor implements DeploymentUnitProcessor {
                 additionalAnnotationIndexes.put(moduleIdentifier, externalModuleIndexes);
             }
         }
-        ServerLogger.DEPLOYMENT_LOGGER.infof("----> Jandex (composite) took %d to scan %d classes", tempCounter.getTimeMs(), tempCounter.getClasses());
 
         deploymentUnit.putAttachment(Attachments.ADDITIONAL_ANNOTATION_INDEXES_BY_MODULE, additionalAnnotationIndexes);
 
