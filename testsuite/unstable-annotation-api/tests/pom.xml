@@ -28,7 +28,6 @@
         <exclude.tests>nothing-to-exclude</exclude.tests>
     </properties>
 
-
     <build>
         <plugins>
             <plugin>

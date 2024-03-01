@@ -36,6 +36,7 @@ import org.jboss.modules.ModuleLoader;
 import org.jboss.vfs.VirtualFile;
 import org.jboss.vfs.VisitorAttributes;
 import org.jboss.vfs.util.SuffixMatchFilter;
+import org.wildfly.extension.core.management.logging.CoreManagementLogger;
 import org.wildfly.unstable.api.annotation.classpath.index.RuntimeIndex;
 import org.wildfly.unstable.api.annotation.classpath.runtime.bytecode.ClassInfoScanner;
 
@@ -51,14 +52,19 @@ public class ScanUnstableApiAnnotationsProcessor implements DeploymentUnitProces
 
     private final RuntimeIndex runtimeIndex;
 
+    // If set we will output some extra information to the logs during testing
+    private final String EXTRA_TEST_OUTPUT_PROPERTY = "org.wildfly.test.unstable-annotation-api.extra-output";
+
     private static final String BASE_MODULE_NAME = "org.wildfly._internal.unstable-annotation-api-index";
     private static final String INDEX_FILE = "index.txt";
     private final Stability stability;
 
+    private boolean extraTestOutput;
 
     public ScanUnstableApiAnnotationsProcessor(RunningMode runningMode, Stability stability) {
         this.stability = stability;
         RuntimeIndex runtimeIndex = null;
+        extraTestOutput = System.getProperties().containsKey(EXTRA_TEST_OUTPUT_PROPERTY);
         if (runningMode != RunningMode.ADMIN_ONLY) {
             ModuleLoader moduleLoader = ((ModuleClassLoader) this.getClass().getClassLoader()).getModule().getModuleLoader();
             Module module = null;
@@ -151,7 +157,10 @@ public class ScanUnstableApiAnnotationsProcessor implements DeploymentUnitProces
         }
 
         long time = (System.currentTimeMillis() - counter.startTime);
-        ServerLogger.DEPLOYMENT_LOGGER.debugf("Unstable annotation api scan took %d ms to scan %d classes", time, counter.getClassesScannedCount());
+        CoreManagementLogger.UNSUPPORTED_ANNOTATION_LOGGER.debugf("Unstable annotation api scan took %d ms to scan %d classes", time, counter.getClassesScannedCount());
+        if (extraTestOutput) {
+            CoreManagementLogger.UNSUPPORTED_ANNOTATION_LOGGER.testOutputNumberOfClassesScanned(counter.getClassesScannedCount());
+        }
     }
 
     public static class ProcessedClassCounter {

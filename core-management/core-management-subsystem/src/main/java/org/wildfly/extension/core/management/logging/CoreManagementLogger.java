@@ -6,6 +6,7 @@
 package org.wildfly.extension.core.management.logging;
 
 import static org.jboss.logging.Logger.Level.ERROR;
+import static org.jboss.logging.Logger.Level.INFO;
 
 import org.jboss.as.controller.OperationFailedException;
 import org.jboss.logging.BasicLogger;
@@ -78,5 +79,10 @@ public interface CoreManagementLogger extends BasicLogger {
 
     @Message(id = 15, value = "Class %s is annotated with one or more annotations which in turn have been annotated with annotations indicating unstable api: %s")
     String classUsesAnnotatedAnnotations(String clazz, Set<String> annotations);
+
+    // For testing only
+    @LogMessage(level = INFO)
+    @Message(id = 16, value = "%d")
+    void testOutputNumberOfClassesScanned(int number);
 
 }

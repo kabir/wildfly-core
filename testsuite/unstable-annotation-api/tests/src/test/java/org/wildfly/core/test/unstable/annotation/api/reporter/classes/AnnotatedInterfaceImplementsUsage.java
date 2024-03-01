@@ -17,8 +17,11 @@
  *
  */
 
-package org.wildfly.core.test.unstable.annotation.classes.api;
+package org.wildfly.core.test.unstable.annotation.api.reporter.classes;
 
-@Unstable
-public class TestClassWithAnnotation {
+import org.wildfly.core.test.unstable.annotation.classes.api.TestInterfaceWithAnnotation;
+
+public class AnnotatedInterfaceImplementsUsage implements TestInterfaceWithAnnotation {
+
+
 }

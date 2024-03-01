@@ -17,10 +17,11 @@
  *
  */
 
-package org.wildfly.core.test.unstable.annotation.api.reporter.classes;
+package org.wildfly.core.test.unstable.annotation.classes.api;
 
-import org.wildfly.core.test.unstable.annotation.classes.api.TestClassWithAnnotationForExtends;
+@Unstable
+public class TestClassWithAnnotationForUsage {
+    public void methodWithNoAnnotation() {
 
-public class AnnotatedClassExtendsUsage extends TestClassWithAnnotationForExtends {
-
+    }
 }

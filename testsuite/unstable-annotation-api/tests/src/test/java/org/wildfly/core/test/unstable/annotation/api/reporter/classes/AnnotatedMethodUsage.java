@@ -19,8 +19,10 @@
 
 package org.wildfly.core.test.unstable.annotation.api.reporter.classes;
 
-import org.wildfly.core.test.unstable.annotation.classes.api.TestClassWithAnnotationForExtends;
+import org.wildfly.core.test.unstable.annotation.classes.api.TestClassWithAnnotatedMethod;
 
-public class AnnotatedClassExtendsUsage extends TestClassWithAnnotationForExtends {
-
+public class AnnotatedMethodUsage {
+    public void test() {
+        TestClassWithAnnotatedMethod.annotatedMethod();
+    }
 }

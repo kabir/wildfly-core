@@ -35,6 +35,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.wildfly.core.test.unstable.annotation.api.reporter.classes.AnnotatedClassExtendsUsage;
 import org.wildfly.core.testrunner.ManagementClient;
+import org.wildfly.core.testrunner.ServerSetup;
+import org.wildfly.core.testrunner.ServerSetupTask;
 import org.wildfly.core.testrunner.WildFlyRunner;
 
 import java.io.InputStream;
@@ -42,12 +44,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.jboss.as.controller.descriptions.ModelDescriptionConstants.SYSTEM_PROPERTY;
+
 @RunWith(WildFlyRunner.class)
+@ServerSetup({UnstableAnnotationApiScannerTestCase.SystemPropertyServerSetupTask.class})
 public class UnstableAnnotationApiScannerTestCase {
 
     @Inject
@@ -98,7 +105,7 @@ public class UnstableAnnotationApiScannerTestCase {
     }
 
     @Test
-    public void testDeploymentWarning() {
+    public void testDeploymentError() {
         LogDiffer logDiffer = new LogDiffer();
         logDiffer.takeSnapshot();
         // Deploy a deployment with unstable annotations
@@ -106,7 +113,7 @@ public class UnstableAnnotationApiScannerTestCase {
     }
 
     @Test
-    public void testDeploymentError() throws Exception {
+    public void testDeploymentWarning() throws Exception {
         LogDiffer logDiffer = new LogDiffer();
         logDiffer.takeSnapshot();
 
@@ -119,27 +126,57 @@ public class UnstableAnnotationApiScannerTestCase {
             ManagementOperations.executeOperation(mcc, deploymentOp);
             List<String> newLogEntries = logDiffer.getNewLogEntries();
             Assert.assertTrue(!newLogEntries.isEmpty());
+            Assert.assertEquals(8, newLogEntries.size());
+            checkExpectedNumberClasses(newLogEntries, 6);
+
+            checkLogLine(newLogEntries.get(1), "WFLYCM0009", "deployment-with-unstable-annotations.jar");
+            checkLogLine(newLogEntries.get(2), "WFLYCM0010",
+                    "org.wildfly.core.test.unstable.annotation.api.reporter.classes.AnnotatedClassExtendsUsage",
+                    "org.wildfly.core.test.unstable.annotation.classes.api.TestClassWithAnnotationForExtends");
+            checkLogLine(newLogEntries.get(3), "WFLYCM0011",
+                    "org.wildfly.core.test.unstable.annotation.api.reporter.classes.AnnotatedInterfaceImplementsUsage",
+                    "org.wildfly.core.test.unstable.annotation.classes.api.TestInterfaceWithAnnotation");
+            checkLogLine(newLogEntries.get(4), "WFLYCM0012",
+                    "org.wildfly.core.test.unstable.annotation.api.reporter.classes.AnnotatedFieldUsage",
+                    "org.wildfly.core.test.unstable.annotation.classes.api.TestClassWithAnnotatedField.annotatedField");
+            checkLogLine(newLogEntries.get(5), "WFLYCM0013",
+                    "org.wildfly.core.test.unstable.annotation.api.reporter.classes.AnnotatedMethodUsage",
+                    "org.wildfly.core.test.unstable.annotation.classes.api.TestClassWithAnnotatedMethod.annotatedMethod()V");
+            checkLogLine(newLogEntries.get(6), "WFLYCM0014",
+                    "org.wildfly.core.test.unstable.annotation.api.reporter.classes.AnnotatedClassUsage",
+                    "org.wildfly.core.test.unstable.annotation.classes.api.TestClassWithAnnotationForUsage");
+            checkLogLine(newLogEntries.get(7), "WFLYCM0015",
+                    "org.wildfly.core.test.unstable.annotation.api.reporter.classes.AnnotatedAnnotationUsage");
+
+
         } finally {
             ManagementOperations.executeOperation(mcc, Util.createRemoveOperation(PathAddress.pathAddress("deployment", deployment.getName())));
-            ServerReload.executeReloadAndWaitForCompletion(mcc);
+            //ServerReload.executeReloadAndWaitForCompletion(mcc);
         }
 
     }
 
-    private void deployDeployment(JavaArchive deployment) throws Exception{
-        ModelControllerClient mcc = managementClient.getControllerClient();
-        Operation deploymentOp = createDeploymentOp(deployment);
-        try {
-            ManagementOperations.executeOperation(mcc, deploymentOp);
-        } catch (Exception e) {
-            ManagementOperations.executeOperation(mcc, Util.createRemoveOperation(PathAddress.pathAddress("deployment", deployment.getName())));
-            ServerReload.executeReloadAndWaitForCompletion(mcc);
+    private void checkExpectedNumberClasses(List<String> newLogEntries, int numberClasses) {
+        Assert.assertTrue(!newLogEntries.isEmpty());
+        String last = newLogEntries.get(0);
+        checkLogLine(last, "WFLYCM0016", String.valueOf(numberClasses));
+    }
+
+    private void checkLogLine(String logLine, String loggingId, String...values) {
+        int index = logLine.indexOf(loggingId);
+        Assert.assertTrue("'" + logLine + "' does not contain '" + loggingId + "'",index != -1);
+        index += loggingId.length();
+        Assert.assertTrue(index < logLine.length());
+        String valuesPart = logLine.substring(index);
+        Set<String> words = new HashSet<>(Arrays.asList(logLine.split(" ")));
+        for (String value : values) {
+            Assert.assertTrue("'" + logLine + "' does not contain '" + value + "'", words.contains(value));
         }
     }
 
     private JavaArchive createDeploymentWithUnstableAnnotations() {
         JavaArchive archive = ShrinkWrap.create(JavaArchive.class, "deployment-with-unstable-annotations.jar")
-                .addClass(AnnotatedClassExtendsUsage.class);
+                .addPackage(AnnotatedClassExtendsUsage.class.getPackage());
 
         return archive;
     }
@@ -187,5 +224,25 @@ public class UnstableAnnotationApiScannerTestCase {
             }
         }
 
+    }
+
+
+    public static class SystemPropertyServerSetupTask implements ServerSetupTask {
+        @Override
+        public void setup(ManagementClient managementClient) throws Exception {
+            ModelNode op = Util.createAddOperation(PathAddress.pathAddress(SYSTEM_PROPERTY, "org.wildfly.test.unstable-annotation-api.extra-output"));
+            op.get("value").set("true");
+            ManagementOperations.executeOperation(managementClient.getControllerClient(), op);
+            // Reload so the system property is picked up by the deployer in order to print extra information
+            // about class count
+            ServerReload.executeReloadAndWaitForCompletion(managementClient.getControllerClient());
+        }
+
+        @Override
+        public void tearDown(ManagementClient managementClient) throws Exception {
+            ModelNode op = Util.createAddOperation(PathAddress.pathAddress(SYSTEM_PROPERTY, "org.wildfly.test.unstable-annotation-api.extra-output"));
+            op.get("value").set("true");
+            managementClient.getControllerClient().execute(op);
+        }
     }
 }
