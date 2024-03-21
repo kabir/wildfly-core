@@ -26,6 +26,7 @@ import org.jboss.as.controller.operations.common.ProcessReloadHandler;
 import org.jboss.as.controller.operations.validation.EnumValidator;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
 import org.jboss.as.server.ServerEnvironment;
+import org.jboss.as.server.ServerEnvironmentStabilityUpdater;
 import org.jboss.as.server.Services;
 import org.jboss.as.server.controller.descriptions.ServerDescriptions;
 import org.jboss.as.server.logging.ServerLogger;
@@ -84,24 +85,31 @@ public class ServerProcessReloadHandler extends ProcessReloadHandler<RunningMode
 
     private final Set<String> additionalAttributes;
     private final ServerEnvironment environment;
+    private final ServerEnvironmentStabilityUpdater serverEnvironmentStabilityUpdater;
 
     protected ServerProcessReloadHandler(ServiceName rootService, RunningModeControl runningModeControl, ControlledProcessState processState, ServerEnvironment environment) {
-        this(rootService, runningModeControl, processState, environment, null);
+        this(rootService, runningModeControl, processState, environment, null, null);
     }
 
-    private ServerProcessReloadHandler(ServiceName rootService, RunningModeControl runningModeControl, ControlledProcessState processState, ServerEnvironment environment, Set<String> additionalAttributes) {
+    private ServerProcessReloadHandler(ServiceName rootService, RunningModeControl runningModeControl, ControlledProcessState processState, ServerEnvironment environment,
+                                       Set<String> additionalAttributes, ServerEnvironmentStabilityUpdater serverEnvironmentStabilityUpdater) {
         super(rootService, runningModeControl, processState);
         this.additionalAttributes = additionalAttributes == null ? Collections.emptySet() : additionalAttributes;
         this.environment = environment;
+        this.serverEnvironmentStabilityUpdater = serverEnvironmentStabilityUpdater;
     }
 
-    public static void registerStandardReloadOperation(ManagementResourceRegistration resourceRegistration, RunningModeControl runningModeControl, ControlledProcessState processState, ServerEnvironment serverEnvironment) {
+    public static void registerStandardReloadOperation(ManagementResourceRegistration resourceRegistration, RunningModeControl runningModeControl,
+                                                       ControlledProcessState processState, ServerEnvironment serverEnvironment) {
         ServerProcessReloadHandler reloadHandler = new ServerProcessReloadHandler(Services.JBOSS_AS, runningModeControl, processState, serverEnvironment);
         resourceRegistration.registerOperationHandler(ServerProcessReloadHandler.STANDARD_DEFINITION, reloadHandler, false);
     }
 
-    public static void registerEnhancedReloadOperation(ManagementResourceRegistration resourceRegistration, RunningModeControl runningModeControl, ControlledProcessState processState, ServerEnvironment serverEnvironment) {
-        ServerProcessReloadHandler reloadHandler = new ServerProcessReloadHandler(Services.JBOSS_AS, runningModeControl, processState, serverEnvironment, getAttributeNames(ENHANCED_ATTRIBUTES));
+    public static void registerEnhancedReloadOperation(ManagementResourceRegistration resourceRegistration, RunningModeControl runningModeControl,
+                                                       ControlledProcessState processState, ServerEnvironment serverEnvironment,
+                                                       ServerEnvironmentStabilityUpdater serverEnvironmentStabilityUpdater) {
+        ServerProcessReloadHandler reloadHandler = new ServerProcessReloadHandler(
+                Services.JBOSS_AS, runningModeControl, processState, serverEnvironment, getAttributeNames(ENHANCED_ATTRIBUTES), serverEnvironmentStabilityUpdater);
         resourceRegistration.registerOperationHandler(ServerProcessReloadHandler.ENHANCED_DEFINITION, reloadHandler, false);
     }
 
@@ -172,7 +180,7 @@ public class ServerProcessReloadHandler extends ProcessReloadHandler<RunningMode
                 runningModeControl.setSuspend(finalSuspend);
 
                 if (stability != null) {
-                    environment.setStability(stability);
+                    serverEnvironmentStabilityUpdater.setStability(stability);
                 }
             }
         };

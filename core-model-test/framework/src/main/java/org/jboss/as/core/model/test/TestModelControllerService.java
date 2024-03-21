@@ -407,7 +407,8 @@ class TestModelControllerService extends ModelTestModelControllerService {
                     securityIdentitySupplier,
                     AuditLogger.NO_OP_LOGGER,
                     getMutableRootResourceRegistrationProvider(),
-                    getBootErrorCollector(), capabilityRegistry));
+                    getBootErrorCollector(), capabilityRegistry,
+                    null));
         }
 
         @Override

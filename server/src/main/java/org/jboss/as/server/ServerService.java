@@ -285,7 +285,9 @@ public final class ServerService extends AbstractControllerService {
                         super.getAuditLogger(),
                         getMutableRootResourceRegistrationProvider(),
                         super.getBootErrorCollector(),
-                        configuration.getCapabilityRegistry()));
+                        configuration.getCapabilityRegistry(),
+                        new ServerEnvironmentStabilityUpdater(configuration.getServerEnvironment())
+                        ));
         super.start(context);
     }
 

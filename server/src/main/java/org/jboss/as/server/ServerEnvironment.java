@@ -1179,8 +1179,7 @@ public class ServerEnvironment extends ProcessEnvironment implements Serializabl
         }
     }
 
-    // TODO Figure out how to make this package protected
-    public void setStability(Stability stability) {
+    void setStability(Stability stability) {
         WildFlySecurityManager.setPropertyPrivileged(ProcessEnvironment.STABILITY, stability.toString());
         this.stability = stability;
     }

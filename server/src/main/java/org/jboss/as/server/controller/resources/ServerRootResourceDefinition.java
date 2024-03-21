@@ -82,6 +82,7 @@ import org.jboss.as.server.DomainServerCommunicationServices;
 import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.ServerEnvironment.LaunchType;
 import org.jboss.as.server.ServerEnvironmentResourceDescription;
+import org.jboss.as.server.ServerEnvironmentStabilityUpdater;
 import org.jboss.as.server.Services;
 import org.jboss.as.server.controller.descriptions.ServerDescriptionConstants;
 import org.jboss.as.server.controller.descriptions.ServerDescriptions;
@@ -266,6 +267,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
     private final CapabilityRegistry capabilityRegistry;
     private final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider;
     private final BootErrorCollector bootErrorCollector;
+    private final ServerEnvironmentStabilityUpdater serverEnvironmentStabilityUpdater;
 
     public ServerRootResourceDefinition(
             final ContentRepository contentRepository,
@@ -282,7 +284,8 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
             final ManagedAuditLogger auditLogger,
             final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider,
             final BootErrorCollector bootErrorCollector,
-            final CapabilityRegistry capabilityRegistry) {
+            final CapabilityRegistry capabilityRegistry,
+            ServerEnvironmentStabilityUpdater serverEnvironmentStabilityUpdater) {
         super(new Parameters(ResourceRegistration.root(), ServerDescriptions.getResourceDescriptionResolver(SERVER, false))
                 .addCapabilities(PATH_CAPABILITY.fromBaseCapability(ServerEnvironment.HOME_DIR),
                         PATH_CAPABILITY.fromBaseCapability(ServerEnvironment.SERVER_BASE_DIR),
@@ -309,6 +312,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
         this.securityIdentitySupplier = securityIdentitySupplier;
         this.rootResourceRegistrationProvider = rootResourceRegistrationProvider;
         this.bootErrorCollector = bootErrorCollector;
+        this.serverEnvironmentStabilityUpdater = serverEnvironmentStabilityUpdater;
     }
 
     @Override
@@ -415,7 +419,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
         } else {
 
             ServerProcessReloadHandler.registerStandardReloadOperation(resourceRegistration, runningModeControl, processState, serverEnvironment);
-            ServerProcessReloadHandler.registerEnhancedReloadOperation(resourceRegistration, runningModeControl, processState, serverEnvironment);
+            ServerProcessReloadHandler.registerEnhancedReloadOperation(resourceRegistration, runningModeControl, processState, serverEnvironment, serverEnvironmentStabilityUpdater);
 
             resourceRegistration.registerOperationHandler(ServerSuspendHandler.DEFINITION, ServerSuspendHandler.INSTANCE);
             resourceRegistration.registerOperationHandler(ServerResumeHandler.DEFINITION, ServerResumeHandler.INSTANCE);
