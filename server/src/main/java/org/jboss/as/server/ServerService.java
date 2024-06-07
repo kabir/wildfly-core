@@ -156,6 +156,7 @@ public final class ServerService extends AbstractControllerService {
     private final BootstrapListener bootstrapListener;
     private final ControlledProcessState processState;
     private final RunningModeControl runningModeControl;
+    private final RuntimeExpressionResolver expressionResolver;
     private volatile ExtensibleConfigurationPersister extensibleConfigurationPersister;
     private final ServerDelegatingResourceDefinition rootResourceDefinition;
     private final SuspendController suspendController;
@@ -195,6 +196,7 @@ public final class ServerService extends AbstractControllerService {
         this.runningModeControl = runningModeControl;
         this.rootResourceDefinition = rootResourceDefinition;
         this.suspendController = suspendController;
+        this.expressionResolver = expressionResolver;
     }
 
     static ProcessType getProcessType(ServerEnvironment serverEnvironment) {
@@ -287,7 +289,8 @@ public final class ServerService extends AbstractControllerService {
                         super.getAuditLogger(),
                         getMutableRootResourceRegistrationProvider(),
                         super.getBootErrorCollector(),
-                        configuration.getCapabilityRegistry()));
+                        configuration.getCapabilityRegistry(),
+                        expressionResolver));
         super.start(context);
     }
 

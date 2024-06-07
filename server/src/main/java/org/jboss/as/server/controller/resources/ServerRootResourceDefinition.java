@@ -20,6 +20,7 @@ import org.jboss.as.controller.BootErrorCollector;
 import org.jboss.as.controller.CapabilityRegistry;
 import org.jboss.as.controller.CompositeOperationHandler;
 import org.jboss.as.controller.ControlledProcessState;
+import org.jboss.as.controller.ExpressionResolver;
 import org.jboss.as.controller.ModelOnlyWriteAttributeHandler;
 import org.jboss.as.controller.ModelVersion;
 import org.jboss.as.controller.NoopOperationStepHandler;
@@ -80,7 +81,6 @@ import org.jboss.as.platform.mbean.PlatformMBeanResourceRegistrar;
 import org.jboss.as.repository.ContentRepository;
 import org.jboss.as.server.DeployerChainAddHandler;
 import org.jboss.as.server.DomainServerCommunicationServices;
-import org.jboss.as.server.RuntimeExpressionResolver;
 import org.jboss.as.server.ServerEnvironment;
 import org.jboss.as.server.ServerEnvironment.LaunchType;
 import org.jboss.as.server.ServerEnvironmentResourceDescription;
@@ -270,6 +270,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
     private final CapabilityRegistry capabilityRegistry;
     private final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider;
     private final BootErrorCollector bootErrorCollector;
+    private final ExpressionResolver expressionResolver;
 
     public ServerRootResourceDefinition(
             final ContentRepository contentRepository,
@@ -286,7 +287,8 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
             final ManagedAuditLogger auditLogger,
             final MutableRootResourceRegistrationProvider rootResourceRegistrationProvider,
             final BootErrorCollector bootErrorCollector,
-            final CapabilityRegistry capabilityRegistry) {
+            final CapabilityRegistry capabilityRegistry,
+            final ExpressionResolver expressionResolver) {
         super(new Parameters(ResourceRegistration.root(), ServerDescriptions.getResourceDescriptionResolver(SERVER, false))
                 .addCapabilities(PATH_CAPABILITY.fromBaseCapability(ServerEnvironment.HOME_DIR),
                         PATH_CAPABILITY.fromBaseCapability(ServerEnvironment.SERVER_BASE_DIR),
@@ -313,6 +315,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
         this.securityIdentitySupplier = securityIdentitySupplier;
         this.rootResourceRegistrationProvider = rootResourceRegistrationProvider;
         this.bootErrorCollector = bootErrorCollector;
+        this.expressionResolver = expressionResolver;
     }
 
     @Override
@@ -437,8 +440,6 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
                 resourceRegistration.registerOperationHandler(ServerShutdownHandler.DEFINITION, serverShutdownHandler);
 
             }
-            resourceRegistration.registerSubModel(ServerEnvironmentResourceDescription.of(serverEnvironment));
-            resourceRegistration.registerSubModel(new SynchronizationResourceDefinition(extensionRegistry, new RuntimeExpressionResolver(vaultReader)));
         }
 
     }
@@ -493,6 +494,7 @@ public class ServerRootResourceDefinition extends SimpleResourceDefinition {
 
         // Server environment
         resourceRegistration.registerSubModel(ServerEnvironmentResourceDescription.of(serverEnvironment));
+        resourceRegistration.registerSubModel(new SynchronizationResourceDefinition(extensionRegistry, expressionResolver));
 
         // System Properties
         resourceRegistration.registerSubModel(SystemPropertyResourceDefinition.createForStandaloneServer(serverEnvironment));

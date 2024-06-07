@@ -104,38 +104,35 @@ public class SynchronizationResourceDefinition extends SimpleResourceDefinition 
                 .build();
 
     private final ExtensionRegistry extensionRegistry;
-    private final ExpressionResolver resolver;
     private static final AttributeDefinition[] ATTRIBUTES = new AttributeDefinition[] {HOST, PORT, PROTOCOL, USERNAME, PASSWORD, CREDENTIAL_REFERENCE};
+    private final ExpressionResolver expressionResolver;
 
-    public SynchronizationResourceDefinition(ExtensionRegistry extensionRegistry, ExpressionResolver resolver) {
+    public SynchronizationResourceDefinition(ExtensionRegistry extensionRegistry, ExpressionResolver expressionResolver) {
         super(new Parameters(PathElement.pathElement("synchronization", "simple"), ServerDescriptions.getResourceDescriptionResolver(SERVER, "synchronization"))
         .setCapabilities(SYNCHRONIZATION_CAPABILITY)
         .setFeature(false));
         this.extensionRegistry = extensionRegistry;
-        this.resolver = resolver;
+        this.expressionResolver = expressionResolver;
     }
 
     @Override
     public void registerAttributes(ManagementResourceRegistration resourceRegistration) {
         super.registerAttributes(resourceRegistration);
         for (AttributeDefinition attribute : ATTRIBUTES) {
-            resourceRegistration.registerReadWriteAttribute(attribute, null, new ReloadRequiredWriteAttributeHandler(attribute));
+            resourceRegistration.registerReadWriteAttribute(attribute, null, ReloadRequiredWriteAttributeHandler.INSTANCE);
         }
     }
 
     @Override
     public void registerOperations(ManagementResourceRegistration resourceRegistration) {
         super.registerOperations(resourceRegistration);
-        this.registerAddOperation(resourceRegistration, new SynchronizationResourceAddHandler(ATTRIBUTES));
+        this.registerAddOperation(resourceRegistration, new SynchronizationResourceAddHandler());
         resourceRegistration.registerOperationHandler(SynchronizationWrapperHandler.DEFINITION, new SynchronizationWrapperHandler());
         resourceRegistration.registerOperationHandler(ScriptModelDiffWrapplerHandler.DEFINITION, new ScriptModelDiffWrapplerHandler());
     }
 
     private class SynchronizationResourceAddHandler extends AbstractAddStepHandler {
 
-        public SynchronizationResourceAddHandler(AttributeDefinition... attributes) {
-            super(attributes);
-        }
 
         @Override
         protected void performRuntime(OperationContext context, ModelNode operation, Resource resource) throws OperationFailedException {
@@ -162,7 +159,8 @@ public class SynchronizationResourceDefinition extends SimpleResourceDefinition 
                     }
                 }
             });
-            SynchronizationService.addService(context, builder.build(), extensionRegistry, resolver);
+
+            SynchronizationService.addService(context, builder.build(), extensionRegistry, expressionResolver);
         }
 
         @Override
