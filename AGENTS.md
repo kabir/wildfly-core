@@ -1,5 +1,7 @@
 # WildFly Core
 
+> Note: `CLAUDE.md` is a symlink to this file. Do not create or edit them independently.
+
 WildFly Core is the core runtime of the WildFly application server. It provides the kernel, management layer, and foundational subsystems on which WildFly is built.
 
 ## Project basics
@@ -75,6 +77,15 @@ mvn clean install -pl testsuite/standalone -DskipTests=false
 Detailed guides on specific topics live in `.agents/deep-dives/`:
 
 - [Subsystem Development](.agents/deep-dives/subsystem-development.md) -- adding/modifying resources, attributes, operations, XML schemas, model versioning, transformers, and testing.
+
+## WildFly documentation
+
+All end-user and admin documentation lives in the WildFly repository, not here. When you need context on how subsystems are configured or used:
+- [WildFly Documentation Index](https://raw.githubusercontent.com/kabir/wildfly/ai-index/docs/src/main/asciidoc/llms.txt)
+
+Particularly relevant sections:
+- **Extending WildFly** -- conceptual docs on the extension API, capabilities, and key interfaces (complements the pattern-specific deep dives above)
+- **Admin Guide** -- how subsystem configuration appears to users
 
 ## Contributing
 

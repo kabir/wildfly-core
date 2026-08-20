@@ -1,0 +1,10 @@
+# WildFly Core
+
+> WildFly Core is the core runtime of the WildFly application server. It provides the kernel, management layer, and foundational subsystems. This documentation covers subsystem development patterns and the internal framework APIs.
+
+## Subsystem Development
+
+- [Subsystem Development Guide](.agents/deep-dives/subsystem-development.md): Adding and modifying resources, attributes, operations, XML schemas, model versioning, transformers, and testing
+- [New Pattern](.agents/deep-dives/subsystem-pattern-new.md): SubsystemExtension / SubsystemResourceXMLSchema pattern (e.g. IO subsystem)
+- [Intermediate Pattern](.agents/deep-dives/subsystem-pattern-intermediate.md): PersistentSubsystemSchema / PersistentResourceXMLDescription pattern (e.g. Undertow)
+- [Legacy Pattern](.agents/deep-dives/subsystem-pattern-legacy.md): Manual StAX parser pattern (e.g. Deployment Scanner, Logging)
