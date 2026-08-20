@@ -78,14 +78,13 @@ Detailed guides on specific topics live in `.agents/deep-dives/`:
 
 - [Subsystem Development](.agents/deep-dives/subsystem-development.md) -- adding/modifying resources, attributes, operations, XML schemas, model versioning, transformers, and testing.
 
-## WildFly documentation
+## Ecosystem Context & Cross-Repo Routing
 
-All end-user and admin documentation lives in the WildFly repository, not here. When you need context on how subsystems are configured or used:
-- [WildFly Documentation Index](https://raw.githubusercontent.com/kabir/wildfly/ai-index/docs/src/main/asciidoc/llms.txt)
-
-Particularly relevant sections:
-- **Extending WildFly** -- conceptual docs on the extension API, capabilities, and key interfaces (complements the pattern-specific deep dives above)
-- **Admin Guide** -- how subsystem configuration appears to users
+- **Local Tasks:** For core controller, CLI, low-level management model, and core subsystem parser tasks, consult local instructions in this repository and `.agents/deep-dives/`.
+- **Cross-Repository & End-User Docs:** All end-user, administrative, and full distribution documentation lives outside this repository. For cross-repo context or end-user usage patterns, consult the [WildFly Central AI Hub](https://raw.githubusercontent.com/kabir/wildfly-ai-context/main/llms.txt) and look up the target project:
+    - *End-user subsystem configuration, Jakarta EE APIs, or Elytron security* $\rightarrow$ Navigate to **WildFly Full** (specifically the *Admin Guide* or *Developer Guide*).
+    - *Conceptual subsystem extension models & capability APIs* $\rightarrow$ Navigate to **WildFly Full** (*Extending WildFly* section).
+    - *Provisioning rules, feature-packs, or plugin tooling* $\rightarrow$ Navigate to **WildFly Glow** or **WildFly Maven Plugin**.
 
 ## Contributing
 
