@@ -70,6 +70,12 @@ mvn clean install -pl testsuite/standalone -DskipTests=false
 - The controller module is the heart of the project -- it handles operation execution, the model, and service container integration.
 - `core-feature-pack` packages everything into a Galleon feature pack consumed by WildFly.
 
+## Deep dives
+
+Detailed guides on specific topics live in `.agents/deep-dives/`:
+
+- [Subsystem Development](.agents/deep-dives/subsystem-development.md) -- adding/modifying resources, attributes, operations, XML schemas, model versioning, transformers, and testing.
+
 ## Contributing
 
 - PRs go to the `master` branch.
